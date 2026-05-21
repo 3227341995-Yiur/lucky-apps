@@ -462,6 +462,7 @@ const defaultConfig = [
 ]
 
 window.selectReport = selectReport
+window.getReports = () => reports.value
 </script>
 
 <template>

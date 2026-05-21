@@ -275,8 +275,10 @@
     // 获取周报数据
     function getWeeklyReports() {
         try {
-            const reports = localStorage.getItem('weeklyReports');
-            return reports ? JSON.parse(reports) : [];
+            if (typeof window.getReports === 'function') {
+                return window.getReports();
+            }
+            return [];
         } catch (error) {
             console.error('获取周报数据失败:', error);
             return [];
