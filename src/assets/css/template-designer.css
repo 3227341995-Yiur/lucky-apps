@@ -1,0 +1,499 @@
+/* ============================================
+   模板设计器样式
+   ============================================ */
+
+/* 设计器覆盖层 */
+.template-designer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 设计器容器 */
+.template-designer {
+  width: 95%;
+  height: 90%;
+  max-width: 1400px;
+  background: var(--sidebar-bg, #f5f7fa);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 设计器头部 */
+.designer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid var(--border-color, #e6e8eb);
+}
+
+.designer-header .header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-color, #409EFF);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.designer-header .header-title i {
+  font-size: 20px;
+}
+
+.designer-header .header-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.designer-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 模板选择下拉框 */
+.template-selector {
+  min-width: 200px;
+}
+
+.template-selector :deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+/* 设计器主体 */
+.designer-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ============================================
+   左侧组件面板
+   ============================================ */
+.component-panel {
+  width: 260px;
+  background: white;
+  border-right: 1px solid var(--border-color, #e6e8eb);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color, #e6e8eb);
+}
+
+.panel-section:last-child {
+  border-bottom: none;
+}
+
+.panel-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #909399;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.component-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.draggable-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--sidebar-bg, #f5f7fa);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.draggable-item:hover {
+  background: #e6effe;
+  border-color: rgba(64, 158, 255, 0.3);
+}
+
+.draggable-item:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.draggable-item i {
+  font-size: 16px;
+  color: var(--primary-color, #409EFF);
+  width: 20px;
+  text-align: center;
+}
+
+.draggable-item span {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.draggable-item.dragging {
+  opacity: 0.5;
+  border: 2px dashed var(--primary-color, #409EFF);
+}
+
+/* ============================================
+   中间画布区域
+   ============================================ */
+.canvas-area {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--editor-bg, #f8f9fa);
+}
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.canvas-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  border: 2px dashed #dcdfe6;
+  border-radius: 12px;
+  background: white;
+  color: #909399;
+  transition: all 0.3s ease;
+}
+
+.canvas-empty.drag-over {
+  border-color: var(--primary-color, #409EFF);
+  background: rgba(64, 158, 255, 0.05);
+}
+
+.canvas-empty i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #dcdfe6;
+}
+
+.canvas-empty p {
+  font-size: 16px;
+}
+
+/* 画布区块 */
+.canvas-section {
+  background: white;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.canvas-section:hover {
+  border-color: rgba(64, 158, 255, 0.3);
+}
+
+.canvas-section.selected {
+  border-color: var(--primary-color, #409EFF);
+  box-shadow: 0 0 0 4px rgba(64, 158, 255, 0.15);
+}
+
+.canvas-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #fff 100%);
+  border-bottom: 1px solid var(--border-color, #e6e8eb);
+  cursor: pointer;
+}
+
+.canvas-section-header:hover {
+  background: linear-gradient(135deg, #e6effe 0%, #f5f7fa 100%);
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-header-left i {
+  font-size: 18px;
+  color: var(--primary-color, #409EFF);
+}
+
+.section-title-input {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 4px;
+  outline: none;
+  min-width: 120px;
+}
+
+.section-title-input:focus {
+  background: white;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+}
+
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.canvas-section:hover .section-header-actions {
+  opacity: 1;
+}
+
+/* 画布列 */
+.canvas-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  min-height: 80px;
+}
+
+.canvas-column {
+  min-width: 120px;
+  max-width: 200px;
+  padding: 12px;
+  background: var(--sidebar-bg, #f5f7fa);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.canvas-column:hover {
+  background: #e6effe;
+  border-color: rgba(64, 158, 255, 0.3);
+}
+
+.canvas-column.selected {
+  background: #d9ecff;
+  border-color: var(--primary-color, #409EFF);
+}
+
+.column-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.column-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prop-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: white;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  color: #606266;
+}
+
+.component-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--primary-color, #409EFF);
+  border-radius: 4px;
+  color: white;
+}
+
+/* 列拖放区 */
+.column-drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  height: 60px;
+  border: 2px dashed #dcdfe6;
+  border-radius: 8px;
+  color: #909399;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.column-drop-zone:hover,
+.column-drop-zone.drag-over {
+  border-color: var(--primary-color, #409EFF);
+  background: rgba(64, 158, 255, 0.05);
+  color: var(--primary-color, #409EFF);
+}
+
+/* ============================================
+   右侧属性面板
+   ============================================ */
+.properties-panel {
+  width: 320px;
+  background: white;
+  border-left: 1px solid var(--border-color, #e6e8eb);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.properties-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #e6e8eb);
+}
+
+.properties-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.properties-content {
+  padding: 16px 20px;
+  flex: 1;
+}
+
+.no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #909399;
+  text-align: center;
+}
+
+.no-selection i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #dcdfe6;
+}
+
+/* 属性分组 */
+.property-group {
+  margin-bottom: 24px;
+}
+
+.property-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-color, #409EFF);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #e6e8eb);
+}
+
+.property-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.property-row label {
+  width: 80px;
+  font-size: 13px;
+  color: #606266;
+  flex-shrink: 0;
+}
+
+.property-row .el-input,
+.property-row .el-select {
+  flex: 1;
+}
+
+/* ============================================
+   拖拽状态
+   ============================================ */
+.drag-over {
+  background: rgba(64, 158, 255, 0.1) !important;
+  border: 2px dashed var(--primary-color, #409EFF) !important;
+}
+
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.8;
+  transform: rotate(3deg);
+}
+
+/* ============================================
+   动画效果
+   ============================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.template-designer {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ============================================
+   响应式
+   ============================================ */
+@media (max-width: 1200px) {
+  .component-panel {
+    width: 220px;
+  }
+
+  .properties-panel {
+    width: 280px;
+  }
+}
+
+@media (max-width: 992px) {
+  .designer-body {
+    flex-direction: column;
+  }
+
+  .component-panel,
+  .properties-panel {
+    width: 100%;
+    max-height: 200px;
+  }
+}
