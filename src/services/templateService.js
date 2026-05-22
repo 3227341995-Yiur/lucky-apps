@@ -116,7 +116,7 @@ export function createMarkdownTemplateData() {
  */
 export async function getAllTemplates() {
   const db = await initDatabase()
-  const rows = await db.select(`SELECT * FROM ${TABLE_NAME} ORDER BY isSystem DESC, updatedAt DESC`)
+  const rows = await db.select(`SELECT * FROM ${TABLE_NAME} ORDER BY isSystem DESC, createdAt DESC`)
   const templates = rows.map(row => ({
     id: row.id,
     name: row.name,

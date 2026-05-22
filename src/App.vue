@@ -180,15 +180,8 @@ const handleGlobalKeydown = (e) => {
   }
 }
 
-// 打开导出模板列表
-let templateListInstance = null
-
 const openTemplateDesigner = () => {
-  if (templateListInstance) {
-    templateListInstance.close()
-    templateListInstance = null
-  }
-  templateListInstance = $modal.open(ExportTemplateList, {
+  const templateListInstance = $modal.open(ExportTemplateList, {
     attrs: {},
     listeners: {
       edit: (template) => {
