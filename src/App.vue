@@ -1,7 +1,6 @@
 <script setup>
 import { inject, ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import Vditor from 'vditor'
 import DynamicTable from '@/components/DynamicTable.vue'
 import ConfigEditor from '@/components/ConfigEditor.vue'
 import TemplateDesigner from '@/components/TemplateDesigner/index.vue'
