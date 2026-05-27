@@ -259,12 +259,10 @@ async function loadExternalResources() {
     for (const file of compFiles) {
       const filePath = (await join(compsDir, file.name)).split('\\').join('/')
       if (file.name.endsWith('.js')) {
+        const assetUrl = buildAssetUrl(resDir, 'resources/js/' + file.name)
         const compName = file.name.replace('.js', '')
-        const content = await readTextFile(filePath, { baseDir: BaseDirectory.Resource })
 
-        const blob = new Blob([content], { type: 'application/javascript' })
-        const url = URL.createObjectURL(blob)
-        components[compName] = defineAsyncComponent(() => import(url))
+        components[compName] = defineAsyncComponent(() => import(assetUrl))
       }
       if (file.name.endsWith('.cslot.vue')) {
         const compName = file.name.replace('.cslot.vue', '')

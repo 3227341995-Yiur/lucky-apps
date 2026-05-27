@@ -457,7 +457,14 @@ window.selectReport = selectReport
 window.getReports = () => reports.value
 </script>
 
-<template>
+<template
+  v-contextmenu:config
+  @contextmenu-config-modify="modifyConfig"
+  @contextmenu-config-show="showConfig"
+  @contextmenu-config-clear="clearConfig"
+  @contextmenu-config-weekly-import="importWeekly"
+  @contextmenu-config-weekly-export="exportWeekly"
+>
   <!-- 左侧边栏 -->
   <div class="sidebar">
     <div class="sidebar-header">
@@ -510,15 +517,7 @@ window.getReports = () => reports.value
   </div>
 
   <!-- 右侧主内容区 -->
-  <div
-      class="main-content"
-      v-contextmenu:config
-      @contextmenu-config-modify="modifyConfig"
-      @contextmenu-config-show="showConfig"
-      @contextmenu-config-clear="clearConfig"
-      @contextmenu-config-weekly-import="importWeekly"
-      @contextmenu-config-weekly-export="exportWeekly"
-  >
+  <div class="main-content">
     <template v-if="currentReport">
       <div class="content-header">
         <div class="header-left">
