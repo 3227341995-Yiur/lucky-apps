@@ -1,13 +1,15 @@
 import { ref, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { compileTemplate, compileScript, compileStyle, parse, rewriteDefault } from '@vue/compiler-sfc'
-import { readDir, readTextFile, BaseDirectory } from '@tauri-apps/plugin-fs'
-import { join, resourceDir } from '@tauri-apps/api/path'
+import { readDir, readTextFile, writeTextFile, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs'
+import { join, resourceDir, appDataDir } from '@tauri-apps/api/path'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { transform } from '@babel/standalone'
 import BaseDialog from '@/components/BaseDialog.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ColumnCard from '@/components/ColumnCard.vue'
 import Vditor from 'vditor'
+
+const TEMP_VUE_DIR = 'vue-sfc'
 
 // 工具函数：清理 Windows 长路径前缀
 function cleanPath(path) {
@@ -18,6 +20,18 @@ function cleanPath(path) {
 function buildAssetUrl(basePath, subPath) {
   const fullPath = cleanPath(basePath + '/' + subPath)
   return convertFileSrc(fullPath)
+}
+
+// 工具函数：获取临时 Vue 文件目录
+async function getTempVueDir() {
+  const vueTempPath = await join(await appDataDir(), TEMP_VUE_DIR)
+  try {
+    // 确保目录存在
+    await mkdir(TEMP_VUE_DIR, { recursive: true, baseDir: BaseDirectory.AppData })
+  } catch (e) {
+    // 目录已存在，忽略错误
+  }
+  return vueTempPath
 }
 
 // 定义全局 import map
@@ -136,9 +150,8 @@ function importMapPlugin() {
   }
 }
 
-function loadVueBlobUrl(file, content) {
-  const id = Date.now().toString()
-  const scopeId = `data-v-${id}`
+async function loadVueFile(file, content) {
+  const scopeId = `data-v-${file.name}`
 
   const { descriptor } = parse(content)
 
@@ -151,6 +164,20 @@ function loadVueBlobUrl(file, content) {
     })
 
     let scriptCode = rewriteDefault(script.content, '__sfc_main__', ['typescript', 'jsx'])
+
+    // 移除 defineModel 导入（Vue 3.5+ 是编译器宏，无需导入）
+    scriptCode = scriptCode
+      .replace(/import\s+defineModel\s+from\s+['"][^'"]+['"][;\n]*/g, '')
+      .replace(/import\s+\{[^}]*?\bdefineModel[^}]*?\}\s+from\s+['"][^'"]+['"][;\n]*/g, (match) => {
+        if (/^\s*import\s+\{[^}]*?\bdefineModel[^}]*?\}\s*from/.test(match.trim())) {
+          return ''
+        }
+        return match.replace(/\bdefineModel,\s*/g, '').replace(/,\s*defineModel\b/g, '')
+      })
+      .replace(/import\s+\{[^}]*?\bdefineModel[^}]*?\}\s*from\s+['"][^'"]+['"]/g, (match) => {
+        const names = match.match(/\{([^}]*)\}/)[1].split(',').map(n => n.trim()).filter(n => n && n !== 'defineModel')
+        return names.length ? match.replace(/\{[^}]*\}/, `{${names.join(', ')}}`) : ''
+      })
 
     // 特殊处理 setup 语法
     if (descriptor.scriptSetup) {
@@ -205,8 +232,16 @@ function loadVueBlobUrl(file, content) {
     ],
     filename: file.name
   })
-  const blob = new Blob([code], { type: 'application/javascript' })
-  return URL.createObjectURL(blob)
+
+  // 写入临时目录，用原文件名
+  const vueTempDir = await getTempVueDir()
+  const jsFileName = `${file.name}.js`
+  const jsFilePath = await join(vueTempDir, jsFileName)
+  await writeTextFile(jsFilePath, code, { baseDir: BaseDirectory.AppData })
+
+  // 返回 convertFileSrc URL（不是 blob URL）
+  const cleanPath = jsFilePath.replace(/^\\\\\?\\.*?_root_/, '').replace(/_root_/g, '').replace(/\\/g, '/')
+  return convertFileSrc(cleanPath)
 }
 
 async function loadExternalResources() {
@@ -267,17 +302,15 @@ async function loadExternalResources() {
       if (file.name.endsWith('.cslot.vue')) {
         const compName = file.name.replace('.cslot.vue', '')
         const content = await readTextFile(filePath, { baseDir: BaseDirectory.Resource })
-        const url = loadVueBlobUrl(file, content)
+        const url = await loadVueFile(file, content)
         const module = await import(url)
-        URL.revokeObjectURL(url)
 
         columnSlots[compName] = defineAsyncComponent(() => Promise.resolve(module))
       } else if (file.name.endsWith('.vue')) {
         const compName = file.name.replace('.vue', '')
         const content = await readTextFile(filePath, { baseDir: BaseDirectory.Resource })
-        const url = loadVueBlobUrl(file, content)
+        const url = await loadVueFile(file, content)
         const module = await import(url)
-        URL.revokeObjectURL(url)
 
         components[compName] = defineAsyncComponent(() => Promise.resolve(module))
       }
