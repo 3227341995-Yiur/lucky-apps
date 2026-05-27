@@ -1,24 +1,38 @@
 import { ref, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue'
 import { compileTemplate, compileScript, compileStyle, parse, rewriteDefault } from '@vue/compiler-sfc'
 import { readDir, readTextFile, BaseDirectory } from '@tauri-apps/plugin-fs'
-import { resourceDir, join } from '@tauri-apps/api/path'
+import { join, resourceDir } from '@tauri-apps/api/path'
+import { convertFileSrc } from '@tauri-apps/api/core'
 import { transform } from '@babel/standalone'
 import BaseDialog from '@/components/BaseDialog.vue'
 import CodeEditor from '@/components/CodeEditor.vue'
 import ColumnCard from '@/components/ColumnCard.vue'
 import Vditor from 'vditor'
 
+// 工具函数：清理 Windows 长路径前缀
+function cleanPath(path) {
+  return path.replace(/^\\\\\?\\.*?_root_/, '').replace(/_root_/g, '').replace(/\\/g, '/')
+}
+
+// 工具函数：构建 asset URL
+function buildAssetUrl(basePath, subPath) {
+  const fullPath = cleanPath(basePath + '/' + subPath)
+  return convertFileSrc(fullPath)
+}
+
+// 定义全局 import map
 window.Vue = await import('vue')
 window.ElementPlus = await import('element-plus')
 window.TauriApi = await import('@tauri-apps/api')
 window.TauriFs = await import('@tauri-apps/plugin-fs')
+window.Handlebars = await import('handlebars')
 
-// 定义全局 import map
 const importMap = {
   'vue': 'window.Vue',
   'element-plus': 'window.ElementPlus',
   '@tauri-apps/api': 'window.TauriApi',
-  '@tauri-apps/plugin-fs': 'window.TauriFs'
+  '@tauri-apps/plugin-fs': 'window.TauriFs',
+  'handlebars': 'window.Handlebars'
 }
 
 // Babel 插件：转换 import 语句
@@ -196,53 +210,41 @@ function loadVueBlobUrl(file, content) {
 }
 
 async function loadExternalResources() {
-  const baseDir = 'resources'
+  const resDir = await resourceDir()
 
-  // 1. 动态加载CSS
+  // 1. 加载CSS
   try {
-    const cssDir = await join(baseDir, 'css')
-    const cssFiles = await readDir(cssDir, { baseDir: BaseDirectory.Resource })
+    const cssFiles = await readDir('resources/css', { baseDir: BaseDirectory.Resource })
+
     for (const file of cssFiles) {
       if (file.name.endsWith('.css')) {
-        const filePath = (await join(cssDir, file.name)).split('\\').join('/')
-        const content = await readTextFile(filePath, { baseDir: BaseDirectory.Resource })
-        const blob = new Blob([content], { type: 'text/css' })
-        const url = URL.createObjectURL(blob)
-
+        const assetUrl = buildAssetUrl(resDir, 'resources/css/' + file.name)
         const link = document.createElement('link')
         link.rel = 'stylesheet'
-        link.href = url
+        link.href = assetUrl
         document.head.appendChild(link)
-        URL.revokeObjectURL(url)
       }
     }
   } catch (error) {
     console.error('加载CSS资源失败:', error)
   }
 
-  // 2. 动态加载JS
+  // 2. 加载JS
   try {
-    const jsDir = await join(baseDir, 'js')
-    const jsFiles = await readDir(jsDir, { baseDir: BaseDirectory.Resource })
+    const jsFiles = await readDir('resources/js', { baseDir: BaseDirectory.Resource })
     for (const file of jsFiles) {
       if (file.name.endsWith('.js')) {
-        const suffix = file.name.split('.')
-        const filePath = (await join(jsDir, file.name)).split('\\').join('/')
-        const content = await readTextFile(filePath, { baseDir: BaseDirectory.Resource })
-        const blob = new Blob([content], { type: 'application/javascript' })
-        const url = URL.createObjectURL(blob)
+        const assetUrl = buildAssetUrl(resDir, 'resources/js/' + file.name)
 
         const script = document.createElement('script')
-        script.src = url
-        if (suffix.includes('async')) {
+        script.src = assetUrl
+        if (file.name.includes('async')) {
           script.async = true
         }
-        if (suffix.includes('module')) {
+        if (file.name.includes('module')) {
           script.type = 'module'
         }
-
         document.head.appendChild(script)
-        URL.revokeObjectURL(url)
       }
     }
   } catch (error) {
@@ -251,7 +253,7 @@ async function loadExternalResources() {
 
   // 3. 动态加载Vue组件
   try {
-    const compsDir = await join(baseDir, 'comps')
+    const compsDir = await join('resources', 'comps')
     const compFiles = await readDir(compsDir, { baseDir: BaseDirectory.Resource })
 
     for (const file of compFiles) {
