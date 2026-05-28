@@ -5,7 +5,7 @@ import DynamicTable from '@/components/DynamicTable.vue'
 import ConfigEditor from '@/components/ConfigEditor.vue'
 import TemplateDesigner from '@/components/TemplateDesigner/index.vue'
 import ExportTemplateList from '@/components/TemplateDesigner/ExportTemplateList.vue'
-import { loadAllReports, loadReportSections, saveReport, deleteReportById } from '@/services/database'
+import { loadAllReports, loadReportSections, saveReport, deleteReportById, getTotalReportCount, getTotalWorkItemCount } from '@/services/database'
 import { ensureDefaultTemplate, getDefaultTemplate } from '@/services/templateService'
 import { generateId } from '@/utils/idGenerator'
 import { renderHtml, renderMarkdown } from '@/utils/templateRenderer'
@@ -23,16 +23,12 @@ const hasMore = ref(true)
 const pageSize = 10
 let pageOffset = 0
 const scrollbarRef = ref(null)
+const totalReportCount = ref(0)
+const totalWorkItemCount = ref(0)
 
 // 计算总工作项数
 const totalItems = computed(() => {
-  return reports.value.reduce((total, report) => {
-    // 遍历每个报表的所有sections
-    return total + report.sections.reduce((sectionTotal, section) => {
-      // 累加每个section的items数量
-      return sectionTotal + (section.items?.length || 0)
-    }, 0)
-  }, 0)
+  return totalWorkItemCount.value
 })
 
 // 初始化
@@ -40,6 +36,9 @@ onMounted(async () => {
   try {
     await ensureDefaultTemplate()
     dbReady.value = true
+    // 加载总数
+    totalReportCount.value = await getTotalReportCount()
+    totalWorkItemCount.value = await getTotalWorkItemCount()
     await loadReports()
     // 初始化滚动监听
     nextTick(() => {
@@ -507,8 +506,8 @@ const defaultConfig = [
 ]
 
 window.selectReport = selectReport
-window.getReports = () => reports.value
 window.loadReportSections = loadReportSections
+window.loadAllReports = loadAllReports
 </script>
 
 <template>
@@ -631,7 +630,7 @@ window.loadReportSections = loadReportSections
 
         <div class="stats-container">
           <div class="stat-card">
-            <div class="stat-value">{{ reports.length }}</div>
+            <div class="stat-value">{{ totalReportCount }}</div>
             <div class="stat-label">已创建周报</div>
           </div>
           <div class="stat-card">

@@ -273,10 +273,10 @@
     }
 
     // 获取周报数据
-    function getWeeklyReports() {
+    async function getWeeklyReports() {
         try {
-            if (typeof window.getReports === 'function') {
-                return window.getReports();
+            if (typeof window.loadAllReports === 'function') {
+                return await window.loadAllReports();
             }
             return [];
         } catch (error) {
@@ -574,7 +574,7 @@
         resultsContainer.innerHTML = '';
 
         // 获取周报数据
-        const weeklyReports = getWeeklyReports();
+        const weeklyReports = await getWeeklyReports();
 
         // 如果没有查询词，显示最近的报告
         if (!query) {

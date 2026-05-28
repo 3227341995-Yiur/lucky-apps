@@ -181,6 +181,27 @@ async function migrateFromLocalStorage() {
   await setMeta('migrated_from_localStorage', 'true')
 }
 
+export async function getTotalReportCount() {
+  const result = await database.select('SELECT COUNT(*) as count FROM reports')
+  return result[0]?.count || 0
+}
+
+export async function getTotalWorkItemCount() {
+  const rows = await database.select('SELECT sections FROM reports')
+  let total = 0
+  for (const row of rows) {
+    try {
+      const sections = JSON.parse(row.sections)
+      for (const section of sections) {
+        total += section.items?.length || 0
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+  }
+  return total
+}
+
 export async function loadAllReports({ limit = 10, offset = 0 } = {}) {
   const rows = await database.select(
     'SELECT id, title, dateRange, created_at, updated_at FROM reports ORDER BY id DESC LIMIT $1 OFFSET $2',
