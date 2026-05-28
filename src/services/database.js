@@ -1,7 +1,5 @@
 import Database from '@tauri-apps/plugin-sql'
 
-let db = null
-
 const DB_NAME = 'sqlite:week_report.db'
 
 const SCHEMA = `
@@ -37,24 +35,31 @@ CREATE TABLE IF NOT EXISTS templates (
 );
 `
 
+// 加载 js 文件时自动执行初始化
+console.log('[DB] Loading database:', DB_NAME)
+export const database = await Database.load(DB_NAME)
+console.log('[DB] Database loaded successfully')
+await initDatabase()
+
 export async function initDatabase() {
-  if (db) return db
-
   try {
-    console.log('[DB] Loading database:', DB_NAME)
-    db = await Database.load(DB_NAME)
-    console.log('[DB] Database loaded successfully')
-
-    const statements = SCHEMA.split(';').filter(s => s.trim())
-    for (const stmt of statements) {
-      if (stmt.trim()) {
-        await db.execute(stmt)
+    // 检查是否已执行过初始化
+    const initialized = await getMeta('db_initialized_v1')
+    if (initialized) {
+      console.log('[DB] Initialization already completed, skipping')
+    } else {
+      const statements = SCHEMA.split(';').filter(s => s.trim())
+      for (const stmt of statements) {
+        if (stmt.trim()) {
+          await database.execute(stmt)
+        }
       }
+      await setMeta('db_initialized_v1', 'true')
+      console.log('[DB] Schema initialized')
     }
-    console.log('[DB] Schema initialized')
 
-    await migrateReportsSchema(db)
-    await migrateFromLocalStorage(db)
+    await migrateReportsSchema()
+    await migrateFromLocalStorage()
   } catch (error) {
     console.error('[DB] Error initializing database:', error)
     throw error
@@ -62,7 +67,7 @@ export async function initDatabase() {
 }
 
 // 迁移 reports 表结构（旧 data 列拆分为 title, dateRange, sections）
-async function migrateReportsSchema(database) {
+async function migrateReportsSchema() {
   const schemaMigrated = await getMeta('migrated_reports_schema_v2')
   if (schemaMigrated) {
     console.log('[DB] Reports schema migration skipped (already migrated)')
@@ -177,7 +182,6 @@ async function migrateFromLocalStorage() {
 }
 
 export async function loadAllReports({ limit = 10, offset = 0 } = {}) {
-  const database = await initDatabase()
   const rows = await database.select(
     'SELECT id, title, dateRange, created_at, updated_at FROM reports ORDER BY id DESC LIMIT $1 OFFSET $2',
     [limit, offset]
@@ -193,7 +197,6 @@ export async function loadAllReports({ limit = 10, offset = 0 } = {}) {
 }
 
 export async function loadReportSections(id) {
-  const database = await initDatabase()
   const rows = await database.select('SELECT sections FROM reports WHERE id = $1', [id])
   if (rows.length > 0) {
     return JSON.parse(rows[0].sections)
@@ -202,7 +205,6 @@ export async function loadReportSections(id) {
 }
 
 export async function saveReport(report) {
-  const database = await initDatabase()
   const now = Date.now()
 
   // 检查是否已存在
@@ -225,12 +227,10 @@ export async function saveReport(report) {
 }
 
 export async function deleteReportById(id) {
-  const database = await initDatabase()
   await database.execute('DELETE FROM reports WHERE id = $1', [id])
 }
 
 export async function loadConfig() {
-  const database = await initDatabase()
   const rows = await database.select('SELECT data FROM config WHERE id = 1')
   if (rows.length > 0) {
     return rows[0].data
@@ -239,7 +239,6 @@ export async function loadConfig() {
 }
 
 export async function saveConfig(configData) {
-  const database = await initDatabase()
   const now = Date.now()
 
   await database.execute(
@@ -250,16 +249,15 @@ export async function saveConfig(configData) {
 }
 
 async function getMeta(key) {
-  const database = await initDatabase()
   const rows = await database.select('SELECT value FROM meta WHERE key = $1', [key])
   return rows.length > 0 ? rows[0].value : null
 }
 
 async function setMeta(key, value) {
-  const database = await initDatabase()
   await database.execute(
     `INSERT INTO meta (key, value) VALUES ($1, $2)
      ON CONFLICT(key) DO UPDATE SET value = $2`,
     [key, value]
   )
 }
+

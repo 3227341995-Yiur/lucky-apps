@@ -16,12 +16,15 @@ const props = defineProps({
 })
 
 onUpdated(() => {
+  if (!props.items || props.items.length === 0) return
+  const firstItem = props.items[0]
+  if (!firstItem) return
   props.columns.forEach(col => {
-    if (!props.items[0][col.prop] && col.defaultValue) {
+    if (!firstItem[col.prop] && col.defaultValue) {
       try {
-        props.items[0][col.prop] = eval(col.defaultValue)
+        firstItem[col.prop] = eval(col.defaultValue)
       } catch (e) {
-        props.items[0][col.prop] = col.defaultValue
+        firstItem[col.prop] = col.defaultValue
       }
     }
   })

@@ -5,7 +5,7 @@ import DynamicTable from '@/components/DynamicTable.vue'
 import ConfigEditor from '@/components/ConfigEditor.vue'
 import TemplateDesigner from '@/components/TemplateDesigner/index.vue'
 import ExportTemplateList from '@/components/TemplateDesigner/ExportTemplateList.vue'
-import { initDatabase, loadAllReports, loadReportSections, saveReport, deleteReportById } from '@/services/database'
+import { loadAllReports, loadReportSections, saveReport, deleteReportById } from '@/services/database'
 import { ensureDefaultTemplate, getDefaultTemplate } from '@/services/templateService'
 import { generateId } from '@/utils/idGenerator'
 import { renderHtml, renderMarkdown } from '@/utils/templateRenderer'
@@ -38,7 +38,6 @@ const totalItems = computed(() => {
 // 初始化
 onMounted(async () => {
   try {
-    await initDatabase()
     await ensureDefaultTemplate()
     dbReady.value = true
     await loadReports()
@@ -98,9 +97,7 @@ const loadMore = () => {
 // 保存周报数据
 const saveReports = async () => {
   if (!dbReady.value) return
-  for (const report of reports.value) {
-    await saveReport(report)
-  }
+  await saveReport(currentReport.value)
 }
 
 // 选择周报
@@ -158,8 +155,7 @@ const createNewReport = async () => {
   }
 
   reports.value = [newReport, ...reports.value]
-  await saveReports()
-  selectReport(newReport.id)
+  await saveReport(newReport)
 }
 
 // 格式化日期范围显示

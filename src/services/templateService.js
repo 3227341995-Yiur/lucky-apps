@@ -2,7 +2,7 @@
  * 模板服务 - 模板的 CRUD 操作
  * 使用 SQLite 数据库存储模板
  */
-import { initDatabase } from './database'
+import { database } from '@/services/database'
 import { generateId } from '@/utils/idGenerator'
 
 // 模板表名
@@ -12,8 +12,7 @@ const TABLE_NAME = 'templates'
  * 初始化模板表
  */
 export async function initTemplateTable() {
-  const db = await initDatabase()
-  await db.execute(`
+  await database.execute(`
     CREATE TABLE IF NOT EXISTS ${TABLE_NAME} (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
@@ -115,8 +114,7 @@ export function createMarkdownTemplateData() {
  * 获取所有模板
  */
 export async function getAllTemplates() {
-  const db = await initDatabase()
-  const rows = await db.select(`SELECT * FROM ${TABLE_NAME} ORDER BY isSystem DESC, createdAt DESC`)
+  const rows = await database.select(`SELECT * FROM ${TABLE_NAME} ORDER BY isSystem DESC, createdAt DESC`)
   const templates = rows.map(row => ({
     id: row.id,
     name: row.name,
@@ -135,8 +133,7 @@ export async function getAllTemplates() {
  * 根据 ID 获取模板
  */
 export async function getTemplateById(id) {
-  const db = await initDatabase()
-  const rows = await db.select(`SELECT * FROM ${TABLE_NAME} WHERE id = $1`, [id])
+  const rows = await database.select(`SELECT * FROM ${TABLE_NAME} WHERE id = $1`, [id])
   if (rows.length > 0) {
     const row = rows[0]
     return {
@@ -157,8 +154,7 @@ export async function getTemplateById(id) {
  * 获取默认模板（按类型）
  */
 export async function getDefaultTemplate(type = 'html') {
-  const db = await initDatabase()
-  const rows = await db.select(`SELECT * FROM ${TABLE_NAME} WHERE isDefault = 1 AND type = $1 LIMIT 1`, [type])
+  const rows = await database.select(`SELECT * FROM ${TABLE_NAME} WHERE isDefault = 1 AND type = $1 LIMIT 1`, [type])
   if (rows.length > 0) {
     const row = rows[0]
     return {
@@ -179,16 +175,15 @@ export async function getDefaultTemplate(type = 'html') {
  * 保存模板（新增或更新）
  */
 export async function saveTemplate(template) {
-  const db = await initDatabase()
   const now = Date.now()
 
-  const existing = await db.select(
+  const existing = await database.select(
     `SELECT id FROM ${TABLE_NAME} WHERE id = $1`,
     [template.id]
   )
 
   if (existing.length > 0) {
-    await db.execute(
+    await database.execute(
       `UPDATE ${TABLE_NAME} SET name = $1, type = $2, isDefault = $3, isSystem = $4, template = $5, updatedAt = $6 WHERE id = $7`,
       [template.name, template.type || 'html', template.isDefault ? 1 : 0, template.isSystem ? 1 : 0, template.template, now, template.id]
     )
@@ -196,7 +191,7 @@ export async function saveTemplate(template) {
   } else {
     // 新增时生成id
     const newId = template.id || generateId()
-    await db.execute(
+    await database.execute(
       `INSERT INTO ${TABLE_NAME} (id, name, type, isDefault, isSystem, template, createdAt, updatedAt) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [newId, template.name, template.type || 'html', template.isDefault ? 1 : 0, template.isSystem ? 1 : 0, template.template, now, now]
     )
@@ -224,24 +219,22 @@ export function createTemplate(name, type = 'html', template = '') {
  * 删除模板
  */
 export async function deleteTemplate(id) {
-  const db = await initDatabase()
-  await db.execute(`DELETE FROM ${TABLE_NAME} WHERE id = $1`, [id])
+  await database.execute(`DELETE FROM ${TABLE_NAME} WHERE id = $1`, [id])
 }
 
 /**
  * 设置默认模板（按类型）
  */
 export async function setDefaultTemplate(id, type = null) {
-  const db = await initDatabase()
   const now = Date.now()
 
   if (type) {
-    await db.execute(`UPDATE ${TABLE_NAME} SET isDefault = 0, updatedAt = $1 WHERE type = $2`, [now, type])
+    await database.execute(`UPDATE ${TABLE_NAME} SET isDefault = 0, updatedAt = $1 WHERE type = $2`, [now, type])
   } else {
-    await db.execute(`UPDATE ${TABLE_NAME} SET isDefault = 0, updatedAt = $1`, [now])
+    await database.execute(`UPDATE ${TABLE_NAME} SET isDefault = 0, updatedAt = $1`, [now])
   }
 
-  await db.execute(`UPDATE ${TABLE_NAME} SET isDefault = 1, updatedAt = $1 WHERE id = $2`, [now, id])
+  await database.execute(`UPDATE ${TABLE_NAME} SET isDefault = 1, updatedAt = $1 WHERE id = $2`, [now, id])
 }
 
 /**
