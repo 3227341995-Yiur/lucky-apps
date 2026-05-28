@@ -11,6 +11,17 @@ import Vditor from 'vditor'
 
 const TEMP_VUE_DIR = 'vue-sfc'
 
+// 简单的 hash 函数
+function hashCode(str) {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  return Math.abs(hash).toString(36)
+}
+
 // 工具函数：清理 Windows 长路径前缀
 function cleanPath(path) {
   return path.replace(/^\\\\\?\\.*?_root_/, '').replace(/_root_/g, '').replace(/\\/g, '/')
@@ -34,124 +45,182 @@ async function getTempVueDir() {
   return vueTempPath
 }
 
-// 定义全局 import map
-window.Vue = await import('vue')
-window.ElementPlus = await import('element-plus')
-window.TauriApi = await import('@tauri-apps/api')
-window.TauriFs = await import('@tauri-apps/plugin-fs')
-window.Handlebars = await import('handlebars')
-
-const importMap = {
-  'vue': 'window.Vue',
-  'element-plus': 'window.ElementPlus',
-  '@tauri-apps/api': 'window.TauriApi',
-  '@tauri-apps/plugin-fs': 'window.TauriFs',
-  'handlebars': 'window.Handlebars'
+// ============================================================
+// Import Map 配置 - 所有外部模块的映射关系
+// ============================================================
+const IMPORT_MAP_CONFIG = {
+  'vue': { var: 'window.Vue', type: 'default' },
+  'element-plus': { var: 'window.ElementPlus', type: 'default' },
+  '@tauri-apps/api': { var: 'window.TauriApi', type: 'default' },
+  '@tauri-apps/plugin-fs': { var: 'window.TauriFs', type: 'default' },
+  'handlebars': { var: 'window.Handlebars', type: 'default' }
 }
 
+// 资源路径映射（预解析）
+const RESOURCE_PATHS = new Map()
+
+// ============================================================
+// 初始化全局模块
+// ============================================================
+async function initGlobalModules() {
+  window.Vue = await import('vue')
+  window.ElementPlus = await import('element-plus')
+  window.TauriApi = await import('@tauri-apps/api')
+  window.TauriFs = await import('@tauri-apps/plugin-fs')
+  window.Handlebars = await import('handlebars')
+}
+
+// ============================================================
+// 预处理：收集 @resources 路径映射
+// ============================================================
+async function preprocessResourcePaths(code) {
+  const resourceImports = []
+  const importRegex = /import\s+.*?\s+from\s+['"](@resources\/[^'"]+)['"]/g
+  let match
+
+  while ((match = importRegex.exec(code)) !== null) {
+    resourceImports.push(match[1])
+  }
+
+  for (const resourcePath of resourceImports) {
+    if (!RESOURCE_PATHS.has(resourcePath)) {
+      const resDir = await resourceDir()
+      const fullPath = resourcePath.replace('@resources', join(resDir, 'resources')).replace(/\\/g, '/')
+      const assetUrl = convertFileSrc(fullPath.replace(/^\\\\\?\\.*?_root_/, '').replace(/_root_/g, ''))
+      RESOURCE_PATHS.set(resourcePath, assetUrl)
+    }
+  }
+}
+
+// ============================================================
 // Babel 插件：转换 import 语句
-function importMapPlugin() {
+// ============================================================
+function createImportMapPlugin() {
   return ({ types: t }) => {
     return {
       visitor: {
-        async ImportDeclaration(path) {
-          const source = path.node.source.value
-          if (source.startsWith('@resources')) {
-            const resDir = await resourceDir()
-            const resFile = source.replace('@resources', await join(resDir, 'resources')).replaceAll('/', '\\')
-          } else if (importMap[source]) {
-            // 获取导入说明符
-            const specifiers = path.node.specifiers
+        Program(path) {
+          // 收集所有 import 声明
+          const imports = []
 
-            // 处理默认导入
-            const defaultImport = specifiers.find(s => t.isImportDefaultSpecifier(s))
-            // 处理命名导入
-            const namedImports = specifiers.filter(s => t.isImportSpecifier(s))
-            // 处理命名空间导入
-            const namespaceImport = specifiers.find(s => t.isImportNamespaceSpecifier(s))
+          path.traverse({
+            ImportDeclaration(innerPath) {
+              const source = innerPath.node.source.value
 
-            const replacements = []
+              // 处理 @resources 路径 - 替换为实际路径
+              if (source.startsWith('@resources')) {
+                const resolvedPath = RESOURCE_PATHS.get(source)
+                if (resolvedPath) {
+                  innerPath.node.source.value = resolvedPath
+                }
+                return
+              }
 
-            if (namespaceImport) {
-              // import * as name from 'module'
-              replacements.push(
-                  t.variableDeclaration('const', [
-                    t.variableDeclarator(
-                        t.identifier(namespaceImport.local.name),
-                        t.identifier(importMap[source])
-                    )
-                  ])
-              )
-            } else if (defaultImport && namedImports.length === 0) {
-              // import name from 'module'
-              replacements.push(
-                  t.variableDeclaration('const', [
-                    t.variableDeclarator(
-                        t.identifier(defaultImport.local.name),
-                        t.identifier(importMap[source])
-                    )
-                  ])
-              )
-            } else if (!defaultImport && namedImports.length > 0) {
-              // import { name1, name2 } from 'module'
-              const properties = namedImports.map(specifier =>
-                  t.objectProperty(
-                      t.identifier(specifier.imported.name),
-                      t.identifier(specifier.local.name),
-                      false,
-                      specifier.imported.name === specifier.local.name
-                  )
-              )
+              // 处理 import map 映射
+              const mapConfig = IMPORT_MAP_CONFIG[source]
+              if (!mapConfig) return
 
-              replacements.push(
-                  t.variableDeclaration('const', [
-                    t.variableDeclarator(
-                        t.objectPattern(properties),
-                        t.identifier(importMap[source])
-                    )
-                  ])
-              )
-            } else if (defaultImport && namedImports.length > 0) {
-              // import defaultName, { name1, name2 } from 'module'
-              const defaultReplacement = t.variableDeclaration('const', [
-                t.variableDeclarator(
-                    t.identifier(defaultImport.local.name),
-                    t.identifier(importMap[source])
-                )
-              ])
+              const specifiers = innerPath.node.specifiers
+              const replacements = buildReplacements(t, specifiers, mapConfig)
 
-              const properties = namedImports.map(specifier =>
-                  t.objectProperty(
-                      t.identifier(specifier.imported.name),
-                      t.identifier(specifier.local.name),
-                      false,
-                      specifier.imported.name === specifier.local.name
-                  )
-              )
-
-              const namedReplacement = t.variableDeclaration('const', [
-                t.variableDeclarator(
-                    t.objectPattern(properties),
-                    t.identifier(importMap[source])
-                )
-              ])
-
-              replacements.push(defaultReplacement, namedReplacement)
+              if (replacements.length > 0) {
+                imports.push({
+                  path: innerPath,
+                  replacements
+                })
+              }
             }
+          })
 
-            if (replacements.length > 0) {
-              path.replaceWithMultiple(replacements)
-            }
+          // 替换所有收集到的 import
+          for (const { path: importPath, replacements } of imports) {
+            importPath.replaceWithMultiple(replacements)
           }
-          // 如果不是映射表中的模块，保留原 import 语句
         }
       }
     }
   }
 }
 
+// 构建替换语句
+function buildReplacements(t, specifiers, config) {
+  const defaultImport = specifiers.find(s => t.isImportDefaultSpecifier(s))
+  const namedImports = specifiers.filter(s => t.isImportSpecifier(s))
+  const namespaceImport = specifiers.find(s => t.isImportNamespaceSpecifier(s))
+  const replacements = []
+  const sourceVar = t.identifier(config.var)
+
+  if (namespaceImport) {
+    // import * as name from 'module'
+    replacements.push(
+      t.variableDeclaration('const', [
+        t.variableDeclarator(
+          t.identifier(namespaceImport.local.name),
+          sourceVar
+        )
+      ])
+    )
+  } else if (defaultImport && namedImports.length === 0) {
+    // import name from 'module'
+    replacements.push(
+      t.variableDeclaration('const', [
+        t.variableDeclarator(
+          t.identifier(defaultImport.local.name),
+          sourceVar
+        )
+      ])
+    )
+  } else if (!defaultImport && namedImports.length > 0) {
+    // import { name1, name2 } from 'module'
+    const properties = namedImports.map(spec =>
+      t.objectProperty(
+        t.identifier(spec.imported.name),
+        t.identifier(spec.local.name),
+        false,
+        spec.imported.name === spec.local.name
+      )
+    )
+    replacements.push(
+      t.variableDeclaration('const', [
+        t.variableDeclarator(
+          t.objectPattern(properties),
+          sourceVar
+        )
+      ])
+    )
+  } else if (defaultImport && namedImports.length > 0) {
+    // import defaultName, { name1, name2 } from 'module'
+    replacements.push(
+      t.variableDeclaration('const', [
+        t.variableDeclarator(
+          t.identifier(defaultImport.local.name),
+          sourceVar
+        )
+      ])
+    )
+    const properties = namedImports.map(spec =>
+      t.objectProperty(
+        t.identifier(spec.imported.name),
+        t.identifier(spec.local.name),
+        false,
+        spec.imported.name === spec.local.name
+      )
+    )
+    replacements.push(
+      t.variableDeclaration('const', [
+        t.variableDeclarator(
+          t.objectPattern(properties),
+          sourceVar
+        )
+      ])
+    )
+  }
+
+  return replacements
+}
+
 async function loadVueFile(file, content) {
-  const scopeId = `data-v-${file.name}`
+  const scopeId = `data-v-${hashCode(file.name)}`
 
   const { descriptor } = parse(content)
 
@@ -224,14 +293,17 @@ async function loadVueFile(file, content) {
     codeList.push(styleDOM)
   }
 
+  // 预处理资源路径
+  await preprocessResourcePaths(codeList.join('\n'))
+
   const { code } = transform(codeList.join('\n'), {
-    presets: ['typescript'],
-    plugins: [
-      'transform-typescript',
-      importMapPlugin()
-    ],
-    filename: file.name
-  })
+      presets: ['typescript'],
+      plugins: [
+        'transform-typescript',
+        createImportMapPlugin()
+      ],
+      filename: file.name
+    })
 
   // 写入临时目录，用原文件名
   const vueTempDir = await getTempVueDir()
@@ -322,6 +394,7 @@ async function loadExternalResources() {
 
 export default {
   async install(app) {
+    await initGlobalModules()
     await loadExternalResources()
     // 列组件
     for (const key in components) {

@@ -1,11 +1,11 @@
 <script setup>
-import { inject, ref, computed, onMounted, onUnmounted } from 'vue'
+import { inject, ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import DynamicTable from '@/components/DynamicTable.vue'
 import ConfigEditor from '@/components/ConfigEditor.vue'
 import TemplateDesigner from '@/components/TemplateDesigner/index.vue'
 import ExportTemplateList from '@/components/TemplateDesigner/ExportTemplateList.vue'
-import { initDatabase, loadAllReports, saveReport, deleteReportById } from '@/services/database'
+import { initDatabase, loadAllReports, loadReportSections, saveReport, deleteReportById } from '@/services/database'
 import { ensureDefaultTemplate, getDefaultTemplate } from '@/services/templateService'
 import { generateId } from '@/utils/idGenerator'
 import { renderHtml, renderMarkdown } from '@/utils/templateRenderer'
@@ -18,6 +18,11 @@ const currentReportId = ref(null)
 const currentReport = ref(null)
 const showSaveIndicator = ref(false)
 const dbReady = ref(false)
+const loading = ref(false)
+const hasMore = ref(true)
+const pageSize = 10
+let pageOffset = 0
+const scrollbarRef = ref(null)
 
 // 计算总工作项数
 const totalItems = computed(() => {
@@ -37,6 +42,16 @@ onMounted(async () => {
     await ensureDefaultTemplate()
     dbReady.value = true
     await loadReports()
+    // 初始化滚动监听
+    nextTick(() => {
+      const scrollbar = scrollbarRef.value?.$el
+      if (scrollbar) {
+        const wrap = scrollbar.querySelector('.el-scrollbar__wrap')
+        if (wrap) {
+          wrap.addEventListener('scroll', loadMore)
+        }
+      }
+    })
   } catch (error) {
     ElMessage.error('初始化失败: ' + (error?.message || String(error)))
   }
@@ -45,11 +60,38 @@ onMounted(async () => {
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 
-// 加载周报数据
-const loadReports = async () => {
-  const savedReports = await loadAllReports()
-  if (savedReports && savedReports.length > 0) {
-    reports.value = _.sortBy(savedReports, o => -o.id)
+// 加载周报数据（分页）
+const loadReports = async (append = false) => {
+  if (loading.value) return
+  loading.value = true
+
+  try {
+    const offset = append ? pageOffset : 0
+    const newReports = await loadAllReports({ limit: pageSize, offset })
+    if (append) {
+      reports.value = [...reports.value, ...newReports]
+      pageOffset += newReports.length
+    } else {
+      reports.value = newReports
+      pageOffset = newReports.length
+    }
+    hasMore.value = newReports.length === pageSize
+  } finally {
+    loading.value = false
+  }
+}
+
+// 滚动加载更多
+const loadMore = () => {
+  if (!loading.value && hasMore.value) {
+    const scrollbar = scrollbarRef.value?.$el
+    if (!scrollbar) return
+    const wrap = scrollbar.querySelector('.el-scrollbar__wrap')
+    if (!wrap) return
+    const { scrollTop, scrollHeight, clientHeight } = wrap
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
+      loadReports(true)
+    }
   }
 }
 
@@ -62,10 +104,18 @@ const saveReports = async () => {
 }
 
 // 选择周报
-const selectReport = (id) => {
+const selectReport = async (id) => {
   currentReportId.value = id
-  const report = reports.value.find(r => r.id === id)
+  let report = reports.value.find(r => r.id === id)
   if (report) {
+    // 懒加载sections
+    if (!report.sections || report.sections.length === 0) {
+      report = { ...report, sections: await loadReportSections(id) }
+      const idx = reports.value.findIndex(r => r.id === id)
+      if (idx !== -1) {
+        reports.value[idx] = report
+      }
+    }
     currentReport.value = report
   }
 }
@@ -165,10 +215,17 @@ const autoSaveActual = async () => {
 // 创建防抖函数（500毫秒）
 const autoSave = _.debounce(autoSaveActual, 500)
 
-// 组件卸载时取消防抖
+// 组件卸载时清理
 onUnmounted(() => {
   autoSave.cancel()
   document.removeEventListener('keydown', handleGlobalKeydown)
+  const scrollbar = scrollbarRef.value?.$el
+  if (scrollbar) {
+    const wrap = scrollbar.querySelector('.el-scrollbar__wrap')
+    if (wrap) {
+      wrap.removeEventListener('scroll', loadMore)
+    }
+  }
 })
 
 // 全局快捷键处理
@@ -455,16 +512,10 @@ const defaultConfig = [
 
 window.selectReport = selectReport
 window.getReports = () => reports.value
+window.loadReportSections = loadReportSections
 </script>
 
-<template
-  v-contextmenu:config
-  @contextmenu-config-modify="modifyConfig"
-  @contextmenu-config-show="showConfig"
-  @contextmenu-config-clear="clearConfig"
-  @contextmenu-config-weekly-import="importWeekly"
-  @contextmenu-config-weekly-export="exportWeekly"
->
+<template>
   <!-- 左侧边栏 -->
   <div class="sidebar">
     <div class="sidebar-header">
@@ -486,7 +537,7 @@ window.getReports = () => reports.value
       </el-button>
     </div>
     <div class="sidebar-content">
-      <el-scrollbar>
+      <el-scrollbar ref="scrollbarRef">
         <div
             v-for="report in reports"
             :key="report.id"
@@ -509,6 +560,13 @@ window.getReports = () => reports.value
           </div>
         </div>
 
+        <div v-if="loading" class="loading-more">
+          <i class="fas fa-spinner fa-spin"></i><span>加载中...</span>
+        </div>
+        <div v-if="!hasMore && reports.length > 0" class="no-more">
+          <span>没有更多了</span>
+        </div>
+
         <div v-if="reports.length === 0" class="empty-state">
           <el-empty class="empty-text" description="暂无周报记录"/>
         </div>
@@ -517,7 +575,15 @@ window.getReports = () => reports.value
   </div>
 
   <!-- 右侧主内容区 -->
-  <div class="main-content">
+  <div
+    class="main-content"
+    v-contextmenu:config
+    @contextmenu-config-modify="modifyConfig"
+    @contextmenu-config-show="showConfig"
+    @contextmenu-config-clear="clearConfig"
+    @contextmenu-config-weekly-import="importWeekly"
+    @contextmenu-config-weekly-export="exportWeekly"
+  >
     <template v-if="currentReport">
       <div class="content-header">
         <div class="header-left">
@@ -618,5 +684,17 @@ window.getReports = () => reports.value
 </template>
 
 <style scoped>
-
+.loading-more, .no-more {
+  text-align: center;
+  padding: 12px;
+  color: #909399;
+  font-size: 14px;
+}
+.loading-more i {
+  margin-right: 8px;
+}
+.no-more {
+  border-top: 1px solid #ebeef5;
+  margin-top: 8px;
+}
 </style>

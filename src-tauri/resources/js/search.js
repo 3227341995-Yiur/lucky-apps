@@ -285,6 +285,21 @@
         }
     }
 
+    // 懒加载sections
+    async function ensureSectionsLoaded(report) {
+        if (!report) return report;
+        if (report.sections && report.sections.length > 0) return report;
+
+        try {
+            if (typeof window.loadReportSections === 'function') {
+                report.sections = await window.loadReportSections(report.id);
+            }
+        } catch (e) {
+            console.error('加载sections失败:', e);
+        }
+        return report;
+    }
+
     // 创建Driver引导
     function createDriverGuide(searchQuery, selectedReportId) {
         // 检查Driver是否可用
@@ -551,7 +566,7 @@
     }
 
     // 更新搜索结果
-    function updateSearchResults(query) {
+    async function updateSearchResults(query) {
         const resultsContainer = modal.querySelector('.double-shift-search-results');
         const resultCount = modal.querySelector('.double-shift-result-count');
 
@@ -573,7 +588,10 @@
             return;
         }
 
-        // 搜索匹配的报告
+        // 搜索匹配的报告（先确保sections加载）
+        for (const report of weeklyReports) {
+            await ensureSectionsLoaded(report);
+        }
         const searchResults = searchReports(weeklyReports, query);
         resultCount.textContent = `${searchResults.length} 个结果`;
 
@@ -586,7 +604,7 @@
 
     // 获取最近的报告（用于无搜索词时显示）
     function getRecentReports(weeklyReports) {
-        return weeklyReports.slice(0, 8).map(report => ({
+        return weeklyReports.slice(0, 10).map(report => ({
             reportId: report.id,
             reportTitle: report.title,
             matchType: 'report',
