@@ -13,6 +13,7 @@ const props = defineProps({
   width: { type: String, default: '760px' },
   /** 撑满视口高度（IDE / 设计器） */
   fillHeight: { type: Boolean, default: false },
+  fullscreen: { type: Boolean, default: false },
   showFooter: { type: Boolean, default: false },
   closeOnClickModal: { type: Boolean, default: false },
   closeOnPressEscape: { type: Boolean, default: true },
@@ -23,8 +24,9 @@ const props = defineProps({
 const emit = defineEmits(['closed', 'close'])
 
 const dialogStyle = computed(() => ({
-  width: props.width,
-  maxWidth: 'calc(100vw - 32px)'
+  width: props.fullscreen ? '100vw' : props.width,
+  maxWidth: props.fullscreen ? '100vw' : 'calc(100vw - 32px)',
+  ...(props.fullscreen ? { height: '100vh', maxHeight: '100vh' } : {})
 }))
 
 function close() {
@@ -43,7 +45,7 @@ function close() {
 <template>
   <el-dialog
     v-model="visible"
-    :class="['wr-app-dialog', { 'is-fill': fillHeight }]"
+    :class="['wr-app-dialog', { 'is-fill': fillHeight, 'is-fullscreen': fullscreen }]"
     :style="dialogStyle"
     :show-close="false"
     :destroy-on-close="destroyOnClose"
@@ -104,6 +106,12 @@ function close() {
 .wr-app-dialog.is-fill {
   height: calc(100vh - 40px);
   max-height: calc(100vh - 40px);
+}
+
+.wr-app-dialog.is-fullscreen {
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
 }
 
 .wr-app-dialog .el-dialog__header {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTheme } from '@/composables/useTheme'
 import { useReports } from '@/composables/useReports'
@@ -22,6 +22,14 @@ const { copyResourcesPath } = useExtensions()
 
 const activeTab = ref('appearance')
 const docsFullscreen = ref(false)
+
+watch(activeTab, tab => {
+  if (tab !== 'docs') docsFullscreen.value = false
+})
+
+watch(visible, open => {
+  if (!open) docsFullscreen.value = false
+})
 
 const tabs = [
   { key: 'appearance', label: '外观', icon: 'Sunny', desc: '选择界面主题' },
@@ -87,9 +95,23 @@ async function handleCopyResources() {
     subtitle="外观、扩展、模板与数据管理"
     icon="Setting"
     :width="activeTab === 'docs' ? 'min(1180px, 96vw)' : '920px'"
+    :fullscreen="docsFullscreen"
     fill-height
   >
-    <div class="settings-body">
+    <template #actions>
+      <el-button
+        v-if="activeTab === 'docs'"
+        size="small"
+        text
+        circle
+        :title="docsFullscreen ? '退出全屏' : '全屏'"
+        @click="docsFullscreen = !docsFullscreen"
+      >
+        <el-icon><FullScreen /></el-icon>
+      </el-button>
+    </template>
+
+    <div class="settings-body" :class="{ 'is-docs-fullscreen': docsFullscreen }">
       <nav class="settings-nav" aria-label="设置分类">
         <button
           v-for="tab in tabs"
@@ -183,13 +205,6 @@ async function handleCopyResources() {
 
         <!-- 开发文档 -->
         <div v-else-if="activeTab === 'docs'" class="panel docs-panel">
-          <div class="docs-toolbar">
-            <span class="docs-toolbar-title">插件 · 外部组件 · 二开 API</span>
-            <el-button size="small" @click="docsFullscreen = true">
-              <el-icon><FullScreen /></el-icon>
-              <span>全屏</span>
-            </el-button>
-          </div>
           <iframe
             class="docs-frame"
             src="/docs/index.html"
@@ -224,22 +239,6 @@ async function handleCopyResources() {
         </div>
       </el-scrollbar>
     </div>
-  </AppDialog>
-
-  <AppDialog
-    v-model="docsFullscreen"
-    title="开发文档"
-    subtitle="插件、外部组件与二开 API"
-    icon="Reading"
-    width="96vw"
-    fill-height
-    :show-footer="false"
-  >
-    <iframe
-      class="docs-frame is-fullscreen"
-      src="/docs/index.html"
-      title="周报开发文档"
-    />
   </AppDialog>
 </template>
 
@@ -303,37 +302,36 @@ async function handleCopyResources() {
 .docs-panel {
   display: flex;
   flex-direction: column;
+  height: min(600px, calc(100vh - 260px));
   min-height: 0;
 }
 
-.docs-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 2px 8px;
+.settings-body.is-docs-fullscreen {
+  padding: 12px 16px;
 }
 
-.docs-toolbar-title {
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--el-text-color-secondary);
+.settings-body.is-docs-fullscreen .settings-content-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.settings-body.is-docs-fullscreen .docs-panel {
+  flex: 1;
+  height: auto;
 }
 
 .docs-frame {
+  flex: 1;
   width: 100%;
-  height: min(600px, calc(100vh - 260px));
+  min-height: 0;
+  height: 100%;
   border: 0;
   border-radius: 8px;
   background: var(--el-bg-color);
 }
 
-.docs-frame.is-fullscreen {
-  flex: 1;
-  min-height: 0;
-  height: 100%;
+.settings-body.is-docs-fullscreen .docs-frame {
   border-radius: 0;
 }
 
