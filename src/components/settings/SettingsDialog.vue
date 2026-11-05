@@ -96,15 +96,15 @@ async function handleCopyResources() {
     fill-height
   >
     <template #actions>
-      <el-button
-        size="small"
-        text
-        circle
+      <button
+        type="button"
+        class="settings-fullscreen-btn"
         :title="docsFullscreen ? '退出全屏' : '全屏'"
+        :aria-label="docsFullscreen ? '退出全屏' : '全屏'"
         @click="docsFullscreen = !docsFullscreen"
       >
-        <fullscreen-icon :exit="docsFullscreen" class="settings-fullscreen-icon" />
-      </el-button>
+        <fullscreen-icon :exit="docsFullscreen" />
+      </button>
     </template>
 
     <div class="settings-body" :class="{ 'is-docs-fullscreen': docsFullscreen }">
@@ -294,9 +294,24 @@ async function handleCopyResources() {
   padding-right: 8px;
 }
 
-.settings-fullscreen-icon {
-  width: 16px;
-  height: 16px;
+.settings-fullscreen-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-fullscreen-btn:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .settings-body.is-docs-fullscreen {
