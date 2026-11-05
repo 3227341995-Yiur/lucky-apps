@@ -7,6 +7,7 @@ import { useExtensions } from '@/composables/useExtensions'
 import { resetReportConfig } from '@/services/reportConfigService'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
+import FullscreenIcon from '@/components/common/FullscreenIcon.vue'
 import ExtensionManager from '@/components/settings/ExtensionManager.vue'
 import pkg from '../../../package.json'
 
@@ -22,10 +23,6 @@ const { copyResourcesPath } = useExtensions()
 
 const activeTab = ref('appearance')
 const docsFullscreen = ref(false)
-
-watch(activeTab, tab => {
-  if (tab !== 'docs') docsFullscreen.value = false
-})
 
 watch(visible, open => {
   if (!open) docsFullscreen.value = false
@@ -100,14 +97,13 @@ async function handleCopyResources() {
   >
     <template #actions>
       <el-button
-        v-if="activeTab === 'docs'"
         size="small"
         text
         circle
         :title="docsFullscreen ? '退出全屏' : '全屏'"
         @click="docsFullscreen = !docsFullscreen"
       >
-        <el-icon><FullScreen /></el-icon>
+        <fullscreen-icon :exit="docsFullscreen" class="settings-fullscreen-icon" />
       </el-button>
     </template>
 
@@ -126,7 +122,7 @@ async function handleCopyResources() {
         </button>
       </nav>
 
-      <el-scrollbar class="settings-content">
+      <el-scrollbar v-if="activeTab !== 'docs'" class="settings-content">
         <div class="settings-content-inner">
         <header class="panel-head">
           <h3>{{ currentTab.label }}</h3>
@@ -203,15 +199,6 @@ async function handleCopyResources() {
           </div>
         </div>
 
-        <!-- 开发文档 -->
-        <div v-else-if="activeTab === 'docs'" class="panel docs-panel">
-          <iframe
-            class="docs-frame"
-            src="/docs/index.html"
-            title="周报开发文档"
-          />
-        </div>
-
         <!-- 关于 -->
         <div v-else class="panel">
           <div class="about-list">
@@ -238,6 +225,14 @@ async function handleCopyResources() {
         </div>
         </div>
       </el-scrollbar>
+
+      <div v-else class="settings-content docs-content-wrap">
+        <iframe
+          class="docs-frame"
+          src="/docs/index.html"
+          title="周报开发文档"
+        />
+      </div>
     </div>
   </AppDialog>
 </template>
@@ -299,26 +294,19 @@ async function handleCopyResources() {
   padding-right: 8px;
 }
 
-.docs-panel {
-  display: flex;
-  flex-direction: column;
-  height: min(600px, calc(100vh - 260px));
-  min-height: 0;
+.settings-fullscreen-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .settings-body.is-docs-fullscreen {
   padding: 12px 16px;
 }
 
-.settings-body.is-docs-fullscreen .settings-content-inner {
+.docs-content-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
-}
-
-.settings-body.is-docs-fullscreen .docs-panel {
-  flex: 1;
-  height: auto;
+  min-height: 0;
 }
 
 .docs-frame {
