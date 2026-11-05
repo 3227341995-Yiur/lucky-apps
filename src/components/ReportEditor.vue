@@ -292,7 +292,7 @@ function handleCommand(command) {
 .editor-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 

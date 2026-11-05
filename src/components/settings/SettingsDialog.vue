@@ -8,6 +8,7 @@ import { resetReportConfig } from '@/services/reportConfigService'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
 import ExtensionManager from '@/components/settings/ExtensionManager.vue'
+import DeveloperDocs from '@/components/settings/DeveloperDocs.vue'
 import pkg from '../../../package.json'
 
 defineOptions({ name: 'SettingsDialog' })
@@ -27,6 +28,7 @@ const tabs = [
   { key: 'extensions', label: '扩展', icon: 'Grid', desc: '管理样式表、插件脚本与外部组件' },
   { key: 'templates', label: '模板', icon: 'Document', desc: '编辑导出模板与周报预览' },
   { key: 'data', label: '数据', icon: 'Coin', desc: '查看统计并维护周报结构' },
+  { key: 'docs', label: '开发文档', icon: 'Reading', desc: '插件、外部组件与二开 API' },
   { key: 'about', label: '关于', icon: 'InfoFilled', desc: '版本与运行环境信息' }
 ]
 
@@ -84,7 +86,7 @@ async function handleCopyResources() {
     title="设置中心"
     subtitle="外观、扩展、模板与数据管理"
     icon="Setting"
-    width="920px"
+    :width="activeTab === 'docs' ? 'min(1180px, 96vw)' : '920px'"
     fill-height
   >
     <div class="settings-body">
@@ -179,6 +181,11 @@ async function handleCopyResources() {
           </div>
         </div>
 
+        <!-- 开发文档 -->
+        <div v-else-if="activeTab === 'docs'" class="panel docs-panel">
+          <DeveloperDocs />
+        </div>
+
         <!-- 关于 -->
         <div v-else class="panel">
           <div class="about-list">
@@ -264,6 +271,10 @@ async function handleCopyResources() {
 
 .settings-content-inner {
   padding-right: 8px;
+}
+
+.docs-panel {
+  min-height: 0;
 }
 
 .panel-head {
