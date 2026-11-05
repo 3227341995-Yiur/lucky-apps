@@ -231,6 +231,16 @@ watch(selectedColumn, column => {
               <span>展开 Markdown 明细</span>
               <el-switch v-model="draft.hasExpandColumn" size="small" />
             </label>
+            <label class="field default-rows-field">
+              <span>新建默认行数</span>
+              <el-input-number
+                v-model="draft.defaultRows"
+                :min="0"
+                :max="100"
+                size="small"
+                controls-position="right"
+              />
+            </label>
           </header>
 
           <template v-if="selectedColumn">
@@ -539,6 +549,11 @@ watch(selectedColumn, column => {
 .expand-field {
   margin-left: auto;
   align-items: flex-start;
+}
+
+.default-rows-field {
+  width: 120px !important;
+  flex: none;
 }
 
 .field {

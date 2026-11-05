@@ -37,7 +37,6 @@ const state = reactive({
   hasMore: true,
   pageSize: 12,
   pageOffset: 0,
-  injectedReportId: null,
   currentId: null,
   currentReport: null,
   stats: {
@@ -55,6 +54,8 @@ const state = reactive({
 })
 
 let subscribed = false
+let injectedReport = null
+let reportsLoadPromise = null
 
 // 已移入回收站的周报：丢弃切换瞬间仍在防抖队列里的自动保存，避免“已在回收站”报错
 const ignoredSaveIds = new Set()
@@ -70,31 +71,52 @@ function toListReport(report) {
   }
 }
 
+function dedupeReports(list) {
+  const seen = new Set()
+  return list.filter(report => {
+    if (seen.has(report.id)) return false
+    seen.add(report.id)
+    return true
+  })
+}
+
 async function loadReports(append = false) {
-  if (state.loading) return
-  state.loading = true
+  // 并发加载共用同一个 promise，避免一个调用提前返回后拿到旧列表
+  if (reportsLoadPromise) return reportsLoadPromise
+
+  reportsLoadPromise = (async () => {
+    state.loading = true
+    try {
+      const offset = append ? state.pageOffset : 0
+      const rows = await loadAllReports({ limit: state.pageSize, offset })
+
+      if (append) {
+        if (injectedReport && rows.some(report => report.id === injectedReport.id)) {
+          removeInjectedReport()
+        }
+        const known = new Set(state.reports.map(report => report.id))
+        state.reports = dedupeReports([
+          ...state.reports,
+          ...rows.filter(report => !known.has(report.id))
+        ])
+        state.pageOffset += rows.length
+      } else {
+        injectedReport = null
+        state.reports = dedupeReports(rows)
+        state.pageOffset = rows.length
+        await ensureCurrentInList()
+      }
+
+      state.hasMore = rows.length === state.pageSize
+    } finally {
+      state.loading = false
+    }
+  })()
 
   try {
-    const offset = append ? state.pageOffset : 0
-    const rows = await loadAllReports({ limit: state.pageSize, offset })
-
-    if (append) {
-      if (state.injectedReportId !== null && rows.some(report => report.id === state.injectedReportId)) {
-        removeInjectedReport()
-      }
-      const known = new Set(state.reports.map(report => report.id))
-      state.reports.push(...rows.filter(report => !known.has(report.id)))
-      state.pageOffset += rows.length
-    } else {
-      state.injectedReportId = null
-      state.reports = rows
-      state.pageOffset = rows.length
-      await ensureCurrentInList()
-    }
-
-    state.hasMore = rows.length === state.pageSize
+    return await reportsLoadPromise
   } finally {
-    state.loading = false
+    reportsLoadPromise = null
   }
 }
 
@@ -104,21 +126,26 @@ async function ensureCurrentInList() {
 
   const current = await getReportById(state.currentId)
   if (!current) return
-  state.reports.unshift(toListReport(current))
-  state.injectedReportId = state.currentId
+  // 等待数据库期间列表可能已被另一次加载更新
+  if (state.reports.some(report => report.id === current.id)) return
+
+  const item = toListReport(current)
+  state.reports.unshift(item)
+  injectedReport = item
 }
 
 function removeInjectedReport() {
-  if (state.injectedReportId === null) return
-  state.reports = state.reports.filter(report => report.id !== state.injectedReportId)
-  state.injectedReportId = null
+  if (!injectedReport) return
+  state.reports = state.reports.filter(report => report !== injectedReport)
+  injectedReport = null
 }
 
 async function selectReport(id) {
   if (id == null) return null
-  if (state.injectedReportId !== null && state.injectedReportId !== id) {
+  if (injectedReport && injectedReport.id !== id) {
     removeInjectedReport()
   }
+  state.reports = dedupeReports(state.reports)
 
   const previousId = state.currentId
   state.currentId = id
@@ -132,8 +159,11 @@ async function selectReport(id) {
       state.currentId = previousId
       return null
     }
-    state.reports.unshift(toListReport(report))
-    state.injectedReportId = id
+    if (!state.reports.some(item => item.id === id)) {
+      const item = toListReport(report)
+      state.reports.unshift(item)
+      injectedReport = item
+    }
     report = { ...report, sections: report.sections || [] }
   } else if (!report.sections?.length) {
     report = { ...report, sections: await loadReportSections(id) }

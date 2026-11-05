@@ -300,6 +300,17 @@ function commitElProps(text) {
           <span>展开 Markdown 明细</span>
           <el-switch :model-value="section.hasExpandColumn" size="small" @update:model-value="v => updateSection({ hasExpandColumn: v })" />
         </label>
+        <label class="field">
+          <span>新建周报默认行数</span>
+          <el-input-number
+            :model-value="section.defaultRows || 0"
+            :min="0"
+            :max="100"
+            size="small"
+            controls-position="right"
+            @update:model-value="v => updateSection({ defaultRows: v ?? 0 })"
+          />
+        </label>
 
         <div class="columns-head">
           <span>列（{{ section.columns.length }}）</span>

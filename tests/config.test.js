@@ -51,15 +51,20 @@ test('code 类型默认值执行 JS 表达式', () => {
   assert.equal(resolveDefaultValue({ defaultValueType: 'code', defaultValue: 'throw new Error("x")' }), '')
 })
 
-test('默认结构生成 sections 时每个区块预置一行数据', () => {
+test('默认结构生成 sections 时默认空表格，按 defaultRows 生成行', () => {
   const sections = createSectionsFromConfig([])
   assert.equal(sections.length, DEFAULT_REPORT_CONFIG.length)
   for (const section of sections) {
-    assert.equal(section.items.length, 1)
-    assert.ok(section.items[0].id)
+    assert.equal(section.items.length, 0)
+    assert.equal(section.defaultRows, 0)
   }
-  const completed = sections.find(section => section.type === 'completed')
-  assert.equal(completed.items[0].status, '开发中')
+
+  const withRows = createSectionsFromConfig([
+    { ...DEFAULT_REPORT_CONFIG[0], defaultRows: 2 }
+  ])
+  assert.equal(withRows[0].items.length, 2)
+  assert.ok(withRows[0].items.every(item => item.id))
+  assert.equal(withRows[0].items[0].status, '开发中')
 })
 
 test('周范围与日期区间', () => {

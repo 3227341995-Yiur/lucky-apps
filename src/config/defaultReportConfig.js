@@ -13,184 +13,14 @@
  * 旧数据里的 moment().format('YYYY-MM-DD') 仍会在 resolveDefaultValue 中
  * 兼容为 today。
  */
+import reportDefaults from './defaults/report-config.json' with { type: 'json' }
 import { generateId } from '../utils/idGenerator.js'
 import { formatDate } from '../utils/date.js'
 
-export const DEFAULT_REPORT_CONFIG = [
-  {
-    type: 'completed',
-    title: '本周完成',
-    icon: 'fas fa-check-circle',
-    hasExpandColumn: false,
-    columns: [
-      {
-        prop: 'title',
-        label: '标题',
-        fixed: true
-      },
-      {
-        prop: 'status',
-        label: '状态',
-        component: 'status-selector',
-        defaultValue: '开发中',
-        defaultValueType: 'literal',
-        attrs: {
-          options: ['开发中', '待测试', '已完成']
-        }
-      }
-    ]
-  },
-  {
-    type: 'support',
-    title: '开发支持',
-    icon: 'fas fa-headset',
-    hasExpandColumn: true,
-    columns: [
-      {
-        prop: 'title',
-        label: '标题',
-        fixed: true
-      },
-      {
-        prop: 'date',
-        label: '日期',
-        component: 'date-selector',
-        defaultValueType: 'today'
-      }
-    ]
-  },
-  {
-    type: 'plan',
-    title: '下周计划',
-    icon: 'fas fa-calendar-week',
-    hasExpandColumn: false,
-    columns: [
-      {
-        prop: 'title',
-        label: '标题',
-        fixed: true
-      },
-      {
-        prop: 'status',
-        label: '状态',
-        component: 'status-selector',
-        defaultValue: '待开始',
-        defaultValueType: 'literal',
-        attrs: {
-          options: ['待开始', '进行中', '已完成']
-        }
-      }
-    ]
-  }
-]
-
-export const SECTION_PRESETS = [
-  {
-    title: '本周完成',
-    icon: 'fas fa-check-circle',
-    type: 'completed',
-    hasExpandColumn: false,
-    columns: DEFAULT_REPORT_CONFIG[0].columns
-  },
-  {
-    title: '开发支持',
-    icon: 'fas fa-headset',
-    type: 'support',
-    hasExpandColumn: true,
-    columns: DEFAULT_REPORT_CONFIG[1].columns
-  },
-  {
-    title: '下周计划',
-    icon: 'fas fa-calendar-week',
-    type: 'plan',
-    hasExpandColumn: false,
-    columns: DEFAULT_REPORT_CONFIG[2].columns
-  },
-  {
-    title: '风险与问题',
-    icon: 'fas fa-exclamation-triangle',
-    type: 'risk',
-    hasExpandColumn: true,
-    columns: [
-      { prop: 'title', label: '问题', fixed: true },
-      {
-        prop: 'level',
-        label: '等级',
-        component: 'status-selector',
-        defaultValue: '中',
-        attrs: { options: ['低', '中', '高'] }
-      }
-    ]
-  },
-  {
-    title: '备注',
-    icon: 'fas fa-sticky-note',
-    type: 'note',
-    hasExpandColumn: true,
-    columns: [{ prop: 'title', label: '内容', fixed: true }]
-  }
-]
-
-export const COLUMN_WIDGETS = [
-  {
-    id: 'text',
-    label: '文本',
-    icon: 'fas fa-font',
-    description: '单行文本输入',
-    column: { label: '文本列' }
-  },
-  {
-    id: 'status',
-    label: '状态',
-    icon: 'fas fa-toggle-on',
-    description: '下拉状态选择',
-    column: {
-      label: '状态',
-      component: 'status-selector',
-      defaultValue: '开发中',
-      attrs: { options: ['开发中', '待测试', '已完成'] }
-    }
-  },
-  {
-    id: 'date',
-    label: '日期',
-    icon: 'fas fa-calendar-day',
-    description: '日期选择，默认今天',
-    column: {
-      label: '日期',
-      component: 'date-selector',
-      defaultValueType: 'today'
-    }
-  },
-  {
-    id: 'number',
-    label: '数字',
-    icon: 'fas fa-hashtag',
-    description: '数字输入',
-    column: {
-      label: '数值',
-      component: 'number-input',
-      defaultValue: 0
-    }
-  },
-]
-
-export const ICON_OPTIONS = [
-  'fas fa-check-circle',
-  'fas fa-headset',
-  'fas fa-calendar-week',
-  'fas fa-exclamation-triangle',
-  'fas fa-sticky-note',
-  'fas fa-list',
-  'fas fa-tasks',
-  'fas fa-lightbulb',
-  'fas fa-flag',
-  'fas fa-rocket',
-  'fas fa-bug',
-  'fas fa-users',
-  'fas fa-chart-line',
-  'fas fa-book'
-]
+export const DEFAULT_REPORT_CONFIG = reportDefaults.sections
+export const SECTION_PRESETS = reportDefaults.sectionPresets
+export const COLUMN_WIDGETS = reportDefaults.columnWidgets
+export const ICON_OPTIONS = reportDefaults.icons
 
 export function cloneConfig(config) {
   return JSON.parse(JSON.stringify(config))
@@ -249,6 +79,7 @@ export function normalizeSection(section = {}, index = 0) {
     title: cleanString(section.title) || `区块 ${index + 1}`,
     icon: cleanString(section.icon) || 'fas fa-list',
     hasExpandColumn: Boolean(section.hasExpandColumn),
+    defaultRows: cleanNumber(section.defaultRows, 0, 100) ?? 0,
     columns
   }
 }
@@ -308,13 +139,16 @@ export function createRow(columns = []) {
 }
 
 /**
- * 默认结构 -> 新周报的 sections（每个区块预置一行）
+ * 默认结构 -> 新周报的 sections（默认 0 行，按区块 defaultRows 生成）
  */
 export function createSectionsFromConfig(config) {
-  return normalizeReportConfig(config).map(section => ({
-    ...cloneConfig(section),
-    items: [createRow(section.columns)]
-  }))
+  return normalizeReportConfig(config).map(section => {
+    const rows = Math.max(0, Math.min(100, Number(section.defaultRows) || 0))
+    return {
+      ...cloneConfig(section),
+      items: Array.from({ length: rows }, () => createRow(section.columns))
+    }
+  })
 }
 
 export default DEFAULT_REPORT_CONFIG

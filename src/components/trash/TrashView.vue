@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useReports } from '@/composables/useReports'
 import { formatDateRange } from '@/utils/reportExport'
-import { formatDateTime } from '@/utils/date'
+import { formatDateTime, getIsoWeek } from '@/utils/date'
 
 defineOptions({ name: 'TrashView' })
 
@@ -13,6 +13,13 @@ const reports = useReports()
 const { state } = reports
 
 const isEmpty = computed(() => state.trash.length === 0)
+
+function weekOf(report) {
+  const start = Array.isArray(report.dateRange) ? report.dateRange[0] : ''
+  if (!start) return '—'
+  const week = getIsoWeek(start)
+  return week ? `W${String(week).padStart(2, '0')}` : '—'
+}
 
 onMounted(() => {
   reports.loadTrash().catch(error => {
@@ -71,8 +78,8 @@ async function handleEmpty() {
 
 <template>
   <el-scrollbar class="wr-page trash-view">
-    <div class="wr-page-inner">
-      <header class="wr-page-header">
+    <div class="wr-page-inner trash-inner">
+      <header class="trash-header">
         <div class="header-main">
           <el-button class="back-button" text @click="emit('back')">
             <el-icon><ArrowLeft /></el-icon>
@@ -83,7 +90,7 @@ async function handleEmpty() {
             <h1 class="wr-page-title">回收站</h1>
             <span class="wr-chip">{{ state.trash.length }} 份</span>
           </div>
-          <p class="wr-page-subtitle">已删除的周报会保留在这里，可随时恢复或彻底删除。</p>
+          <p class="wr-page-subtitle">删除的周报会保留在这里，可随时恢复；彻底删除后不可恢复。</p>
         </div>
 
         <div class="header-actions">
@@ -99,21 +106,22 @@ async function handleEmpty() {
         </div>
       </header>
 
-      <div v-loading="state.trashLoading" element-loading-text="加载中…" class="trash-body wr-card">
-        <el-empty
-          v-if="!state.trashLoading && isEmpty"
-          description="回收站是空的"
-          class="trash-empty"
-        >
-          <p class="empty-tip">删除的周报会出现在这里，可以随时恢复。</p>
-          <el-button type="primary" @click="emit('back')">返回周报</el-button>
-        </el-empty>
+      <div class="trash-toolbar">
+        <span class="trash-toolbar-title">已删除周报</span>
+        <span class="trash-toolbar-hint">按删除时间倒序排列</span>
+      </div>
+
+      <div v-loading="state.trashLoading" element-loading-text="加载中…" class="trash-body">
+        <div v-if="!state.trashLoading && isEmpty" class="trash-empty-state">
+          <span class="empty-icon"><el-icon :size="26"><Delete /></el-icon></span>
+          <h3>回收站是空的</h3>
+          <p>删除的周报会出现在这里，可以随时恢复。</p>
+          <el-button type="primary" plain @click="emit('back')">返回周报</el-button>
+        </div>
 
         <div v-else class="trash-list">
-          <article v-for="report in state.trash" :key="report.id" class="trash-row">
-            <div class="row-icon">
-              <el-icon :size="18"><Document /></el-icon>
-            </div>
+          <article v-for="report in state.trash" :key="report.id" class="trash-card">
+            <span class="trash-week">{{ weekOf(report) }}</span>
 
             <div class="row-main">
               <h3 class="row-title">{{ report.title }}</h3>
@@ -153,6 +161,18 @@ async function handleEmpty() {
   flex-direction: column;
 }
 
+.trash-inner {
+  max-width: 980px;
+}
+
+.trash-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
 .header-main {
   display: flex;
   flex-direction: column;
@@ -184,48 +204,106 @@ async function handleEmpty() {
   flex-wrap: wrap;
 }
 
-.trash-body {
-  min-height: 280px;
-  padding: 6px 0;
-  overflow: hidden;
+.trash-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 8px;
 }
 
-.trash-empty {
-  padding: 48px 24px;
-}
-
-.empty-tip {
-  margin: -6px 0 18px;
-  font-size: 13px;
+.trash-toolbar-title {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--el-text-color-secondary);
 }
 
-.trash-row {
+.trash-toolbar-hint {
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+}
+
+.trash-body {
+  min-height: 280px;
+}
+
+.trash-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  text-align: center;
+}
+
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+
+.trash-empty-state h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+}
+
+.trash-empty-state p {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.trash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trash-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  transition: background-color 0.15s ease;
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.trash-row:last-child {
-  border-bottom: none;
+.trash-card:hover {
+  border-color: var(--el-border-color);
+  box-shadow: var(--el-box-shadow-lighter);
 }
 
-.trash-row:hover {
-  background: var(--el-fill-color-lighter);
-}
-
-.row-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
+.trash-week {
   display: grid;
   place-items: center;
-  border-radius: var(--wr-radius-md);
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+  width: 42px;
+  height: 38px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-family: var(--wr-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.trash-card:hover .trash-week {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 .row-main {
@@ -235,7 +313,7 @@ async function handleEmpty() {
 
 .row-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 600;
   line-height: 1.4;
   color: var(--el-text-color-primary);
@@ -247,10 +325,10 @@ async function handleEmpty() {
 .row-meta {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 6px;
-  font-size: 12px;
+  margin-top: 5px;
+  font-size: 11.5px;
   color: var(--el-text-color-secondary);
 }
 
@@ -267,13 +345,17 @@ async function handleEmpty() {
   flex-shrink: 0;
 }
 
+.row-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 @media (max-width: 720px) {
-  .wr-page-header {
+  .trash-header {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .trash-row {
+  .trash-card {
     flex-wrap: wrap;
   }
 

@@ -8,7 +8,6 @@ import { resetReportConfig } from '@/services/reportConfigService'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
 import ExtensionManager from '@/components/settings/ExtensionManager.vue'
-import DeveloperDocs from '@/components/settings/DeveloperDocs.vue'
 import pkg from '../../../package.json'
 
 defineOptions({ name: 'SettingsDialog' })
@@ -22,6 +21,7 @@ const { state } = useReports()
 const { copyResourcesPath } = useExtensions()
 
 const activeTab = ref('appearance')
+const docsFullscreen = ref(false)
 
 const tabs = [
   { key: 'appearance', label: '外观', icon: 'Sunny', desc: '选择界面主题' },
@@ -183,7 +183,18 @@ async function handleCopyResources() {
 
         <!-- 开发文档 -->
         <div v-else-if="activeTab === 'docs'" class="panel docs-panel">
-          <DeveloperDocs />
+          <div class="docs-toolbar">
+            <span class="docs-toolbar-title">插件 · 外部组件 · 二开 API</span>
+            <el-button size="small" @click="docsFullscreen = true">
+              <el-icon><FullScreen /></el-icon>
+              <span>全屏</span>
+            </el-button>
+          </div>
+          <iframe
+            class="docs-frame"
+            src="/docs/index.html"
+            title="周报开发文档"
+          />
         </div>
 
         <!-- 关于 -->
@@ -213,6 +224,22 @@ async function handleCopyResources() {
         </div>
       </el-scrollbar>
     </div>
+  </AppDialog>
+
+  <AppDialog
+    v-model="docsFullscreen"
+    title="开发文档"
+    subtitle="插件、外部组件与二开 API"
+    icon="Reading"
+    width="96vw"
+    fill-height
+    :show-footer="false"
+  >
+    <iframe
+      class="docs-frame is-fullscreen"
+      src="/docs/index.html"
+      title="周报开发文档"
+    />
   </AppDialog>
 </template>
 
@@ -274,7 +301,40 @@ async function handleCopyResources() {
 }
 
 .docs-panel {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
+}
+
+.docs-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 8px;
+}
+
+.docs-toolbar-title {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.docs-frame {
+  width: 100%;
+  height: min(600px, calc(100vh - 260px));
+  border: 0;
+  border-radius: 8px;
+  background: var(--el-bg-color);
+}
+
+.docs-frame.is-fullscreen {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border-radius: 0;
 }
 
 .panel-head {
