@@ -7,7 +7,11 @@
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-set-theme",
     "fs:default",
+    "fs:allow-watch",
+    "fs:allow-unwatch",
+    "fs:scope-resource-recursive",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",
     "fs:allow-temp-write",

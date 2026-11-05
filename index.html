@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.png">
@@ -8,6 +8,16 @@
     <link rel="stylesheet" href="/css/font-awesome.css">
     <script src="/js/moment.min.js"></script>
     <script src="/js/lodash.min.js"></script>
+    <script>
+      // 首屏应用主题，避免亮色闪烁；后续由 src/composables/useTheme.js 接管
+      (function () {
+        try {
+          var mode = localStorage.getItem('wr:theme')
+          var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

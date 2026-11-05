@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineModel } from 'vue'
-
+// 官方 SFC 写法：defineProps / defineModel 是编译器宏，无需从 vue 导入
 const { title, description } = defineProps({
   title: {
     type: String,
@@ -15,7 +14,6 @@ const { title, description } = defineProps({
 const modelValue = defineModel()
 
 const showQuestion = () => {
-  test()
   Swal.fire({
       title: '确认操作?',
       text: '您确定要执行此操作吗？',
@@ -38,20 +36,20 @@ const showQuestion = () => {
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .text {
   width: 100%;
-  color: red;
+  color: var(--el-color-primary);
   display: flex;
   align-items: center;
   justify-items: center;
+}
 
-  .label {
-    font-weight: bold;
-  }
+.text .label {
+  font-weight: bold;
+}
 
-  .text-label {
-    margin: 0 10px;
-  }
+.text .text-label {
+  margin: 0 10px;
 }
 </style>
