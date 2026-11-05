@@ -303,6 +303,10 @@ function handleCommand(command) {
   justify-content: center;
 }
 
+.editor-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 .editor-action :deep(.el-icon) {
   margin-right: 4px;
 }
