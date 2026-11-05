@@ -187,17 +187,17 @@ function handleCommand(command) {
           <span>{{ dirty ? '保存中…' : '已保存' }}</span>
         </span>
 
-        <el-button @click="copyContent">
+        <el-button class="editor-action" @click="copyContent">
           <el-icon><CopyDocument /></el-icon>
           <span>复制</span>
         </el-button>
 
-        <el-button type="primary" @click="emit('open-import-export', 'export')">
+        <el-button class="editor-action" type="primary" @click="emit('open-import-export', 'export')">
           <el-icon><Download /></el-icon>
           <span>导出</span>
         </el-button>
 
-        <el-dropdown trigger="click" @command="handleCommand">
+        <el-dropdown trigger="click" placement="bottom-end" @command="handleCommand">
           <el-button text circle title="更多">
             <el-icon><MoreFilled /></el-icon>
           </el-button>
@@ -294,6 +294,17 @@ function handleCommand(command) {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.editor-action {
+  min-width: 78px;
+  height: 30px;
+  padding: 0 12px;
+  justify-content: center;
+}
+
+.editor-action :deep(.el-icon) {
+  margin-right: 4px;
 }
 
 .save-state {

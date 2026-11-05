@@ -12,18 +12,17 @@
     style.textContent = `
         .double-shift-modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--el-overlay-color-light, rgba(0, 0, 0, 0.7));
+            inset: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            padding-top: 12vh;
+            background: var(--el-overlay-color-lighter, rgba(0, 0, 0, 0.5));
+            backdrop-filter: blur(3px);
             z-index: 9999;
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
+            transition: opacity 0.16s ease, visibility 0.16s ease;
         }
 
         .double-shift-modal.active {
@@ -32,77 +31,80 @@
         }
 
         .double-shift-search-box {
-            width: 700px;
-            max-width: 90vw;
-            background-color: var(--el-bg-color-overlay, #fff);
-            color: var(--el-text-color-regular, #606266);
-            border-radius: 12px;
-            box-shadow: var(--el-box-shadow, 0 15px 40px rgba(0, 0, 0, 0.25));
+            width: 640px;
+            max-width: min(90vw, 720px);
             overflow: hidden;
-            transform: scale(0.9);
-            transition: transform 0.3s;
+            border: 1px solid var(--el-border-color-light);
+            border-radius: 10px;
+            background: var(--el-bg-color-overlay);
+            color: var(--el-text-color-regular);
+            box-shadow: var(--el-box-shadow-dark, 0 18px 50px rgba(15, 23, 42, 0.28));
+            transform: translateY(-6px) scale(0.985);
+            transition: transform 0.16s ease;
         }
 
         .double-shift-modal.active .double-shift-search-box {
-            transform: scale(1);
-        }
-
-        .double-shift-search-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid var(--el-border-color-lighter, #eaeaea);
-            background-color: var(--el-fill-color-lighter, #f8f9fa);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .double-shift-search-header i {
-            color: var(--el-color-primary, #409eff);
-            font-size: 24px;
-        }
-
-        .double-shift-search-header span {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--el-text-color-primary, #303133);
+            transform: translateY(0) scale(1);
         }
 
         .double-shift-search-input-container {
-            padding: 25px;
-            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--el-border-color-lighter);
+            background: var(--el-bg-color-overlay);
+        }
+
+        .double-shift-search-input-container > i {
+            flex: none;
+            color: var(--el-color-primary);
+            font-size: 14px;
         }
 
         .double-shift-search-input {
-            width: 100%;
-            padding: 16px 20px;
-            border: 1px solid var(--el-border-color, #dcdfe6);
-            border-radius: 4px;
-            font-size: 1.1rem;
+            flex: 1;
+            min-width: 0;
+            padding: 4px 0;
+            border: 0;
             outline: none;
-            transition: border-color 0.3s;
-            background: var(--el-bg-color-overlay, #fff);
-            color: var(--el-text-color-regular, #303133);
-            caret-color: var(--el-color-primary, #409eff);
+            background: transparent;
+            color: var(--el-text-color-primary);
+            font-family: inherit;
+            font-size: 14px;
+            caret-color: var(--el-color-primary);
         }
 
         .double-shift-search-input::placeholder {
-            color: var(--el-text-color-placeholder, #a8abb2);
+            color: var(--el-text-color-placeholder);
         }
 
-        .double-shift-search-input:focus {
-            border-color: var(--el-color-primary, #409eff);
+        .double-shift-search-kbd,
+        .double-shift-search-footer kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border: 1px solid var(--el-border-color-lighter);
+            border-radius: 4px;
+            background: var(--el-fill-color-lighter);
+            color: var(--el-text-color-secondary);
+            font-family: var(--wr-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+            font-size: 9.5px;
+            line-height: 1;
         }
 
         .double-shift-search-results {
-            max-height: 450px;
+            max-height: 420px;
             overflow-y: auto;
-            border-top: 1px solid var(--el-border-color-lighter, #eaeaea);
             scrollbar-width: thin;
-            scrollbar-color: var(--el-border-color, #dcdfe6) transparent;
+            scrollbar-color: var(--el-scrollbar-bg-color, rgba(144, 147, 153, 0.3)) transparent;
         }
 
         .double-shift-search-results::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         .double-shift-search-results::-webkit-scrollbar-track {
@@ -110,125 +112,138 @@
         }
 
         .double-shift-search-results::-webkit-scrollbar-thumb {
-            background-color: var(--el-border-color, #dcdfe6);
-            border-radius: 8px;
-        }
-
-        .double-shift-search-results::-webkit-scrollbar-thumb:hover {
-            background-color: var(--el-text-color-placeholder, #a8abb2);
+            border-radius: 4px;
+            background: var(--el-scrollbar-bg-color, rgba(144, 147, 153, 0.3));
         }
 
         .double-shift-search-result-item {
-            padding: 18px 25px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
-            transition: background-color 0.2s;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 5px;
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--el-border-color-lighter);
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+        }
+
+        .double-shift-search-result-item:last-child {
+            border-bottom: 0;
         }
 
         .double-shift-search-result-item:hover {
-            background-color: var(--el-fill-color-light, #f5f7fa);
+            background: var(--el-fill-color-lighter);
         }
 
         .double-shift-search-result-item.active {
-            background-color: var(--el-color-primary-light-9, #ecf5ff);
-            box-shadow: inset 2px 0 0 var(--el-color-primary, #409eff);
+            background: var(--el-color-primary-light-9);
+            box-shadow: inset 2px 0 0 var(--el-color-primary);
         }
 
         .double-shift-result-title {
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: var(--el-text-color-primary, #303133);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 7px;
+            min-width: 0;
+            color: var(--el-text-color-primary);
+            font-size: 12.5px;
+            font-weight: 600;
+            line-height: 1.45;
         }
 
         .double-shift-result-title i {
-            color: var(--el-color-primary, #409eff);
-            width: 20px;
+            width: 14px;
+            flex: none;
+            color: var(--el-color-primary);
+            font-size: 11px;
             text-align: center;
         }
 
         .double-shift-result-meta {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 0.9rem;
             flex-wrap: wrap;
+            gap: 5px;
         }
 
         .double-shift-result-tag {
             display: inline-flex;
             align-items: center;
-            padding: 4px 10px;
+            padding: 1px 6px;
+            border: 0;
             border-radius: 4px;
-            font-size: 0.8rem;
+            font-size: 9.5px;
             font-weight: 500;
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
         .double-shift-tag-report {
-            background-color: var(--el-color-primary-light-9, #ecf5ff);
-            color: var(--el-color-primary, #409eff);
-            border: 1px solid var(--el-color-primary-light-8, #d9ecff);
+            background: var(--el-color-primary-light-9);
+            color: var(--el-color-primary);
         }
 
         .double-shift-tag-section {
-            background-color: var(--el-color-success-light-9, #f0f9eb);
-            color: var(--el-color-success, #67c23a);
-            border: 1px solid var(--el-color-success-light-8, #e1f3d8);
+            background: var(--el-color-success-light-9);
+            color: var(--el-color-success);
         }
 
         .double-shift-tag-item {
-            background-color: var(--el-color-warning-light-9, #fdf6ec);
-            color: var(--el-color-warning, #e6a23c);
-            border: 1px solid var(--el-color-warning-light-8, #faecd8);
+            background: var(--el-color-warning-light-9);
+            color: var(--el-color-warning);
         }
 
         .double-shift-tag-date {
-            background-color: var(--el-color-info-light-9, #f4f4f5);
-            color: var(--el-text-color-secondary, #909399);
-            border: 1px solid var(--el-color-info-light-8, #e9e9eb);
+            background: var(--el-fill-color);
+            color: var(--el-text-color-secondary);
         }
 
         .double-shift-tag-status {
-            background-color: var(--el-color-danger-light-9, #fef0f0);
-            color: var(--el-color-danger, #f56c6c);
-            border: 1px solid var(--el-color-danger-light-8, #fde2e2);
+            background: var(--el-color-danger-light-9);
+            color: var(--el-color-danger);
         }
 
         .double-shift-tag-match {
-            background-color: var(--el-color-warning-light-9, #fff9e6);
-            color: var(--el-color-warning, #e6a23c);
-            border: 1px solid var(--el-color-warning-light-8, #faecd8);
+            background: var(--el-color-warning-light-9);
+            color: var(--el-color-warning-dark-2, var(--el-color-warning));
         }
 
         .double-shift-search-footer {
-            padding: 18px 25px;
-            border-top: 1px solid var(--el-border-color-lighter, #eaeaea);
-            background-color: var(--el-fill-color-lighter, #f8f9fa);
-            font-size: 0.9rem;
-            color: var(--el-text-color-secondary, #909399);
             display: flex;
+            align-items: center;
             justify-content: space-between;
+            gap: 12px;
+            padding: 7px 14px;
+            border-top: 1px solid var(--el-border-color-lighter);
+            background: var(--el-fill-color-lighter);
+            color: var(--el-text-color-secondary);
+            font-size: 10.5px;
+        }
+
+        .double-shift-search-keys {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .double-shift-result-count {
+            font-family: var(--wr-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+            font-size: 10px;
+            color: var(--el-text-color-placeholder);
+        }
+
+        .double-shift-empty,
+        .double-shift-loading {
+            padding: 32px 16px;
+            text-align: center;
+            color: var(--el-text-color-secondary);
+            font-size: 12px;
         }
 
         .double-shift-highlight {
-            background-color: var(--el-color-warning-light-8, #fff9c4);
-            color: var(--el-text-color-primary, #303133);
-            padding: 0 4px;
+            padding: 0 2px;
             border-radius: 3px;
+            background: var(--el-color-warning-light-8);
+            color: var(--el-text-color-primary);
             font-weight: 600;
-        }
-
-        .double-shift-empty, .double-shift-loading {
-            padding: 40px 25px;
-            text-align: center;
-            color: var(--el-text-color-secondary, #909399);
-            font-size: 0.95rem;
         }
 
         .double-shift-driver-highlight {
@@ -239,14 +254,10 @@
         .double-shift-driver-highlight::after {
             content: '';
             position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border: 2px solid var(--el-color-primary, #409eff);
+            inset: -2px;
+            border: 2px solid var(--el-color-primary);
             border-radius: 4px;
-            background-color: rgba(64, 158, 255, 0.1);
-            background-color: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+            background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
             z-index: 10000;
             pointer-events: none;
         }
@@ -258,16 +269,14 @@
     modal.className = 'double-shift-modal';
     modal.innerHTML = `
         <div class="double-shift-search-box">
-            <div class="double-shift-search-header">
-                <i class="fas fa-search"></i>
-                <span>搜索工作周报</span>
-            </div>
             <div class="double-shift-search-input-container">
-                <input type="text" class="double-shift-search-input" placeholder="输入关键词搜索标题、类型或内容...">
+                <i class="fas fa-search"></i>
+                <input type="text" class="double-shift-search-input" placeholder="搜索周报标题、区块或内容…">
+                <kbd class="double-shift-search-kbd">ESC</kbd>
             </div>
             <div class="double-shift-search-results"></div>
             <div class="double-shift-search-footer">
-                <span>使用 ↑↓ 选择，Enter 确认，Esc 关闭</span>
+                <span class="double-shift-search-keys"><kbd>↑</kbd><kbd>↓</kbd> 选择 <kbd>Enter</kbd> 打开</span>
                 <span class="double-shift-result-count">0 个结果</span>
             </div>
         </div>

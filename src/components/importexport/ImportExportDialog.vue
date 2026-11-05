@@ -33,6 +33,18 @@ const emit = defineEmits(['imported'])
 
 const activeTab = ref('export')
 
+const formats = [
+  { value: 'html', label: 'HTML', hint: '带样式的网页', icon: 'Document' },
+  { value: 'markdown', label: 'Markdown', hint: '纯文本 / 笔记', icon: 'EditPen' },
+  { value: 'json', label: 'JSON', hint: '结构化数据', icon: 'Tickets' },
+  { value: 'backup', label: '全量备份', hint: '全部数据', icon: 'FolderOpened' }
+]
+
+function switchTab(tab) {
+  if (busy.value || activeTab.value === tab) return
+  activeTab.value = tab
+}
+
 // ============================================================
 // 导出
 // ============================================================
@@ -301,10 +313,6 @@ function closeDialog() {
   visible.value = false
 }
 
-function handleBeforeLeave() {
-  return !busy.value
-}
-
 watch(visible, open => {
   if (!open) return
 
@@ -337,17 +345,58 @@ watch(activeTab, tab => {
     :close-on-press-escape="!busy"
     :before-close="beforeClose"
   >
-    <el-tabs v-model="activeTab" class="ie-tabs" :before-leave="handleBeforeLeave">
-      <el-tab-pane label="导出" name="export">
+    <div class="ie-shell">
+      <aside class="ie-nav">
+        <button
+          type="button"
+          class="ie-nav-item"
+          :class="{ active: activeTab === 'export' }"
+          @click="switchTab('export')"
+        >
+          <span class="ie-nav-icon"><el-icon :size="16"><Download /></el-icon></span>
+          <span class="ie-nav-copy">
+            <strong>导出</strong>
+            <small>单份 / 批量 / 全量备份</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="ie-nav-item"
+          :class="{ active: activeTab === 'import' }"
+          @click="switchTab('import')"
+        >
+          <span class="ie-nav-icon"><el-icon :size="16"><Upload /></el-icon></span>
+          <span class="ie-nav-copy">
+            <strong>导入</strong>
+            <small>恢复备份 / 周报 JSON</small>
+          </span>
+        </button>
+        <p class="ie-nav-tip">备份文件包含全部周报、模板与默认结构。</p>
+      </aside>
+
+      <el-scrollbar class="ie-main">
+        <div class="ie-main-inner">
+      <template v-if="activeTab === 'export'">
         <div class="ie-pane">
           <section class="wr-dialog-section">
             <div class="wr-dialog-label">导出格式</div>
-            <el-radio-group v-model="exportFormat" :disabled="exporting">
-              <el-radio-button value="html">HTML</el-radio-button>
-              <el-radio-button value="markdown">Markdown</el-radio-button>
-              <el-radio-button value="json">JSON</el-radio-button>
-              <el-radio-button value="backup">全量备份</el-radio-button>
-            </el-radio-group>
+            <div class="format-grid">
+              <button
+                v-for="format in formats"
+                :key="format.value"
+                type="button"
+                class="format-card"
+                :class="{ active: exportFormat === format.value }"
+                :disabled="exporting"
+                @click="exportFormat = format.value"
+              >
+                <span class="format-icon"><el-icon :size="15"><component :is="format.icon" /></el-icon></span>
+                <span class="format-copy">
+                  <strong>{{ format.label }}</strong>
+                  <small>{{ format.hint }}</small>
+                </span>
+              </button>
+            </div>
           </section>
 
           <section v-if="exportFormat === 'backup'" class="wr-dialog-section">
@@ -462,9 +511,9 @@ watch(activeTab, tab => {
             <el-progress :percentage="progressPercent" :show-text="false" :stroke-width="6" />
           </div>
         </div>
-      </el-tab-pane>
+      </template>
 
-      <el-tab-pane label="导入" name="import">
+      <template v-else>
         <div class="ie-pane">
           <template v-if="!importResult">
             <div
@@ -569,8 +618,10 @@ watch(activeTab, tab => {
             <el-button link type="primary" @click="resetImport">继续导入</el-button>
           </div>
         </div>
-      </el-tab-pane>
-    </el-tabs>
+      </template>
+        </div>
+      </el-scrollbar>
+    </div>
 
     <template #footer>
       <el-button :disabled="busy" @click="closeDialog">
@@ -605,22 +656,194 @@ watch(activeTab, tab => {
 </template>
 
 <style scoped>
-.ie-tabs {
-  padding: 4px 20px 12px;
+.ie-shell {
+  display: flex;
+  width: 100%;
+  height: min(540px, calc(100vh - 190px));
+  min-height: 420px;
 }
 
-.ie-tabs :deep(.el-tabs__header) {
-  margin-bottom: 4px;
+.ie-nav {
+  width: 208px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 10px;
+  border-right: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+
+.ie-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ie-nav-item:hover {
+  border-color: var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+}
+
+.ie-nav-item.active {
+  border-color: var(--el-color-primary-light-7);
+  background: var(--el-bg-color);
+  box-shadow: 0 0 0 1px var(--el-color-primary-light-8);
+}
+
+.ie-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+}
+
+.ie-nav-item.active .ie-nav-icon {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.ie-nav-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ie-nav-copy strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ie-nav-copy small {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ie-nav-tip {
+  margin: auto 4px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 10.5px;
+  line-height: 1.65;
+  color: var(--el-text-color-placeholder);
+}
+
+.ie-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ie-main-inner {
+  padding: 14px 22px 22px;
 }
 
 .ie-pane {
-  min-height: 320px;
-  padding-top: 4px;
+  min-height: 0;
+}
+
+.ie-main-inner .wr-dialog-section {
+  padding: 14px 0;
+}
+
+.ie-main-inner .wr-dialog-label {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.format-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-bg-color);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.format-card:hover {
+  border-color: var(--el-border-color);
+  background: var(--el-fill-color-lighter);
+}
+
+.format-card.active {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+
+.format-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+}
+
+.format-card.active .format-icon {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+.format-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.format-copy strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.format-copy small {
+  font-size: 10px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .field-hint {
-  margin: 8px 0 0;
-  font-size: 12px;
+  margin: 7px 0 0;
+  font-size: 11.5px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
 }
@@ -630,24 +853,24 @@ watch(activeTab, tab => {
 }
 
 .ie-error {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 /* 当前周报 */
 .current-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 68px;
-  padding: 14px 16px;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--wr-radius-md);
   background: var(--el-fill-color-lighter);
 }
 
 .current-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -688,7 +911,7 @@ watch(activeTab, tab => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 0 8px;
+  padding: 8px 0 6px;
 }
 
 .select-count {
@@ -711,8 +934,8 @@ watch(activeTab, tab => {
 .report-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 8px 10px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--wr-radius-sm);
   background: var(--el-bg-color);
@@ -750,8 +973,8 @@ watch(activeTab, tab => {
 
 .row-date {
   flex-shrink: 0;
-  min-width: 190px;
-  font-size: 12px;
+  min-width: 160px;
+  font-size: 11.5px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
 }
@@ -759,7 +982,7 @@ watch(activeTab, tab => {
 .row-title {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -800,9 +1023,9 @@ watch(activeTab, tab => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 28px 20px;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 22px 18px;
   text-align: center;
   border: 1px dashed var(--el-border-color);
   border-radius: var(--wr-radius-md);
@@ -834,7 +1057,7 @@ watch(activeTab, tab => {
 
 .dz-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   word-break: break-all;
@@ -842,7 +1065,7 @@ watch(activeTab, tab => {
 
 .dz-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--el-text-color-secondary);
 }
 
@@ -877,15 +1100,15 @@ watch(activeTab, tab => {
   min-width: 120px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: 3px;
+  padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--wr-radius-md);
   background: var(--el-fill-color-lighter);
 }
 
 .summary-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 650;
   color: var(--el-text-color-primary);
 }

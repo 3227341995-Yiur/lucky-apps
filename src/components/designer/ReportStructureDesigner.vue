@@ -456,7 +456,7 @@ onBeforeUnmount(() => {
       <el-button v-if="!isView" size="small" type="primary" :loading="saving" :disabled="loading || preview" @click="handleSave">
         保存默认版面
       </el-button>
-      <el-dropdown trigger="click" @command="handleCommand">
+      <el-dropdown trigger="click" placement="bottom-end" @command="handleCommand">
         <el-button text circle size="small" title="更多">
           <el-icon><MoreFilled /></el-icon>
         </el-button>

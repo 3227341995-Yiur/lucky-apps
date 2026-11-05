@@ -177,11 +177,6 @@ function openWelcome() {
           <span class="panel-count">{{ state.stats.reports }}</span>
         </div>
         <div class="panel-actions">
-          <el-tooltip content="返回工作台" placement="bottom" :show-after="500">
-            <button type="button" title="工作台" @click="openWelcome">
-              <el-icon :size="14"><HomeFilled /></el-icon>
-            </button>
-          </el-tooltip>
           <el-tooltip content="导出模板" placement="bottom" :show-after="500">
             <button type="button" title="模板" @click="emit('templates')">
               <el-icon :size="14"><DocumentCopy /></el-icon>
