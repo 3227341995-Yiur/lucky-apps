@@ -1,6 +1,6 @@
 # 外部组件
 
-外部组件是标准 Vue 项目，放在 `extensions/<name>/`，构建成单文件 ESM 后由 Cordis 运行时加载。
+外部组件是标准 Vue 项目，放在 `extensions/<name>/`，构建成单文件 IIFE 插件包后由 Cordis 运行时加载。
 
 ## 项目结构
 
@@ -102,8 +102,7 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 `rating-cell`、`progress-cell`、`user-cell`、`money-cell` 四个列组件包，可以直接作为模板。
 :::
 
-::: warning 共用 Vue
-插件按 node_modules 语义 `import 'vue'`，`index.html` 的 import map 把 `vue` 指向
-`public/host-vue.js`，确保和宿主使用同一个 Vue 实例。自定义构建不要打包第二份 Vue，
-否则组件的生命周期和 provide/inject 会失效。
+::: tip Vue / Element Plus
+组件包构建为 IIFE，`vue`、`element-plus`、`@element-plus/icons-vue` 由宿主 `window` 提供，
+和宿主共用同一份实例；其他 npm 依赖由 Vite 打包。
 :::

@@ -71,13 +71,21 @@ export function createExtensionConfig({ name, entry = 'src/index.js', root = pro
       cssCodeSplit: false,
       lib: {
         entry: path.resolve(root, entry),
-        formats: ['es'],
+        formats: ['iife'],
+        name: '__wrPlugin',
         fileName: () => 'index.js'
       },
       rollupOptions: {
-        // 按 node_modules 语义保留裸 import 'vue'，运行时由 index.html 的 import map
-        // 指向宿主 Vue；打包第二份 Vue 会让生命周期与 provide/inject 失效
-        external: ['vue']
+        // 浏览器没有 Node 解析器：Vue / Element Plus 由宿主环境提供，
+        // 插件包只引用 window 上的同一份实例，不重复打包
+        external: ['vue', 'element-plus', '@element-plus/icons-vue'],
+        output: {
+          globals: {
+            vue: 'Vue',
+            'element-plus': 'ElementPlus',
+            '@element-plus/icons-vue': 'ElementPlusIconsVue'
+          }
+        }
       }
     }
   }

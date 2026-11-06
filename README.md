@@ -68,7 +68,7 @@ src-tauri/resources/
 `node_modules` 解析 `package.json` 入口，动态 import 后由 Cordis 挂载，**不参与插件打包**。
 外部包安装到 `AppData/plugins/node_modules`，profile 写包名即可注册；保存后自动热加载。
 运行时脚本与样式放入 `src-tauri/resources/js|css/`，按文件名排序加载。
-插件按 node_modules 语义 `import 'vue'`，由 `public/host-vue.js` + import map 共用宿主 Vue 实例。
+组件包构建为 IIFE，`vue` / `element-plus` / 图标由宿主 `window` 提供，和宿主共用同一份实例。
 
 完整 API、事件、组件契约见 [docs/plugin-api.md](docs/plugin-api.md)；
 画布设计器说明见 [docs/report-designer.md](docs/report-designer.md)。

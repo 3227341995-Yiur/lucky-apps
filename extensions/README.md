@@ -1,6 +1,6 @@
 # 外部组件插件包
 
-每个目录都是独立 workspace 包，自己用 Vite 构建成单文件 ESM，按 node_modules 结构输出到
+每个目录都是独立 workspace 包，自己用 Vite 构建成单文件 IIFE，按 node_modules 结构输出到
 `src-tauri/resources/node_modules/@week-report/<name>/`（含 `package.json` 和 `lib/index.js`），
 由宿主运行时 import 并通过 Cordis 挂载。宿主不参与插件打包。
 
@@ -21,8 +21,7 @@ extensions/
 pnpm extensions:build
 ```
 
-共用 `extensions/build-preset.js`。它把 `vue` 保留为裸 import，运行时由宿主的
-import map 指向 `public/host-vue.js`，保证使用同一个 Vue 实例；自定义构建不要打包第二份 Vue。
+共用 `extensions/build-preset.js`。产物是 IIFE，`vue` / `element-plus` / 图标从宿主 `window` 取，共用同一份实例。
 
 ## profile
 

@@ -267,19 +267,123 @@ importers:
         specifier: ^1.6.4
         version: 1.6.4(@algolia/client-search@5.61.0)(async-validator@4.2.5)(less@4.9.1(supports-color@7.2.0))(lightningcss@1.33.0)(postcss@8.5.32)(sass@1.107.1)(search-insights@2.17.3)(typescript@6.0.3)
 
-  extensions/kpi-card: {}
+  extensions/kpi-card:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: ^2.3.2
+        version: 2.3.2(vue@3.5.44(typescript@6.0.3))
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
-  extensions/money-cell: {}
+  extensions/money-cell:
+    dependencies:
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
-  extensions/progress-board: {}
+  extensions/progress-board:
+    dependencies:
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
-  extensions/progress-cell: {}
+  extensions/progress-cell:
+    dependencies:
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
-  extensions/rating-cell: {}
+  extensions/rating-cell:
+    dependencies:
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
-  extensions/timeline-card: {}
+  extensions/timeline-card:
+    dependencies:
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
-  extensions/user-cell: {}
+  extensions/user-cell:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: ^2.3.2
+        version: 2.3.2(vue@3.5.44(typescript@6.0.3))
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.5
+        version: 8.3.5(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
 
 packages:
 

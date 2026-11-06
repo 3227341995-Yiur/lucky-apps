@@ -185,6 +185,8 @@ export async function scanExtensionResources() {
       package: entry.name,
       file: module.replace(/^resources\//, ''),
       moduleUrl,
+      readPath: module,
+      baseDir: BaseDirectory.Resource,
       enabled: !disabled.has(id),
       status: disabled.has(id) ? 'disabled' : 'pending',
       error: ''
@@ -219,6 +221,8 @@ export async function scanExtensionResources() {
       package: entry.name,
       file: module,
       moduleUrl,
+      readPath: module,
+      baseDir: BaseDirectory.AppData,
       enabled: !disabled.has(id),
       status: disabled.has(id) ? 'disabled' : 'pending',
       error: ''
@@ -301,13 +305,18 @@ export async function loadExtensionResources() {
 
 async function loadComponentResource(item) {
   try {
-    if (!item.moduleUrl) throw new Error('插件缺少入口')
-    // 加版本参数绕开 ESM 缓存，热加载才能拿到新构建的包
-    const url = `${item.moduleUrl}${item.moduleUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
-    const module = await import(/* @vite-ignore */ url)
-    const plugin = module.default || module
+    if (!item.readPath) throw new Error('插件缺少入口')
+    // 插件包构建成 IIFE，Vue / Element Plus 从宿主 window 上取同一份实例。
+    // 浏览器没有 Node 的 node_modules 解析器，这样不需要 import map 或运行时 shim。
+    const source = await readTextFile(item.readPath, { baseDir: item.baseDir })
+    delete window.__wrPlugin
+    const run = new Function(`${source}
+;window.__wrPlugin = (typeof __wrPlugin !== 'undefined' ? __wrPlugin : undefined);`)
+    run()
+    const plugin = window.__wrPlugin?.default || window.__wrPlugin
+    delete window.__wrPlugin
     if (!plugin || typeof plugin !== 'object') {
-      throw new Error('插件包必须默认导出 Cordis 插件对象')
+      throw new Error('插件包没有导出 Cordis 插件对象')
     }
     await mountCordisPluginObject(`component:${item.name}`, plugin)
 

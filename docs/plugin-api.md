@@ -132,8 +132,8 @@ export default {
 
 - 列组件接收 `modelValue`（单元格值）和列的 `attrs`。
 - 列属性插槽接收列对象，可直接修改 `column.attrs`。
-- 组件内部正常 `import 'vue'` / `element-plus` / npm 包 / `.vue` / less/scss，由包自己的 Vite 编译。
-- 构建配置使用 `extensions/build-preset.js`，`vue` 保留为裸 import，运行时由 import map 指向宿主 `public/host-vue.js`，避免第二份 Vue 实例。
+- 组件内部正常 `import 'vue'` / `element-plus` / npm 包 / `.vue` / less/scss，由包自己的 Vite 编译；Vue 和 Element Plus 外置到宿主全局实例。
+- 构建配置使用 `extensions/build-preset.js`，产物是 IIFE；`vue` / `element-plus` / `@element-plus/icons-vue` 从宿主 `window` 取，不重复打包。
 
 构建与注册：
 
