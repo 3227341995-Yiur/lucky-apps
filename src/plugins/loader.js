@@ -5,7 +5,7 @@
  *   css/   样式表，按名称排序注入 <link>
  *   js/    插件脚本，按名称排序串行加载（依赖用数字前缀或字母序保证）
  *   cordis.yml 内置组件包 profile，条目只写 node_modules 包名
- *   node_modules/@week-report/... 独立构建的组件包
+ *   node_modules/ 系统依赖（vue / element-plus / 图标）+ 独立组件包
  *
  * AppData/plugins/ 是用户运行时插件目录：
  *   cordis.yml         外部 profile，条目只写 node_modules 包名

@@ -1,5 +1,5 @@
 {
-  "name": "@week-report/timeline-card",
+  "name": "timeline-card",
   "version": "1.0.0",
   "private": true,
   "type": "module",

@@ -138,7 +138,7 @@ export default {
 构建与注册：
 
 ```bash
-pnpm extensions:build   # 输出到 src-tauri/resources/node_modules/@week-report/<name>/
+pnpm extensions:build   # 输出到 src-tauri/resources/node_modules/<name>/
 ```
 
 内置包在 `src-tauri/resources/cordis.yml` 只写 `name`；外部包安装到

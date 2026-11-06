@@ -1,7 +1,7 @@
 # 外部组件插件包
 
 每个目录都是独立 workspace 包，自己用 Vite 构建成单文件 IIFE，按 node_modules 结构输出到
-`src-tauri/resources/node_modules/@week-report/<name>/`（含 `package.json` 和 `lib/index.js`），
+`src-tauri/resources/node_modules/<name>/`（含 `package.json` 和 `lib/index.js`），
 由宿主运行时 import 并通过 Cordis 挂载。宿主不参与插件打包。
 
 ```text
@@ -29,7 +29,7 @@ pnpm extensions:build
 
 ```yaml
 - id: kpi-card
-  name: '@week-report/kpi-card'
+  name: 'kpi-card'
 ```
 
 外部包安装到 `AppData/plugins/node_modules/<包名>`，在

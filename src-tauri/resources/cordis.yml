@@ -2,22 +2,22 @@
 # 包安装在 resources/node_modules，条目只写包名；
 # 入口由包自己的 package.json（exports / module / main）决定。
 - id: kpi-card
-  name: '@week-report/kpi-card'
+  name: 'kpi-card'
 
 - id: progress-board
-  name: '@week-report/progress-board'
+  name: 'progress-board'
 
 - id: timeline-card
-  name: '@week-report/timeline-card'
+  name: 'timeline-card'
 
 - id: rating-cell
-  name: '@week-report/rating-cell'
+  name: 'rating-cell'
 
 - id: progress-cell
-  name: '@week-report/progress-cell'
+  name: 'progress-cell'
 
 - id: user-cell
-  name: '@week-report/user-cell'
+  name: 'user-cell'
 
 - id: money-cell
-  name: '@week-report/money-cell'
+  name: 'money-cell'

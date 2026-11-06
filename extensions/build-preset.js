@@ -40,7 +40,7 @@ function writePackageManifest(name) {
       const outDir = options.dir
       if (!outDir) return
       const manifest = {
-        name: `@week-report/${name}`,
+        name,
         version: '1.0.0',
         private: true,
         type: 'module',
@@ -66,7 +66,7 @@ export function createExtensionConfig({ name, entry = 'src/index.js', root = pro
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
     },
     build: {
-      outDir: path.resolve(root, '../../src-tauri/resources/node_modules/@week-report', name, 'lib'),
+      outDir: path.resolve(root, '../../src-tauri/resources/node_modules', name, 'lib'),
       emptyOutDir: true,
       cssCodeSplit: false,
       lib: {

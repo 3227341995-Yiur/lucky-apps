@@ -56,17 +56,17 @@ extensions/   独立外部组件包（workspace，各自 Vite 构建）
 src-tauri/resources/
 ├─ css/                运行时样式扩展
 ├─ js/                 运行时插件脚本（search.js / registerHelper.js 等）
-├─ node_modules/@week-report/  构建好的内置组件包
+├─ node_modules/        vue / element-plus / 图标 + 各内置组件包
 └─ cordis.yml          内置组件包 profile（只写包名）
 ```
 
 ## 扩展开发
 
 外部组件是标准 Vue 项目，放在 `extensions/<name>/`，各自构建到
-`src-tauri/resources/node_modules/@week-report/<name>/`。宿主启动时读取
+`src-tauri/resources/node_modules/<name>/`。宿主启动时读取
 `resources/cordis.yml` 和 `AppData/plugins/cordis.yml`，按 profile 里的包名从
 `node_modules` 解析 `package.json` 入口，动态 import 后由 Cordis 挂载，**不参与插件打包**。
-外部包安装到 `AppData/plugins/node_modules`，profile 写包名即可注册；保存后自动热加载。
+内置组件包和系统依赖都按 node_modules 结构放在 `resources/node_modules`；外部包安装到 `AppData/plugins/node_modules`，profile 写包名即可注册；保存后自动热加载。
 运行时脚本与样式放入 `src-tauri/resources/js|css/`，按文件名排序加载。
 组件包构建为 IIFE，`vue` / `element-plus` / 图标由宿主 `window` 提供，和宿主共用同一份实例。
 

@@ -1,5 +1,5 @@
 {
-  "name": "@week-report/progress-cell",
+  "name": "progress-cell",
   "version": "1.0.0",
   "private": true,
   "type": "module",

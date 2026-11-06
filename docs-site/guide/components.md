@@ -69,14 +69,14 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 ## 包与 profile
 
 每个插件是独立包，自己执行 `vite build`，产物按 node_modules 结构输出到
-`src-tauri/resources/node_modules/@week-report/<name>/`（含 `package.json` 和 `lib/index.js`）。
+`src-tauri/resources/node_modules/<name>/`（含 `package.json` 和 `lib/index.js`）。
 宿主只负责运行时加载，不参与插件打包。
 
 内置包由 `src-tauri/resources/cordis.yml` 声明，条目只写包名：
 
 ```yaml
 - id: kpi-card
-  name: '@week-report/kpi-card'
+  name: 'kpi-card'
 ```
 
 外部包安装到用户插件目录（设置 → 扩展 → 复制插件目录），profile 同样只写包名：
