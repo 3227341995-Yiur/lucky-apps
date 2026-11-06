@@ -106,22 +106,44 @@ function evaluateDefaultValue(expression) {
 /**
  * 计算列默认值：literal / code / today / now，兼容历史 moment 写法
  */
-export function resolveDefaultValue(column = {}) {
-  if (column.defaultValueType === 'today') return formatDate()
-  if (column.defaultValueType === 'now') return Date.now()
-  if (column.defaultValueType === 'code') return evaluateDefaultValue(column.defaultValue)
-
-  const value = column.defaultValue
-  if (value === undefined || value === null) return ''
-  if (typeof value !== 'string') return value
-
-  const trimmed = value.trim()
-  if (/^moment\(\)\.format\(\s*['"]YYYY-MM-DD['"]\s*\)$/.test(trimmed)) {
-    return formatDate()
+function normalizeMultiValue(value) {
+  if (Array.isArray(value)) return value
+  if (value === undefined || value === null || value === '') return []
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return []
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed)) return parsed
+      } catch {
+        // 不是 JSON 数组，按逗号分隔处理
+      }
+    }
+    return trimmed.split(/[,，]/).map(item => item.trim()).filter(Boolean)
   }
-  if (trimmed === 'Date.now()') return Date.now()
-  if (trimmed === 'true') return true
-  if (trimmed === 'false') return false
+  return [value]
+}
+
+export function resolveDefaultValue(column = {}) {
+  let value
+
+  if (column.defaultValueType === 'today') value = formatDate()
+  else if (column.defaultValueType === 'now') value = Date.now()
+  else if (column.defaultValueType === 'code') value = evaluateDefaultValue(column.defaultValue)
+  else {
+    value = column.defaultValue
+    if (value === undefined || value === null) value = ''
+    else if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (/^moment\(\)\.format\(\s*['"]YYYY-MM-DD['"]\s*\)$/.test(trimmed)) value = formatDate()
+      else if (trimmed === 'Date.now()') value = Date.now()
+      else if (trimmed === 'true') value = true
+      else if (trimmed === 'false') value = false
+    }
+  }
+
+  if (column.component === 'multi-select') return normalizeMultiValue(value)
   return value
 }
 

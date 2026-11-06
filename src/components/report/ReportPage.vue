@@ -1,9 +1,11 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import ReportSection from '@/components/report/ReportSection.vue'
 import ColumnSettingsDialog from '@/components/report/ColumnSettingsDialog.vue'
 import DateRangeField from '@/components/common/DateRangeField.vue'
 import ElementWidget from '@/components/designer/ElementWidget.vue'
+import { hasComponent } from '@/plugins/registry'
+import { formatDateRange } from '@/utils/reportExport'
 
 defineOptions({ name: 'ReportPage' })
 
@@ -15,6 +17,10 @@ const props = defineProps({
   layout: {
     type: Object,
     required: true
+  },
+  interactive: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -24,6 +30,9 @@ const showColumnSettings = ref(false)
 const editingSection = ref(null)
 const pageRef = ref(null)
 const sectionHeights = ref({})
+const runtimeValues = reactive({})
+const runtimeVisibility = reactive({})
+const runtimeVariables = reactive({})
 let resizeObserver = null
 
 const page = computed(() => props.layout.page)
@@ -92,7 +101,15 @@ function onSectionResize(entries) {
 onMounted(() => {
   resizeObserver = new ResizeObserver(onSectionResize)
   observeSections()
+  nextTick(runLoadInteractions)
 })
+
+watch(
+  () => props.interactive,
+  value => {
+    if (value) nextTick(runLoadInteractions)
+  }
+)
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect()
@@ -181,18 +198,145 @@ function saveColumnSettings(nextSection) {
   emit('change')
 }
 
-function onTitleInput(event) {
+function evaluateExpression(element) {
+  const code = String(element.expression || '').trim()
+  if (!code) return null
+  try {
+    const result = new Function('report', 'moment', `"use strict"; return (${code});`)(
+      props.report,
+      typeof window !== 'undefined' ? window.moment : undefined
+    )
+    return result === undefined || result === null ? '' : String(result)
+  } catch (error) {
+    console.warn('[report] 内容表达式执行失败:', code, error)
+    return ''
+  }
+}
+
+function titleText(element) {
+  const value = evaluateExpression(element)
+  return value === null ? props.report.title : value
+}
+
+function dateText(element) {
+  const value = evaluateExpression(element)
+  return value === null ? formatDateRange(props.report.dateRange) : value
+}
+
+function displayTitle(element) {
+  return runtimeValues[element.id] !== undefined ? runtimeValues[element.id] : titleText(element)
+}
+
+function displayDate(element) {
+  return runtimeValues[element.id] !== undefined ? runtimeValues[element.id] : dateText(element)
+}
+
+function displayText(element) {
+  return runtimeValues[element.id] !== undefined ? runtimeValues[element.id] : (element.text || '')
+}
+
+function isVisible(element) {
+  return runtimeVisibility[element.id] !== false
+}
+
+function interpolate(value) {
+  return String(value ?? '').replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_match, key) => {
+    const result = runtimeVariables[key]
+    return result === undefined || result === null ? '' : String(result)
+  })
+}
+
+function elementValue(element) {
+  if (!element) return ''
+  if (runtimeValues[element.id] !== undefined) return runtimeValues[element.id]
+  if (element.type === 'title') return titleText(element)
+  if (element.type === 'date') return dateText(element)
+  return element.text || ''
+}
+
+function matchesCondition(condition) {
+  if (!condition) return true
+  const left = condition.source === 'target'
+    ? elementValue(props.layout.elements.find(item => item.id === condition.targetId))
+    : runtimeVariables[condition.variable]
+  const right = interpolate(condition.value)
+  switch (condition.operator) {
+    case 'notEquals': return String(left ?? '') !== right
+    case 'contains': return String(left ?? '').includes(right)
+    case 'gt': return Number(left) > Number(right)
+    case 'lt': return Number(left) < Number(right)
+    case 'truthy': return Boolean(left)
+    case 'falsy': return !left
+    default: return String(left ?? '') === right
+  }
+}
+
+function runActions(actions = []) {
+  for (const action of actions) {
+    if (action.type === 'show') runtimeVisibility[action.targetId] = true
+    else if (action.type === 'hide') runtimeVisibility[action.targetId] = false
+    else if (action.type === 'toggle') runtimeVisibility[action.targetId] = runtimeVisibility[action.targetId] === false
+    else if (action.type === 'setText' || action.type === 'setValue') {
+      if (action.targetId) runtimeValues[action.targetId] = interpolate(action.value)
+    } else if (action.type === 'setVariable') {
+      if (action.variable) runtimeVariables[action.variable] = interpolate(action.value)
+    } else if (action.type === 'scrollTo') {
+      if (action.targetId) {
+        pageRef.value?.querySelector(`[data-element-id="${action.targetId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (action.type === 'runScript') {
+      try {
+        // 本地原型预览：脚本由用户自己维护
+        const fn = new Function('variables', 'report', `"use strict";\n${action.value || ''}`)
+        fn(runtimeVariables, props.report)
+      } catch (error) {
+        console.warn('[report] 交互脚本执行失败:', error)
+      }
+    }
+  }
+}
+
+function runInteractions(element, trigger) {
+  if (!props.interactive || !element) return
+  for (const interaction of element.interactions || []) {
+    if (interaction.trigger !== trigger) continue
+    const passed = matchesCondition(interaction.condition)
+    runActions(passed ? interaction.actions : interaction.elseActions)
+  }
+}
+
+function runLoadInteractions() {
+  if (!props.interactive) return
+  for (const element of props.layout.elements || []) runInteractions(element, 'load')
+}
+
+function onElementClick(element) {
+  runInteractions(element, 'click')
+}
+
+function onElementDoubleClick(element) {
+  runInteractions(element, 'dblclick')
+}
+
+function onElementHover(element) {
+  runInteractions(element, 'hover')
+}
+
+function onTitleInput(element, event) {
   props.report.title = event.target.value
   emit('change')
+  runInteractions(element, 'input')
 }
 
 function onTextInput(element, event) {
   element.text = event.target.value
   emit('change')
+  runInteractions(element, 'input')
 }
 
-function onDateChange() {
+function onDateChange(element) {
   emit('change')
+  runInteractions(element, 'input')
 }
 
 function updateElModel(element, value) {
@@ -208,15 +352,26 @@ function updateElModel(element, value) {
       :key="element.id"
       class="page-element"
       :class="`is-${element.type}`"
-      :style="frameStyle(element)"
+      :data-element-id="element.id"
+      :style="[frameStyle(element), { visibility: isVisible(element) ? 'visible' : 'hidden' }]"
+      @click="onElementClick(element)"
+      @dblclick="onElementDoubleClick(element)"
+      @mouseenter="onElementHover(element)"
     >
       <template v-if="element.type === 'title'">
+        <div
+          v-if="element.expression || runtimeValues[element.id] !== undefined"
+          class="element-title-static"
+          :style="{ ...textStyle(element.style), ...boxStyle(element.style), width: '100%', height: '100%' }"
+        >{{ displayTitle(element) }}</div>
         <input
+          v-else
           class="element-title"
-          :value="report.title"
+          :value="displayTitle(element)"
+          :readonly="interactive"
           placeholder="请输入周报标题"
           :style="{ ...textStyle(element.style), ...boxStyle(element.style), width: '100%', height: '100%' }"
-          @input="onTitleInput"
+          @input="onTitleInput(element, $event)"
         >
       </template>
 
@@ -225,14 +380,16 @@ function updateElModel(element, value) {
           class="element-date-field"
           :style="{ ...textStyle(element.style), ...boxStyle(element.style), width: '100%', height: '100%' }"
         >
-          <DateRangeField v-model="report.dateRange" @change="onDateChange" />
+          <span v-if="element.expression || runtimeValues[element.id] !== undefined" class="element-date-static">{{ displayDate(element) }}</span>
+          <DateRangeField v-else v-model="report.dateRange" @change="onDateChange(element)" />
         </div>
       </template>
 
       <template v-else-if="element.type === 'text'">
         <textarea
           class="element-text"
-          :value="element.text"
+          :value="displayText(element)"
+          :readonly="interactive"
           placeholder="输入文本…"
           :style="{ ...textStyle(element.style), ...boxStyle(element.style), width: '100%', height: '100%' }"
           @input="onTextInput(element, $event)"
@@ -268,6 +425,20 @@ function updateElModel(element, value) {
             :element="element"
             @update:model-value="value => updateElModel(element, value)"
           />
+        </div>
+      </template>
+
+      <template v-else-if="element.type === 'component'">
+        <div
+          class="element-custom"
+          :style="{ ...boxStyle(element.style), width: '100%', height: '100%' }"
+        >
+          <component
+            :is="element.component"
+            v-if="hasComponent(element.component)"
+            v-bind="element.props || {}"
+          />
+          <span v-else class="element-custom-empty">外部组件不可用：{{ element.component || '未选择' }}</span>
         </div>
       </template>
     </div>
@@ -316,6 +487,17 @@ function updateElModel(element, value) {
   font-family: inherit;
 }
 
+.element-title-static,
+.element-date-static {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: inherit;
+}
+
 .element-title::placeholder,
 .element-text::placeholder {
   color: var(--el-text-color-placeholder);
@@ -327,6 +509,19 @@ function updateElModel(element, value) {
 
 .element-divider {
   width: 100%;
+}
+
+.element-custom {
+  overflow: hidden;
+}
+
+.element-custom-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
 }
 
 .element-date-field {

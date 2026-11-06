@@ -24,7 +24,7 @@ export const LAYOUT_VERSION = 2
 
 export const PAGE_PRESETS = layoutDefaults.pagePresets
 export const DEFAULT_PAGE = layoutDefaults.defaultPage
-export const ELEMENT_TYPES = layoutDefaults.elementTypes
+export const ELEMENT_TYPES = [...layoutDefaults.elementTypes, 'component']
 export const EP_WIDGETS = layoutDefaults.epWidgets
 export const WIDGETS = layoutDefaults.widgets
 
@@ -78,6 +78,54 @@ export function normalizeElementStyle(type, style = {}) {
   return normalized
 }
 
+const ACTION_TYPES = ['show', 'hide', 'toggle', 'setText', 'setValue', 'setVariable', 'scrollTo', 'runScript']
+const TRIGGERS = ['click', 'dblclick', 'hover', 'input', 'load']
+const OPERATORS = ['equals', 'notEquals', 'contains', 'gt', 'lt', 'truthy', 'falsy']
+
+function normalizeAction(action = {}) {
+  return {
+    type: ACTION_TYPES.includes(action.type) ? action.type : 'show',
+    targetId: action.targetId == null ? '' : String(action.targetId),
+    variable: action.variable == null ? '' : String(action.variable),
+    value: typeof action.value === 'string' ? action.value : String(action.value ?? '')
+  }
+}
+
+function normalizeInteraction(item) {
+  if (!item || typeof item !== 'object') return null
+  const actions = Array.isArray(item.actions)
+    ? item.actions.map(normalizeAction)
+    : []
+  if (!actions.length && item.action) {
+    actions.push(normalizeAction({
+      type: item.action,
+      targetId: item.targetId,
+      value: item.value
+    }))
+  }
+  const condition = item.condition && typeof item.condition === 'object'
+    ? {
+        source: item.condition.source === 'target' ? 'target' : 'variable',
+        variable: String(item.condition.variable || ''),
+        targetId: String(item.condition.targetId || ''),
+        operator: OPERATORS.includes(item.condition.operator) ? item.condition.operator : 'equals',
+        value: String(item.condition.value ?? '')
+      }
+    : null
+  return {
+    id: item.id || generateId(),
+    trigger: TRIGGERS.includes(item.trigger) ? item.trigger : 'click',
+    condition,
+    actions,
+    elseActions: Array.isArray(item.elseActions) ? item.elseActions.map(normalizeAction) : []
+  }
+}
+
+function normalizeInteractions(value) {
+  if (!Array.isArray(value)) return []
+  return value.map(normalizeInteraction).filter(Boolean)
+}
+
 function normalizeElement(element = {}, index = 0, page = DEFAULT_PAGE, sections = []) {
   const type = ELEMENT_TYPES.includes(element.type) ? element.type : null
   if (!type) return null
@@ -93,13 +141,18 @@ function normalizeElement(element = {}, index = 0, page = DEFAULT_PAGE, sections
     y: clamp(element.y, -page.height, page.height * 2, page.padding),
     w,
     h,
-    style: normalizeElementStyle(type, element.style)
+    style: normalizeElementStyle(type, element.style),
+    interactions: normalizeInteractions(element.interactions)
   }
 
   if (type === 'section') {
     const sectionType = String(element.sectionType || sections[0]?.type || '')
     if (!sections.some(section => section.type === sectionType)) return null
     normalized.sectionType = sectionType
+  }
+
+  if (type === 'title' || type === 'date') {
+    normalized.expression = typeof element.expression === 'string' ? element.expression : ''
   }
 
   if (type === 'text') {
@@ -112,6 +165,14 @@ function normalizeElement(element = {}, index = 0, page = DEFAULT_PAGE, sections
     normalized.component = typeof element.component === 'string' && /^el-/.test(element.component)
       ? element.component
       : 'el-button'
+    normalized.props = element.props && typeof element.props === 'object' && !Array.isArray(element.props)
+      ? { ...element.props }
+      : {}
+    normalized.text = typeof element.text === 'string' ? element.text : ''
+  }
+
+  if (type === 'component') {
+    normalized.component = typeof element.component === 'string' ? element.component : ''
     normalized.props = element.props && typeof element.props === 'object' && !Array.isArray(element.props)
       ? { ...element.props }
       : {}
@@ -213,17 +274,26 @@ export function createWidget(type, overrides = {}) {
     y: overrides.y ?? DEFAULT_PAGE.padding,
     w: overrides.w ?? definition?.w ?? 200,
     h: overrides.h ?? definition?.h ?? 40,
-    style: normalizeElementStyle(type, overrides.style)
+    style: normalizeElementStyle(type, overrides.style),
+    interactions: normalizeInteractions(overrides.interactions)
   }
   if (type === 'section') {
     base.sectionType = overrides.sectionType
     base.h = overrides.h ?? 200
+  }
+  if (type === 'title' || type === 'date') {
+    base.expression = overrides.expression ?? ''
   }
   if (type === 'text') {
     base.text = overrides.text ?? '在这里输入内容…'
   }
   if (type === 'el') {
     base.component = overrides.component || 'el-button'
+    base.props = overrides.props ? { ...overrides.props } : {}
+    base.text = overrides.text ?? ''
+  }
+  if (type === 'component') {
+    base.component = overrides.component || ''
     base.props = overrides.props ? { ...overrides.props } : {}
     base.text = overrides.text ?? ''
   }

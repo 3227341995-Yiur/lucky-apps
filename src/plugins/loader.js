@@ -4,26 +4,28 @@
  * resources/
  *   css/   样式表，按名称排序注入 <link>
  *   js/    插件脚本，按名称排序串行加载（依赖用数字前缀或字母序保证）
- *   comps/ Vue SFC（.vue / .cslot.vue）使用官方 @vue/compiler-sfc 运行时编译，
- *          .js 作为 ES Module 加载；文件更新后自动热加载，无需重新构建或重启。
+ *   cordis.yml 内置组件包 profile，条目只写 node_modules 包名
+ *   node_modules/@week-report/... 独立构建的组件包
+ *
+ * AppData/plugins/ 是用户运行时插件目录：
+ *   cordis.yml         外部 profile，条目只写 node_modules 包名
+ *   node_modules/...   用户安装的组件包
  *
  * 启停状态存于 meta 表的 extensions.disabled，修改后下次启动生效。
  * 单文件失败只记录状态，不中断其他扩展。
  */
-import { readDir, watchImmediate, BaseDirectory } from '@tauri-apps/plugin-fs'
-import { resourceDir } from '@tauri-apps/api/path'
+import { readDir, readTextFile, writeTextFile, mkdir, exists, watchImmediate, BaseDirectory } from '@tauri-apps/plugin-fs'
+import { resourceDir, appDataDir } from '@tauri-apps/api/path'
 import { convertFileSrc } from '@tauri-apps/api/core'
+import { load as parseYaml } from 'js-yaml'
 import {
   setExtensionResources,
   updateExtensionResource,
   addExtensionError,
-  registerComponent,
-  registerColumnSlot,
   markExtensionsChanged,
   extensionState
 } from '@/plugins/registry'
-import { stripComponentExtension, toKebabCase, toPascalCase } from '@/plugins/naming'
-import { compileRuntimeComponent, readComponentSource } from '@/plugins/runtimeSfc'
+import { mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
 import { getSetting } from '@/services/database'
 import { emit } from '@/utils/eventBus'
 
@@ -31,6 +33,7 @@ export const DISABLED_EXTENSIONS_KEY = 'extensions.disabled'
 
 const loadedScripts = new Set()
 const loadedStyles = new Set()
+
 
 function cleanPath(path) {
   return String(path).replace(/^\\\\\?\\.*?_root_/, '').replace(/_root_/g, '').replace(/\\/g, '/')
@@ -50,6 +53,54 @@ async function readResourceDir(relativeDir) {
   }
 }
 
+let pluginDirReady = null
+
+/** 首次运行时创建 AppData/plugins 与空 profile，用户可直接往里装包 */
+export function ensureExternalPluginDir() {
+  if (pluginDirReady) return pluginDirReady
+  pluginDirReady = (async () => {
+    await mkdir('plugins', { baseDir: BaseDirectory.AppData, recursive: true })
+    const profile = 'plugins/cordis.yml'
+    if (await exists(profile, { baseDir: BaseDirectory.AppData })) return
+    await writeTextFile(
+      profile,
+      [
+        '# 外部 Cordis 组件包 profile',
+        '# 包安装到 plugins/node_modules，条目只写包名；',
+        '# 宿主读取 package.json 的 exports / module / main 解析入口。',
+        '#',
+        '# - id: my-widget',
+        '#   name: "@acme/my-widget"',
+        '[]',
+        ''
+      ].join('\n'),
+      { baseDir: BaseDirectory.AppData }
+    )
+  })().catch(error => {
+    console.warn('[loader] 初始化插件目录失败:', error)
+  })
+  return pluginDirReady
+}
+
+/** 按 node_modules 语义解析包入口：读取 package.json 的 exports / module / main */
+async function resolvePackageModule(entry, nodeModulesDir, baseDir) {
+  const name = String(entry?.name || '').trim()
+  if (!name) return ''
+  const base = `${nodeModulesDir}/${name}`
+  try {
+    const raw = await readTextFile(`${base}/package.json`, { baseDir })
+    const pkg = JSON.parse(raw)
+    const exp = pkg.exports
+    const root = typeof exp === 'string'
+      ? exp
+      : exp?.['.']?.import || exp?.['.']?.default || exp?.['.']
+    const rel = typeof root === 'string' ? root : pkg.module || pkg.main || 'index.js'
+    return `${base}/${String(rel).replace(/^\.\//, '')}`
+  } catch {
+    return ''
+  }
+}
+
 /**
  * 扫描 resources 下的所有扩展资源（不加载），供管理界面展示
  */
@@ -57,10 +108,9 @@ export async function scanExtensionResources() {
   const disabledList = await getSetting(DISABLED_EXTENSIONS_KEY, [])
   const disabled = new Set(Array.isArray(disabledList) ? disabledList : [])
 
-  const [cssFiles, jsFiles, compFiles] = await Promise.all([
+  const [cssFiles, jsFiles] = await Promise.all([
     readResourceDir('resources/css'),
-    readResourceDir('resources/js'),
-    readResourceDir('resources/comps')
+    readResourceDir('resources/js')
   ])
 
   const resources = []
@@ -93,18 +143,82 @@ export async function scanExtensionResources() {
     })
   }
 
-  for (const file of [...compFiles].sort((a, b) => a.name.localeCompare(b.name))) {
-    const isCslot = file.name.endsWith('.cslot.vue')
-    const isVue = file.name.endsWith('.vue')
-    const isModule = file.name.endsWith('.js')
-    if (!isCslot && !isVue && !isModule) continue
-    const id = `component:${file.name}`
+  const readProfile = async (relative, baseDir) => {
+    try {
+      const text = await readTextFile(relative, { baseDir })
+      return parseYaml(text) || []
+    } catch {
+      return []
+    }
+  }
+
+  await ensureExternalPluginDir()
+  const [bundledProfile, externalProfile] = await Promise.all([
+    readProfile('resources/cordis.yml', BaseDirectory.Resource),
+    readProfile('plugins/cordis.yml', BaseDirectory.AppData)
+  ])
+
+  for (const entry of Array.isArray(bundledProfile) ? bundledProfile : []) {
+    if (!entry?.name) continue
+    const id = `plugin:${entry.id || entry.name}`
+    const module = await resolvePackageModule(entry, 'resources/node_modules', BaseDirectory.Resource)
+    if (!module) {
+      resources.push({
+        id,
+        kind: 'component',
+        subtype: 'plugin',
+        name: entry.id || entry.name,
+        package: entry.name,
+        file: '',
+        enabled: !disabled.has(id),
+        status: 'error',
+        error: '内置包缺少入口，请检查 resources/node_modules 下的 package.json'
+      })
+      continue
+    }
+    const moduleUrl = await toAssetUrl(module)
     resources.push({
       id,
       kind: 'component',
-      subtype: isCslot ? 'column-slot' : isVue ? 'vue' : 'module',
-      name: stripComponentExtension(file.name),
-      file: file.name,
+      subtype: 'plugin',
+      name: entry.id || entry.name,
+      package: entry.name,
+      file: module.replace(/^resources\//, ''),
+      moduleUrl,
+      enabled: !disabled.has(id),
+      status: disabled.has(id) ? 'disabled' : 'pending',
+      error: ''
+    })
+  }
+
+  const appData = await appDataDir()
+  for (const entry of Array.isArray(externalProfile) ? externalProfile : []) {
+    if (!entry?.name) continue
+    const id = `external:${entry.id || entry.name}`
+    const module = await resolvePackageModule(entry, 'plugins/node_modules', BaseDirectory.AppData)
+    if (!module) {
+      resources.push({
+        id,
+        kind: 'component',
+        subtype: 'plugin',
+        name: entry.id || entry.name,
+        package: entry.name,
+        file: '',
+        enabled: !disabled.has(id),
+        status: 'error',
+        error: '找不到包入口，请检查 node_modules 是否安装、package.json 是否有 module/main/exports'
+      })
+      continue
+    }
+    const moduleUrl = convertFileSrc(cleanPath(`${appData}/${module}`))
+    resources.push({
+      id,
+      kind: 'component',
+      subtype: 'plugin',
+      name: entry.id || entry.name,
+      package: entry.name,
+      file: module,
+      moduleUrl,
       enabled: !disabled.has(id),
       status: disabled.has(id) ? 'disabled' : 'pending',
       error: ''
@@ -120,8 +234,8 @@ function injectStyle(url) {
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.href = url
-    link.onload = () => resolve(true)
-    link.onerror = () => resolve(false)
+    link.onload = () => resolve(link)
+    link.onerror = () => resolve(null)
     document.head.appendChild(link)
   })
 }
@@ -130,8 +244,8 @@ function injectScript(url) {
   return new Promise(resolve => {
     const script = document.createElement('script')
     script.src = url
-    script.onload = () => resolve(true)
-    script.onerror = () => resolve(false)
+    script.onload = () => resolve(script)
+    script.onerror = () => resolve(null)
     document.head.appendChild(script)
   })
 }
@@ -143,19 +257,17 @@ export async function loadExtensionResources() {
   const resources = await scanExtensionResources()
   const enabled = resources.filter(item => item.enabled)
 
-  // 1. 样式
+  // 1. 样式（Cordis 管理生命周期）
   for (const item of enabled.filter(item => item.kind === 'style')) {
     try {
       const url = await toAssetUrl(`resources/css/${item.file}`)
-      if (!loadedStyles.has(url)) {
+      await mountCordisPlugin(`style:${item.file}`, async () => {
+        if (loadedStyles.has(url)) return undefined
         loadedStyles.add(url)
-        const ok = await injectStyle(url)
-        if (!ok) {
-          updateExtensionResource(item.id, { status: 'error', error: '样式加载失败' })
-          addExtensionError(`样式加载失败: ${item.file}`)
-          continue
-        }
-      }
+        const link = await injectStyle(url)
+        if (!link) throw new Error('样式加载失败')
+        return () => link.remove()
+      })
       updateExtensionResource(item.id, { status: 'loaded', error: '' })
     } catch (error) {
       updateExtensionResource(item.id, { status: 'error', error: error.message })
@@ -163,19 +275,17 @@ export async function loadExtensionResources() {
     }
   }
 
-  // 2. 脚本（串行，保证顺序）
+  // 2. 脚本（串行，保证顺序；Cordis 管理生命周期）
   for (const item of enabled.filter(item => item.kind === 'script')) {
     try {
       const url = await toAssetUrl(`resources/js/${item.file}`)
-      if (!loadedScripts.has(url)) {
+      await mountCordisPlugin(`script:${item.file}`, async () => {
+        if (loadedScripts.has(url)) return undefined
         loadedScripts.add(url)
-        const ok = await injectScript(url)
-        if (!ok) {
-          updateExtensionResource(item.id, { status: 'error', error: '脚本加载失败' })
-          addExtensionError(`脚本加载失败: ${item.file}`)
-          continue
-        }
-      }
+        const script = await injectScript(url)
+        if (!script) throw new Error('脚本加载失败')
+        return () => script.remove()
+      })
       updateExtensionResource(item.id, { status: 'loaded', error: '' })
     } catch (error) {
       updateExtensionResource(item.id, { status: 'error', error: error.message })
@@ -191,39 +301,32 @@ export async function loadExtensionResources() {
 
 async function loadComponentResource(item) {
   try {
-    const content = await readComponentSource(item.file)
-    const url = await compileRuntimeComponent(item.file, content)
-
+    if (!item.moduleUrl) throw new Error('插件缺少入口')
+    // 加版本参数绕开 ESM 缓存，热加载才能拿到新构建的包
+    const url = `${item.moduleUrl}${item.moduleUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
     const module = await import(/* @vite-ignore */ url)
-    const component = module.default || module
-    if (!component) throw new Error('组件没有 default 导出')
-
-    if (item.subtype === 'column-slot') {
-      registerColumnSlot(item.name, component, {
-        source: `runtime:${item.file}`,
-        value: toKebabCase(toPascalCase(item.name))
-      })
-    } else {
-      registerComponent(item.name, component, {
-        source: `runtime:${item.file}`,
-        value: toKebabCase(toPascalCase(item.name)),
-        description: '运行时组件'
-      })
+    const plugin = module.default || module
+    if (!plugin || typeof plugin !== 'object') {
+      throw new Error('插件包必须默认导出 Cordis 插件对象')
     }
+    await mountCordisPluginObject(`component:${item.name}`, plugin)
 
     updateExtensionResource(item.id, { status: 'loaded', error: '' })
     return true
   } catch (error) {
     updateExtensionResource(item.id, { status: 'error', error: error.message })
-    addExtensionError(`组件加载失败 ${item.file}: ${error.message}`)
+    addExtensionError(`插件加载失败 ${item.package || item.name}: ${error.message}`)
     return false
   }
 }
 
 /**
- * 热加载 resources/comps：重新编译并注册所有启用的组件（无需重启、无需构建）
+ * 热加载 cordis.yml 中的外部组件包（无需重启）
  */
 export async function reloadExtensionComponents() {
+  await unmountCordisPlugins('component:')
+  // 插件包把 CSS 内联注入 <style data-extension>，重新 import 前先清掉旧样式
+  document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
   const resources = await scanExtensionResources()
   const enabled = resources.filter(item => item.kind === 'component' && item.enabled)
 
@@ -244,20 +347,21 @@ let unwatch = null
 let watchTimer = null
 
 /**
- * 监听 resources/comps 变化并自动热加载（Tauri 环境）
+ * 监听 AppData/plugins 变化并自动热加载（Tauri 环境）
  */
 export async function startExtensionWatcher() {
   if (unwatch) return
+  await ensureExternalPluginDir()
   try {
-    unwatch = await watchImmediate('resources/comps', events => {
-      console.info('[loader] resources/comps changed:', events)
+    unwatch = await watchImmediate('plugins', events => {
+      console.info('[loader] appdata plugins changed:', events)
       clearTimeout(watchTimer)
       watchTimer = setTimeout(() => {
         reloadExtensionComponents()
           .then(result => console.info('[loader] 组件热加载完成:', result))
           .catch(error => console.error('[loader] 组件热加载失败:', error))
       }, 350)
-    }, { baseDir: BaseDirectory.Resource, recursive: true })
+    }, { baseDir: BaseDirectory.AppData, recursive: true })
     extensionState.watcher = 'active'
     extensionState.watcherError = ''
     console.info('[loader] 组件热监听已启用')
@@ -274,4 +378,11 @@ export async function startExtensionWatcher() {
 export async function getResourcesPath() {
   const resDir = await resourceDir()
   return cleanPath(`${resDir}/resources`)
+}
+
+/** 用户运行时插件目录绝对路径 */
+export async function getPluginsPath() {
+  await ensureExternalPluginDir()
+  const appData = await appDataDir()
+  return cleanPath(`${appData}/plugins`)
 }

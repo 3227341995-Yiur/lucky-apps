@@ -48,21 +48,27 @@ src/
 ├─ composables/        useReports / useTheme / useExtensions
 ├─ config/             默认周报结构、自由画布布局模型、EP 组件元数据
 ├─ plugins/            扩展加载、注册中心、对外 API
+├─ cordis/             Cordis 根 Context 与启动插件
 ├─ services/           数据库、模板、配置、导入导出
 ├─ utils/              日期、防抖、事件、ID、导出渲染
 └─ assets/css/         设计令牌与全局样式（亮/暗）
+extensions/   独立外部组件包（workspace，各自 Vite 构建）
 src-tauri/resources/
 ├─ css/                运行时样式扩展
 ├─ js/                 运行时插件脚本（search.js / registerHelper.js 等）
-└─ comps/              运行时热加载 Vue 组件扩展（官方 @vue/repl compileFile）
+├─ node_modules/@week-report/  构建好的内置组件包
+└─ cordis.yml          内置组件包 profile（只写包名）
 ```
 
 ## 扩展开发
 
-外部 Vue 组件放入 `src-tauri/resources/comps/`，启动时由 Vue 官方团队
-`@vue/repl` 的 `compileFile`（内部使用官方 `vue/compiler-sfc` 浏览器构建）运行时编译并注册。
-保存文件后会自动热加载，**无需重新构建**；也可以在设置 → 扩展中手动「热加载组件」。
+外部组件是标准 Vue 项目，放在 `extensions/<name>/`，各自构建到
+`src-tauri/resources/node_modules/@week-report/<name>/`。宿主启动时读取
+`resources/cordis.yml` 和 `AppData/plugins/cordis.yml`，按 profile 里的包名从
+`node_modules` 解析 `package.json` 入口，动态 import 后由 Cordis 挂载，**不参与插件打包**。
+外部包安装到 `AppData/plugins/node_modules`，profile 写包名即可注册；保存后自动热加载。
 运行时脚本与样式放入 `src-tauri/resources/js|css/`，按文件名排序加载。
+插件按 node_modules 语义 `import 'vue'`，由 `public/host-vue.js` + import map 共用宿主 Vue 实例。
 
 完整 API、事件、组件契约见 [docs/plugin-api.md](docs/plugin-api.md)；
 画布设计器说明见 [docs/report-designer.md](docs/report-designer.md)。

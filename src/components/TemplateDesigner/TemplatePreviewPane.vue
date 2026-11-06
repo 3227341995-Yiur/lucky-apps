@@ -5,6 +5,7 @@ import { renderReport } from '@/utils/templateRenderer'
 import { formatDateRange } from '@/utils/reportExport'
 import { useTheme } from '@/composables/useTheme'
 import { debounce } from '@/utils/debounce'
+import FullscreenIcon from '@/components/common/FullscreenIcon.vue'
 
 defineOptions({ name: 'TemplatePreviewPane' })
 
@@ -36,10 +37,14 @@ const props = defineProps({
   loadingSections: {
     type: Boolean,
     default: false
+  },
+  fullscreen: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'toggle-fullscreen'])
 
 const reportId = defineModel('reportId', {
   type: [Number, String],
@@ -158,18 +163,25 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <aside class="td-preview">
+  <aside class="td-preview" :class="{ 'is-fullscreen': fullscreen }">
     <header class="td-preview-head">
       <div class="td-preview-head-row">
         <span class="td-preview-title">
           <el-icon><View /></el-icon>
           <span>预览周报</span>
         </span>
-        <el-tooltip content="隐藏预览" placement="bottom">
-          <button type="button" class="td-icon-btn" aria-label="隐藏预览" @click="emit('close')">
-            <el-icon><Right /></el-icon>
-          </button>
-        </el-tooltip>
+        <div class="td-preview-head-actions">
+          <el-tooltip :content="fullscreen ? '退出全屏' : '全屏'" placement="bottom">
+            <button type="button" class="td-icon-btn" :aria-label="fullscreen ? '退出全屏' : '全屏'" @click="emit('toggle-fullscreen')">
+              <fullscreen-icon :exit="fullscreen" />
+            </button>
+          </el-tooltip>
+          <el-tooltip content="隐藏预览" placement="bottom">
+            <button type="button" class="td-icon-btn" aria-label="隐藏预览" @click="emit('close')">
+              <el-icon><Right /></el-icon>
+            </button>
+          </el-tooltip>
+        </div>
       </div>
 
       <el-select
@@ -258,6 +270,29 @@ onBeforeUnmount(() => {
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
+}
+
+.td-preview.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  flex: none;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  border-left: 0;
+}
+
+.td-preview-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.td-preview-head-actions .td-icon-btn {
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
 }
 
 .td-preview-head {

@@ -4,22 +4,6 @@
 import Handlebars from 'handlebars'
 
 /**
- * 注册自定义 helpers
- */
-function registerHelpers() {
-  Handlebars.registerHelper('lookup', function(obj, key) {
-    if (!obj || !key) return ''
-    return obj[key]
-  })
-
-  Handlebars.registerHelper('add', function(a, b) {
-    return a + b
-  })
-}
-
-registerHelpers()
-
-/**
  * 渲染报告 - 直接使用报告数据
  * @param {object} report - 周报数据 { title, dateRange, sections }
  * @param {string} templateString - Handlebars 模板字符串

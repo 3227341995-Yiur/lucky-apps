@@ -108,15 +108,13 @@ function sectionOf(element) {
 function elementStyle(element) {
   // 拖拽中的元素用 fixed 跟随鼠标，整个窗口内都能看到；放下后切回 absolute
   if (element.id === props.dragElementId) {
-    // 抵消画布 zoom，保证预览的视觉宽高 = 放置后的视觉宽高
-    const scale = zoom.value || 1
+    // fixed 元素和画布内元素共用同一层 zoom，尺寸、内容比例完全一致
     return {
       position: 'fixed',
       left: `${dragVisual.value.left}px`,
       top: `${dragVisual.value.top}px`,
-      width: `${element.w * scale}px`,
-      height: `${element.h * scale}px`,
-      zoom: 1 / scale,
+      width: `${element.w}px`,
+      height: `${element.h}px`,
       zIndex: 9999,
       visibility: dragMoved.value ? 'visible' : 'hidden'
     }
@@ -215,7 +213,7 @@ function onPalettePointerMove(event) {
   if (!inside) {
     dragOverPage.value = false
     guides.value = { vertical: [], horizontal: [] }
-    dragVisual.value = { left: event.clientX, top: event.clientY }
+    dragVisual.value = { left: event.clientX / scale, top: event.clientY / scale }
     return
   }
 
@@ -226,8 +224,8 @@ function onPalettePointerMove(event) {
   dragOverPage.value = true
   guides.value = { vertical: guide.vertical, horizontal: guide.horizontal }
   dragVisual.value = {
-    left: rect.left + x * scale,
-    top: rect.top + y * scale
+    left: rect.left / scale + x,
+    top: rect.top / scale + y
   }
   emit('update-drag-element', id, { x, y })
 }

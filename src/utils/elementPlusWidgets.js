@@ -47,3 +47,66 @@ export function getElComponentLabel(componentName) {
   const defined = EP_WIDGETS.find(widget => widget.component === componentName)
   return defined ? `${defined.label} · ${componentName}` : componentName
 }
+
+const EL_COMPONENT_ICONS = {
+  'el-button': 'Pointer',
+  'el-input': 'EditPen',
+  'el-select': 'ArrowDown',
+  'el-date-picker': 'Calendar',
+  'el-input-number': 'Odometer',
+  'el-switch': 'Switch',
+  'el-slider': 'Operation',
+  'el-rate': 'Star',
+  'el-tag': 'CollectionTag',
+  'el-progress': 'DataLine',
+  'el-alert': 'Warning',
+  'el-card': 'Postcard',
+  'el-divider': 'Minus',
+  'el-table': 'Grid',
+  'el-avatar': 'User',
+  'el-badge': 'Bell',
+  'el-tabs': 'Files',
+  'el-menu': 'Menu',
+  'el-breadcrumb': 'Link',
+  'el-steps': 'Guide',
+  'el-timeline': 'Clock',
+  'el-collapse': 'Expand',
+  'el-descriptions': 'Document',
+  'el-row': 'Grid',
+  'el-space': 'Rank',
+  'el-form': 'Edit',
+  'el-pagination': 'DArrowRight',
+  'el-result': 'CircleCheck',
+  'el-empty': 'Box',
+  'el-statistic': 'TrendCharts',
+  'el-skeleton': 'Loading'
+}
+
+export function getElComponentIcon(componentName) {
+  const name = String(componentName || '')
+  if (EL_COMPONENT_ICONS[name]) return EL_COMPONENT_ICONS[name]
+  if (name.includes('table')) return 'Grid'
+  if (name.includes('date') || name.includes('calendar')) return 'Calendar'
+  if (name.includes('select') || name.includes('dropdown')) return 'ArrowDown'
+  if (name.includes('input') || name.includes('textarea')) return 'EditPen'
+  if (name.includes('button')) return 'Pointer'
+  if (name.includes('tag')) return 'CollectionTag'
+  if (name.includes('progress')) return 'DataLine'
+  if (name.includes('alert')) return 'Warning'
+  if (name.includes('card')) return 'Postcard'
+  if (name.includes('avatar')) return 'User'
+  if (name.includes('badge')) return 'Bell'
+  if (name.includes('menu')) return 'Menu'
+  if (name.includes('tabs')) return 'Files'
+  if (name.includes('timeline')) return 'Clock'
+  if (name.includes('collapse')) return 'Expand'
+  if (name.includes('pagination')) return 'DArrowRight'
+  if (name.includes('form')) return 'Edit'
+  if (name.includes('row') || name.includes('col')) return 'Grid'
+  if (name.includes('space')) return 'Rank'
+  if (name.includes('result')) return 'CircleCheck'
+  if (name.includes('empty')) return 'Box'
+  if (name.includes('statistic')) return 'TrendCharts'
+  if (name.includes('skeleton') || name.includes('loading')) return 'Loading'
+  return 'Grid'
+}

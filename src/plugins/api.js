@@ -13,6 +13,7 @@
  *   extensions 扩展资源状态
  */
 import { ElMessage } from 'element-plus'
+import { cordis } from '@/plugins/cordis'
 import {
   loadAllReports,
   loadAllReportsFull,
@@ -46,7 +47,10 @@ import { events } from '@/utils/eventBus'
 import { useTheme } from '@/composables/useTheme'
 import {
   registerComponent,
+  registerColumnSlot,
   listComponents,
+  listColumnComponents,
+  listCanvasComponents,
   hasComponent,
   extensionState
 } from '@/plugins/registry'
@@ -231,10 +235,32 @@ export const pluginApi = {
     exportBackup: exportBackupFile
   },
   components: {
-    register: (name, component, meta) => registerComponent(name, component, { ...meta, source: 'plugin' }),
+    /** @deprecated 使用 registerColumn / registerCanvas */
+    register: (name, component, meta) => registerComponent(name, component, {
+      ...meta,
+      scope: 'column',
+      source: 'plugin'
+    }),
+    /** 注册列组件（表格单元格） */
+    registerColumn: (name, component, meta) => registerComponent(name, component, {
+      ...meta,
+      scope: 'column',
+      source: 'plugin'
+    }),
+    /** 注册画布组件（自由画布拖拽） */
+    registerCanvas: (name, component, meta) => registerComponent(name, component, {
+      ...meta,
+      scope: 'canvas',
+      source: 'plugin'
+    }),
+    registerColumnSlot: (name, component, meta) => registerColumnSlot(name, component, { ...meta, source: 'plugin' }),
     list: listComponents,
+    listColumns: listColumnComponents,
+    listCanvas: listCanvasComponents,
     has: hasComponent
   },
+  /** Cordis 扩展生命周期（插件脚本可注册自己的插件） */
+  cordis,
   commands: {
     register: registerCommand,
     run: runCommand,

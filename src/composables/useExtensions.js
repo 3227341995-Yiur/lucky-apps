@@ -7,6 +7,7 @@ import {
   scanExtensionResources,
   reloadExtensionComponents,
   getResourcesPath,
+  getPluginsPath,
   DISABLED_EXTENSIONS_KEY
 } from '@/plugins/loader'
 import { getSetting, setSetting } from '@/services/database'
@@ -14,17 +15,13 @@ import { getSetting, setSetting } from '@/services/database'
 const GROUP_LABELS = {
   style: '样式表',
   script: '插件脚本',
-  'component-vue': '列组件 (.vue)',
-  'component-slot': '列属性插槽 (.cslot.vue)',
-  'component-module': 'JS 组件模块 (.js)'
+  'component-module': '外部组件包 (.js)'
 }
 
 const GROUP_HINTS = {
   style: '运行时注入的 CSS 文件',
   script: '按文件名排序加载的插件脚本',
-  'component-vue': '可在周报列中使用的外部编辑器组件',
-  'component-slot': '与同名 .vue 配套，用于编辑列属性',
-  'component-module': '默认导出 Vue 组件的 ES Module'
+  'component-module': 'Cordis 组件包，运行时注册组件与列插槽'
 }
 
 async function readDisabled() {
@@ -76,6 +73,12 @@ async function copyResourcesPath() {
   return path
 }
 
+async function copyPluginsPath() {
+  const path = await getPluginsPath()
+  await navigator.clipboard.writeText(path)
+  return path
+}
+
 function reloadApp() {
   window.location.reload()
 }
@@ -85,18 +88,11 @@ export function useExtensions() {
     const result = {
       style: [],
       script: [],
-      'component-vue': [],
-      'component-slot': [],
       'component-module': []
     }
     for (const resource of extensionState.resources) {
-      if (resource.kind !== 'component') {
-        result[resource.kind]?.push(resource)
-        continue
-      }
-      if (resource.subtype === 'column-slot') result['component-slot'].push(resource)
-      else if (resource.subtype === 'module') result['component-module'].push(resource)
-      else result['component-vue'].push(resource)
+      if (resource.kind === 'component') result['component-module'].push(resource)
+      else result[resource.kind]?.push(resource)
     }
     return result
   })
@@ -120,6 +116,7 @@ export function useExtensions() {
     rescan,
     hotReloadComponents,
     copyResourcesPath,
+    copyPluginsPath,
     reloadApp
   }
 }

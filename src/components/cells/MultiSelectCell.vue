@@ -21,10 +21,23 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const value = computed(() => {
-  if (Array.isArray(props.modelValue)) return props.modelValue
-  return props.modelValue === '' || props.modelValue === null || props.modelValue === undefined
-    ? []
-    : [props.modelValue]
+  const raw = props.modelValue
+  if (Array.isArray(raw)) return raw
+  if (raw === '' || raw === null || raw === undefined) return []
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return []
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed)) return parsed
+      } catch {
+        // 按逗号分隔处理
+      }
+    }
+    return trimmed.split(/[,，]/).map(item => item.trim()).filter(Boolean)
+  }
+  return [raw]
 })
 
 function optionValue(option) {

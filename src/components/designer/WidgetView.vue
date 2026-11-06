@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { resolveDefaultValue } from '@/config/defaultReportConfig'
+import { hasComponent } from '@/plugins/registry'
 import ElementWidget from './ElementWidget.vue'
 
 defineOptions({ name: 'WidgetView' })
@@ -56,6 +57,9 @@ const sectionBoxStyle = computed(() => ({
 }))
 
 const columns = computed(() => props.section?.columns || [])
+const customReady = computed(() => (
+  props.element.type === 'component' && hasComponent(props.element.component)
+))
 
 const sampleRows = computed(() => {
   const first = { _key: 0 }
@@ -95,6 +99,17 @@ const sampleRows = computed(() => {
 
     <template v-else-if="element.type === 'el'">
       <ElementWidget :element="element" />
+    </template>
+
+    <template v-else-if="element.type === 'component'">
+      <div class="wv-custom" :style="boxStyle">
+        <component
+          :is="element.component"
+          v-if="customReady"
+          v-bind="element.props || {}"
+        />
+        <span v-else class="wv-empty">外部组件不可用：{{ element.component || '未选择' }}</span>
+      </div>
     </template>
 
     <template v-else-if="element.type === 'section' && section">
@@ -186,6 +201,12 @@ const sampleRows = computed(() => {
 
 .wv-table td {
   color: var(--wv-body-color);
+}
+
+.wv-custom {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .wv-empty {

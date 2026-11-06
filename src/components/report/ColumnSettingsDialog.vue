@@ -305,7 +305,7 @@ watch(selectedColumn, column => {
                 />
               </el-select>
               <p class="block-hint">
-                内置：status-selector / date-selector / number-input / textarea / select / multi-select / switch；扩展组件来自 resources/comps。
+                内置：status-selector / date-selector / number-input / textarea / select / multi-select / switch；扩展组件来自 Cordis 插件包。
               </p>
             </div>
 

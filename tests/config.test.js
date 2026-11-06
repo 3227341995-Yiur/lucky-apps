@@ -51,6 +51,13 @@ test('code 类型默认值执行 JS 表达式', () => {
   assert.equal(resolveDefaultValue({ defaultValueType: 'code', defaultValue: 'throw new Error("x")' }), '')
 })
 
+test('多选列默认值会归一化为数组', () => {
+  const column = { component: 'multi-select', defaultValue: 'A, B', defaultValueType: 'literal' }
+  assert.deepEqual(resolveDefaultValue(column), ['A', 'B'])
+  assert.deepEqual(resolveDefaultValue({ ...column, defaultValue: '["A","B"]' }), ['A', 'B'])
+  assert.deepEqual(resolveDefaultValue({ ...column, defaultValue: ['A'] }), ['A'])
+})
+
 test('默认结构生成 sections 时默认空表格，按 defaultRows 生成行', () => {
   const sections = createSectionsFromConfig([])
   assert.equal(sections.length, DEFAULT_REPORT_CONFIG.length)

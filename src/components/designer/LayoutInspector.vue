@@ -36,7 +36,8 @@ const TYPE_LABELS = {
   section: '数据表格',
   text: '文本',
   divider: '分割线',
-  el: 'Element 组件'
+  el: 'Element 组件',
+  component: '外部组件'
 }
 
 const style = computed(() => props.element?.style || {})
@@ -45,6 +46,93 @@ const page = computed(() => props.layout.page)
 function updateElement(patch) {
   if (!props.element) return
   emit('update-element', patch)
+}
+
+const interactionTargets = computed(() => (
+  props.layout.elements.filter(item => item.id !== props.element?.id)
+))
+
+function targetLabel(target) {
+  const label = TYPE_LABELS[target.type] || target.type
+  const detail = target.text || target.sectionType || target.component || target.id
+  return `${label} · ${detail}`
+}
+
+function makeAction(type = 'show') {
+  return {
+    type,
+    targetId: interactionTargets.value[0]?.id || '',
+    variable: '',
+    value: ''
+  }
+}
+
+function addInteraction() {
+  if (!props.element) return
+  updateElement({
+    interactions: [
+      ...(props.element.interactions || []),
+      {
+        id: `ix_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        trigger: 'click',
+        condition: null,
+        actions: [makeAction('show')],
+        elseActions: []
+      }
+    ]
+  })
+}
+
+function updateInteraction(index, patch) {
+  if (!props.element) return
+  const list = [...(props.element.interactions || [])]
+  list[index] = { ...list[index], ...patch }
+  updateElement({ interactions: list })
+}
+
+function removeInteraction(index) {
+  if (!props.element) return
+  const list = [...(props.element.interactions || [])]
+  list.splice(index, 1)
+  updateElement({ interactions: list })
+}
+
+function addCondition(index) {
+  updateInteraction(index, {
+    condition: { source: 'variable', variable: '', targetId: '', operator: 'equals', value: '' }
+  })
+}
+
+function removeCondition(index) {
+  updateInteraction(index, { condition: null })
+}
+
+function addAction(index, isElse = false) {
+  if (!props.element) return
+  const list = [...(props.element.interactions || [])]
+  const key = isElse ? 'elseActions' : 'actions'
+  list[index] = { ...list[index], [key]: [...(list[index][key] || []), makeAction('show')] }
+  updateElement({ interactions: list })
+}
+
+function updateAction(index, actionIndex, patch, isElse = false) {
+  if (!props.element) return
+  const list = [...(props.element.interactions || [])]
+  const key = isElse ? 'elseActions' : 'actions'
+  const actions = [...(list[index][key] || [])]
+  actions[actionIndex] = { ...actions[actionIndex], ...patch }
+  list[index] = { ...list[index], [key]: actions }
+  updateElement({ interactions: list })
+}
+
+function removeAction(index, actionIndex, isElse = false) {
+  if (!props.element) return
+  const list = [...(props.element.interactions || [])]
+  const key = isElse ? 'elseActions' : 'actions'
+  const actions = [...(list[index][key] || [])]
+  actions.splice(actionIndex, 1)
+  list[index] = { ...list[index], [key]: actions }
+  updateElement({ interactions: list })
 }
 
 function setStyle(key, value) {
@@ -154,7 +242,7 @@ function syncElProps() {
 }
 
 watch(() => `${props.element?.id}:${props.element?.component}`, () => {
-  if (props.element?.type === 'el') syncElProps()
+  if (props.element?.type === 'el' || props.element?.type === 'component') syncElProps()
 }, { immediate: true })
 
 function commitElProps(text) {
@@ -398,7 +486,21 @@ function commitElProps(text) {
       <section v-else-if="element.type === 'title' || element.type === 'date'" class="group">
         <div class="group-title">数据绑定</div>
         <p class="group-hint">
-          {{ element.type === 'title' ? '绑定当前周报标题，在周报编辑页修改。' : '绑定当前周报日期范围，在周报编辑页修改。' }}
+          留空时绑定周报默认{{ element.type === 'title' ? '标题' : '日期范围' }}；填写 JS 表达式可自定义取值。
+        </p>
+        <label class="field">
+          <span>内容表达式</span>
+          <el-input
+            :model-value="element.expression || ''"
+            size="small"
+            placeholder="留空使用周报默认值"
+            @update:model-value="v => updateElement({ expression: v })"
+          />
+        </label>
+        <p class="group-hint">
+          {{ element.type === 'title'
+            ? "例如 report.title、'2026 年度周报'"
+            : "例如 report.dateRange.join(' ~ ')、moment(report.dateRange[0]).format('MM月DD日')" }}
         </p>
       </section>
 
@@ -443,6 +545,23 @@ function commitElProps(text) {
             <el-input-number :model-value="style.letterSpacing" :min="-2" :max="12" :step="0.5" controls-position="right" @update:model-value="v => setStyle('letterSpacing', v)" />
           </label>
         </div>
+      </section>
+
+      <section v-if="element.type === 'component'" class="group">
+        <div class="group-title">外部组件</div>
+        <p class="group-hint">{{ element.component || '未选择组件' }}</p>
+        <label class="field">
+          <span>props（JSON）</span>
+          <el-input
+            v-model="elPropsText"
+            type="textarea"
+            :rows="4"
+            resize="vertical"
+            placeholder='{ "title": "示例" }'
+            @change="commitElProps"
+          />
+        </label>
+        <small v-if="elPropsError" class="field-error">{{ elPropsError }}</small>
       </section>
 
       <section v-if="element.type === 'section'" class="group">
@@ -534,6 +653,205 @@ function commitElProps(text) {
           <button type="button" @click="emit('align-element', 'vcenter')">垂直居中</button>
           <button type="button" @click="emit('align-element', 'bottom')">下</button>
         </div>
+      </section>
+
+      <section class="group">
+        <div class="group-title">交互</div>
+        <p class="group-hint">预览中执行：触发器 + 条件 + 多动作，支持变量和脚本。</p>
+        <div v-for="(interaction, index) in element.interactions || []" :key="interaction.id || index" class="interaction-item">
+          <div class="interaction-row">
+            <el-select
+              :model-value="interaction.trigger"
+              size="small"
+              class="interaction-trigger"
+              @update:model-value="v => updateInteraction(index, { trigger: v })"
+            >
+              <el-option label="点击时" value="click" />
+              <el-option label="双击时" value="dblclick" />
+              <el-option label="悬停时" value="hover" />
+              <el-option label="输入时" value="input" />
+              <el-option label="加载时" value="load" />
+            </el-select>
+            <button type="button" class="interaction-remove" title="删除交互" @click="removeInteraction(index)">
+              <el-icon :size="11"><Delete /></el-icon>
+            </button>
+          </div>
+
+          <div v-if="interaction.condition" class="interaction-condition">
+            <div class="interaction-row">
+              <el-select
+                :model-value="interaction.condition.source"
+                size="small"
+                class="interaction-source"
+                @update:model-value="v => updateInteraction(index, { condition: { ...interaction.condition, source: v } })"
+              >
+                <el-option label="变量" value="variable" />
+                <el-option label="目标值" value="target" />
+              </el-select>
+              <el-select
+                :model-value="interaction.condition.operator"
+                size="small"
+                class="interaction-operator"
+                @update:model-value="v => updateInteraction(index, { condition: { ...interaction.condition, operator: v } })"
+              >
+                <el-option label="等于" value="equals" />
+                <el-option label="不等于" value="notEquals" />
+                <el-option label="包含" value="contains" />
+                <el-option label="大于" value="gt" />
+                <el-option label="小于" value="lt" />
+                <el-option label="为真" value="truthy" />
+                <el-option label="为假" value="falsy" />
+              </el-select>
+              <button type="button" class="interaction-remove" title="删除条件" @click="removeCondition(index)">
+                <el-icon :size="11"><Delete /></el-icon>
+              </button>
+            </div>
+            <el-input
+              v-if="interaction.condition.source === 'variable'"
+              :model-value="interaction.condition.variable"
+              size="small"
+              placeholder="变量名"
+              @update:model-value="v => updateInteraction(index, { condition: { ...interaction.condition, variable: v } })"
+            />
+            <el-select
+              v-else
+              :model-value="interaction.condition.targetId"
+              size="small"
+              class="interaction-target"
+              placeholder="目标组件"
+              @update:model-value="v => updateInteraction(index, { condition: { ...interaction.condition, targetId: v } })"
+            >
+              <el-option v-for="target in interactionTargets" :key="target.id" :label="targetLabel(target)" :value="target.id" />
+            </el-select>
+            <el-input
+              :model-value="interaction.condition.value"
+              size="small"
+              placeholder="比较值，支持变量插值"
+              @update:model-value="v => updateInteraction(index, { condition: { ...interaction.condition, value: v } })"
+            />
+          </div>
+          <button v-else type="button" class="interaction-mini" @click="addCondition(index)">+ 条件</button>
+
+          <div v-for="(action, actionIndex) in interaction.actions" :key="`a-${actionIndex}`" class="interaction-action">
+            <div class="interaction-row">
+              <el-select
+                :model-value="action.type"
+                size="small"
+                class="interaction-action-type"
+                @update:model-value="v => updateAction(index, actionIndex, { type: v })"
+              >
+                <el-option label="显示" value="show" />
+                <el-option label="隐藏" value="hide" />
+                <el-option label="切换显示" value="toggle" />
+                <el-option label="设置文本" value="setText" />
+                <el-option label="设置值" value="setValue" />
+                <el-option label="设置变量" value="setVariable" />
+                <el-option label="滚动到" value="scrollTo" />
+                <el-option label="执行脚本" value="runScript" />
+              </el-select>
+              <button type="button" class="interaction-remove" title="删除动作" @click="removeAction(index, actionIndex)">
+                <el-icon :size="11"><Delete /></el-icon>
+              </button>
+            </div>
+            <el-select
+              v-if="['show', 'hide', 'toggle', 'setText', 'setValue', 'scrollTo'].includes(action.type)"
+              :model-value="action.targetId"
+              size="small"
+              class="interaction-target"
+              placeholder="目标组件"
+              @update:model-value="v => updateAction(index, actionIndex, { targetId: v })"
+            >
+              <el-option v-for="target in interactionTargets" :key="target.id" :label="targetLabel(target)" :value="target.id" />
+            </el-select>
+            <el-input
+              v-if="action.type === 'setVariable'"
+              :model-value="action.variable"
+              size="small"
+              placeholder="变量名"
+              @update:model-value="v => updateAction(index, actionIndex, { variable: v })"
+            />
+            <el-input
+              v-if="['setText', 'setValue', 'setVariable'].includes(action.type)"
+              :model-value="action.value"
+              size="small"
+              placeholder="值，支持变量插值"
+              @update:model-value="v => updateAction(index, actionIndex, { value: v })"
+            />
+            <el-input
+              v-if="action.type === 'runScript'"
+              :model-value="action.value"
+              type="textarea"
+              :rows="3"
+              resize="vertical"
+              placeholder="variables.ready = true"
+              @update:model-value="v => updateAction(index, actionIndex, { value: v })"
+            />
+          </div>
+
+          <div class="interaction-actions">
+            <button type="button" @click="addAction(index)">+ 动作</button>
+            <button type="button" @click="addAction(index, true)">+ 否则动作</button>
+          </div>
+
+          <div v-for="(action, actionIndex) in interaction.elseActions" :key="`e-${actionIndex}`" class="interaction-action is-else">
+            <div class="interaction-row">
+              <el-select
+                :model-value="action.type"
+                size="small"
+                class="interaction-action-type"
+                @update:model-value="v => updateAction(index, actionIndex, { type: v }, true)"
+              >
+                <el-option label="显示" value="show" />
+                <el-option label="隐藏" value="hide" />
+                <el-option label="切换显示" value="toggle" />
+                <el-option label="设置文本" value="setText" />
+                <el-option label="设置值" value="setValue" />
+                <el-option label="设置变量" value="setVariable" />
+                <el-option label="滚动到" value="scrollTo" />
+                <el-option label="执行脚本" value="runScript" />
+              </el-select>
+              <button type="button" class="interaction-remove" title="删除否则动作" @click="removeAction(index, actionIndex, true)">
+                <el-icon :size="11"><Delete /></el-icon>
+              </button>
+            </div>
+            <el-select
+              v-if="['show', 'hide', 'toggle', 'setText', 'setValue', 'scrollTo'].includes(action.type)"
+              :model-value="action.targetId"
+              size="small"
+              class="interaction-target"
+              placeholder="目标组件"
+              @update:model-value="v => updateAction(index, actionIndex, { targetId: v }, true)"
+            >
+              <el-option v-for="target in interactionTargets" :key="target.id" :label="targetLabel(target)" :value="target.id" />
+            </el-select>
+            <el-input
+              v-if="action.type === 'setVariable'"
+              :model-value="action.variable"
+              size="small"
+              placeholder="变量名"
+              @update:model-value="v => updateAction(index, actionIndex, { variable: v }, true)"
+            />
+            <el-input
+              v-if="['setText', 'setValue', 'setVariable'].includes(action.type)"
+              :model-value="action.value"
+              size="small"
+              placeholder="值，支持变量插值"
+              @update:model-value="v => updateAction(index, actionIndex, { value: v }, true)"
+            />
+            <el-input
+              v-if="action.type === 'runScript'"
+              :model-value="action.value"
+              type="textarea"
+              :rows="3"
+              resize="vertical"
+              placeholder="variables.ready = true"
+              @update:model-value="v => updateAction(index, actionIndex, { value: v }, true)"
+            />
+          </div>
+        </div>
+        <el-button size="small" plain class="interaction-add" @click="addInteraction">
+          <el-icon><Plus /></el-icon><span>添加交互</span>
+        </el-button>
       </section>
 
       <section class="group actions">
@@ -842,6 +1160,135 @@ function commitElProps(text) {
   color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
+.interaction-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+}
+
+.interaction-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.interaction-trigger {
+  width: 78px;
+  flex: none;
+}
+
+.interaction-action {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px dashed var(--el-border-color-lighter);
+  border-radius: 5px;
+  background: var(--el-bg-color);
+}
+
+.interaction-action.is-else {
+  border-color: var(--el-color-warning-light-5);
+}
+
+.interaction-action-type {
+  flex: 1;
+  min-width: 0;
+}
+
+.interaction-condition {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 5px;
+  background: var(--el-bg-color);
+}
+
+.interaction-source {
+  width: 72px;
+  flex: none;
+}
+
+.interaction-operator {
+  flex: 1;
+  min-width: 0;
+}
+
+.interaction-target {
+  width: 100%;
+}
+
+.interaction-mini {
+  align-self: flex-start;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-family: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.interaction-mini:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.interaction-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.interaction-actions button {
+  flex: 1;
+  height: 22px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-family: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.interaction-actions button:hover {
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+.interaction-remove {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+}
+
+.interaction-remove:hover {
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+
+.interaction-add {
+  width: 100%;
+  margin-top: 6px;
+}
+
 .actions {
   display: flex;
   gap: 5px;

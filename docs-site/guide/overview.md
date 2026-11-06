@@ -6,7 +6,7 @@
 
 | 方式 | 目录 | 生效方式 |
 | --- | --- | --- |
-| 外部组件 | `resources/comps` | 保存后热加载 |
+| 外部组件 | `extensions` / AppData 插件目录 | 独立包构建后运行时注册 |
 | 插件脚本 | `resources/js` | 重新加载应用 |
 | 全局样式 | `resources/css` | 重新加载应用 |
 
@@ -15,11 +15,11 @@
 1. 安装内置能力并暴露 `window.weekReport`。
 2. 按文件名顺序注入 `resources/css/*.css`。
 3. 按文件名顺序加载 `resources/js/*.js`。
-4. 运行时编译并注册 `resources/comps` 下的组件。
+4. 读取 `cordis.yml` profile，按包名/模块路径注册外部组件。
 5. 挂载 Vue 应用；插件脚本执行时 API 已就绪。
 
 ::: tip 热加载
-保存 `resources/comps` 下的文件会自动重新编译注册，无需重启。也可以在「设置 → 扩展」手动热加载。
+外部组件包由项目自己构建，宿主在启动时通过 Cordis profile 注册；内置包随应用打包，外部包可放入 AppData/plugins。
 :::
 
 ## API 版本

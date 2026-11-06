@@ -35,6 +35,7 @@ const draft = reactive({
 const baseline = ref('')
 const saving = ref(false)
 const showPreview = ref(true)
+const previewFullscreen = ref(false)
 
 const reports = ref([])
 const loadingReports = ref(false)
@@ -397,7 +398,7 @@ onBeforeUnmount(() => {
         :show-preview="showPreview"
         @save="handleSave"
         @create="handleCreate"
-        @toggle-preview="showPreview = !showPreview"
+        @toggle-preview="showPreview = !showPreview; if (!showPreview) previewFullscreen = false"
       />
 
       <TemplatePreviewPane
@@ -410,7 +411,9 @@ onBeforeUnmount(() => {
         :report="currentReport"
         :sections="sections"
         :loading-sections="loadingSections"
-        @close="showPreview = false"
+        :fullscreen="previewFullscreen"
+        @toggle-fullscreen="previewFullscreen = !previewFullscreen"
+        @close="previewFullscreen = false; showPreview = false"
       />
     </div>
   </AppDialog>

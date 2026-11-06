@@ -485,7 +485,7 @@ onBeforeUnmount(() => {
     <div v-if="preview" class="designer-preview">
       <div class="preview-bar">
         <span>交互预览</span>
-        <span>可点击表格、状态、日期等真实组件；预览修改不会写入当前周报</span>
+        <span>可点击表格、状态、日期等真实组件，并执行组件交互；预览修改不会写入当前周报</span>
       </div>
       <el-scrollbar class="preview-canvas">
         <div class="preview-canvas-inner">
@@ -493,6 +493,7 @@ onBeforeUnmount(() => {
             v-if="previewReport && previewLayout"
             :report="previewReport"
             :layout="previewLayout"
+            interactive
           />
         </div>
       </el-scrollbar>

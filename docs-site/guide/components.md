@@ -1,77 +1,109 @@
 # 外部组件
 
-把 Vue SFC 放进 `resources/comps`，系统使用官方 `@vue/compiler-sfc` 在浏览器中编译并注册，不包含自研模板编译器。
+外部组件是标准 Vue 项目，放在 `extensions/<name>/`，构建成单文件 ESM 后由 Cordis 运行时加载。
 
-## 单元格组件
+## 项目结构
 
-列组件接收 `v-model`（单元格值）和列的 `attrs`，在周报表格中渲染。
-
-```vue
-<!-- resources/comps/HelloCell.vue -->
-<script setup>
-const value = defineModel({ type: String, default: '' })
-defineProps({
-  placeholder: { type: String, default: '输入内容' }
-})
-</script>
-
-<template>
-  <el-input v-model="value" :placeholder="placeholder" size="small" />
-</template>
+```text
+extensions/
+└─ kpi-card/
+   ├─ package.json
+   └─ src/
+      ├─ index.js
+      ├─ KpiCard.vue
+      └─ KpiCard.cslot.vue
 ```
 
-文件名决定组件名：`HelloCell.vue` → `hello-cell`，在列设置的组件下拉框中选择。
+## 入口：Cordis 插件
 
-## 列属性插槽
-
-与同名单元格组件配套，用于编辑列的 `attrs`，会显示在列设置弹窗中。
-
-```vue
-<!-- resources/comps/HelloCell.cslot.vue -->
-<script setup>
-const column = defineModel()
-</script>
-
-<template>
-  <div class="option-editor">
-    <el-tag
-      v-for="(option, index) in column.attrs?.options || []"
-      :key="option"
-      closable
-      @close="column.attrs.options.splice(index, 1)"
-    >{{ option }}</el-tag>
-  </div>
-</template>
-```
-
-## JS 组件模块
-
-没有 SFC 编译需求时，可以用 `.js` 默认导出一个 Vue 组件对象。
+`src/index.js` 默认导出 Cordis 插件：
 
 ```js
-// resources/comps/RatingCell.js
-import { defineComponent, h } from 'vue'
+import KpiCard from './KpiCard.vue'
 
-export default defineComponent({
-  props: { modelValue: Number },
-  emits: ['update:modelValue'],
-  setup(props) {
-    return () => h('span', String(props.modelValue ?? 0))
+export default {
+  name: 'kpi-card',
+  inject: ['weekReport'],
+  apply(ctx) {
+    ctx.weekReport.components.registerCanvas('KpiCard', KpiCard, {
+      value: 'kpi-card',
+      description: 'KPI 指标卡'
+    })
   }
-})
+}
 ```
 
-## 支持的导入
+- `inject: ['weekReport']` 注入系统 API。
+- 画布组件用 `components.registerCanvas`，表格列组件用 `components.registerColumn`，列属性插槽用 `components.registerColumnSlot`。
+- 外部组件包由 Cordis 管理生命周期，热加载时先 dispose 再重新挂载。
 
-| 模块 | 说明 |
-| --- | --- |
-| `vue` | defineProps / defineEmits / defineModel 等官方宏 |
-| `element-plus` | 全部 Element Plus 组件 |
-| `@element-plus/icons-vue` | 图标组件 |
-| `@tauri-apps/api/*`、`plugin-fs`、`plugin-sql` | 桌面端能力 |
-| `handlebars`、`moment`、`lodash`、`vditor` | 运行时全局模块 |
-| `@resources/xxx.js` | 资源目录下的 JS 模块 |
+## 组件内部直接 import
 
-::: tip 样式
-支持 `<style scoped>` 和普通 CSS；不做 SCSS / Less 预处理。建议使用 Element Plus 主题变量，自动适配亮暗色。
+组件按普通 Vue 项目写，不需要关心运行时模块映射：
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+import { ElButton } from 'element-plus'
+import { TrendCharts } from '@element-plus/icons-vue'
+import dayjs from 'dayjs'
+</script>
+
+<template>
+  <div class="kpi">
+    <el-button>详情</el-button>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.kpi {
+  .title {
+    color: var(--el-color-primary);
+  }
+}
+</style>
+```
+
+npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
+
+## 包与 profile
+
+每个插件是独立包，自己执行 `vite build`，产物按 node_modules 结构输出到
+`src-tauri/resources/node_modules/@week-report/<name>/`（含 `package.json` 和 `lib/index.js`）。
+宿主只负责运行时加载，不参与插件打包。
+
+内置包由 `src-tauri/resources/cordis.yml` 声明，条目只写包名：
+
+```yaml
+- id: kpi-card
+  name: '@week-report/kpi-card'
+```
+
+外部包安装到用户插件目录（设置 → 扩展 → 复制插件目录），profile 同样只写包名：
+
+```text
+<AppData>/plugins/
+├─ cordis.yml
+└─ node_modules/@acme/my-widget/
+   ├─ package.json   # exports / module / main 指向构建产物
+   └─ lib/index.js
+```
+
+```yaml
+- id: my-widget
+  name: '@acme/my-widget'
+```
+
+宿主从对应的 `node_modules` 读取 `package.json` 的 `exports["."]` / `module` / `main`
+解析入口，和 Node 的包解析一致。保存后文件监听会热加载。
+
+::: tip 内置组件包
+仓库自带 `kpi-card`、`progress-board`、`timeline-card` 三个画布包，以及
+`rating-cell`、`progress-cell`、`user-cell`、`money-cell` 四个列组件包，可以直接作为模板。
+:::
+
+::: warning 共用 Vue
+插件按 node_modules 语义 `import 'vue'`，`index.html` 的 import map 把 `vue` 指向
+`public/host-vue.js`，确保和宿主使用同一个 Vue 实例。自定义构建不要打包第二份 Vue，
+否则组件的生命周期和 provide/inject 会失效。
 :::

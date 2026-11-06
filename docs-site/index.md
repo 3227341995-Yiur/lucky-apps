@@ -15,7 +15,7 @@ hero:
 
 features:
   - title: 外部组件
-    details: 在 resources/comps 放 .vue / .cslot.vue，官方 SFC 编译器运行时热加载。
+    details: 每个组件是独立 Cordis 包，自己构建，通过 cordis.yml profile 运行时注册。
   - title: 插件脚本
     details: 在 resources/js 放普通脚本，通过 window.weekReport 访问周报、事件、命令和 UI。
   - title: 列扩展

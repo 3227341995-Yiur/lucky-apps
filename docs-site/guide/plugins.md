@@ -18,6 +18,11 @@ api.commands.register('my-plugin.refresh', async payload => {
 }, { title: '刷新我的数据' })
 ```
 
+## Cordis 生命周期
+
+外部脚本、样式和组件由 Cordis 作为插件挂载；热加载时先 dispose 再重新注册。
+插件脚本可以通过 `window.weekReport.cordis` 访问根 Context，注册自己的插件与清理逻辑。
+
 ## 可用全局对象
 
 `window.weekReport`、`window.Vue`、`window.ElementPlus`、`window.ElementPlusIconsVue`、`window.TauriApi`、`window.TauriFs`、`window.TauriPath`、`window.Handlebars`。

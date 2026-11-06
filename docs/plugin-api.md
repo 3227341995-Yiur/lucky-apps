@@ -4,12 +4,12 @@
 
 - API 版本：`2`
 - 入口：`window.weekReport`
-- 装配顺序：`main.js` → 安装内置能力 → 加载 `resources/css` → 加载 `resources/js` 插件脚本 → 运行时编译并注册外部组件 → 挂载 Vue 应用。插件脚本执行时 API 已就绪。
+- 装配顺序：`main.js` → 安装内置能力 → 加载 `resources/css` → 加载 `resources/js` 插件脚本 → 读取 `resources/cordis.yml` 与 `AppData/plugins/cordis.yml`，运行时 import 组件包 → 挂载 Vue 应用。插件脚本执行时 API 已就绪。
 
-> 外部 Vue 组件**运行时热加载**：项目使用 Vue 官方团队 `@vue/repl` 的 `compileFile`
-> （内部为官方 `vue/compiler-sfc` 浏览器构建）编译 `src-tauri/resources/comps` 下的 SFC。
-> 保存文件后自动重新编译并注册，无需重新构建或重启；也可在设置 → 扩展手动热加载。
-> 项目不包含自研模板编译器或解析器。
+> 外部 Vue 组件是独立构建的 Cordis 包，不经过宿主 Vite，也不在运行时编译 SFC。
+> 内置包由 `src-tauri/resources/cordis.yml` 声明；外部包安装到
+> `AppData/plugins/node_modules`，在 `AppData/plugins/cordis.yml` 写包名即可注册。
+> 保存后自动热加载；也可在设置 → 扩展手动热加载。
 
 ---
 
@@ -109,37 +109,42 @@ await weekReport.data.exportBackup() // 直接下载备份文件
 
 ---
 
-## 4. 组件扩展（官方 SFC）
+## 4. 组件扩展（Cordis 包）
 
-把组件放入 `src-tauri/resources/comps/`：
+组件包是标准 Vue 项目，放在 `extensions/<name>/`，默认导出 Cordis 插件：
 
-- `Name.vue`：列编辑器组件，接收 `v-model`（单元格值）和列的 `attrs`。
-- `Name.cslot.vue`：列属性编辑插槽，接收列对象：
+```js
+// src/index.js
+import Name from './Name.vue'
 
-```vue
-<script setup>
-const column = defineModel() // 列对象，可直接修改
-</script>
-
-<template>
-  <el-form-item label="选项">
-    <!-- 编辑 column.attrs.options 等 -->
-  </el-form-item>
-</template>
+export default {
+  name: 'my-widget',
+  inject: ['weekReport'],
+  apply(ctx) {
+    ctx.weekReport.components.registerColumn('Name', Name, {
+      value: 'name',
+      description: '列组件'
+    })
+    // 画布组件用 registerCanvas；列属性插槽用 registerColumnSlot
+  }
+}
 ```
 
-列组件在低代码设计器/列配置中显示为 `name`（kebab-case）。运行时使用官方
-`@vue/compiler-sfc` 编译，支持：
+- 列组件接收 `modelValue`（单元格值）和列的 `attrs`。
+- 列属性插槽接收列对象，可直接修改 `column.attrs`。
+- 组件内部正常 `import 'vue'` / `element-plus` / npm 包 / `.vue` / less/scss，由包自己的 Vite 编译。
+- 构建配置使用 `extensions/build-preset.js`，`vue` 保留为裸 import，运行时由 import map 指向宿主 `public/host-vue.js`，避免第二份 Vue 实例。
 
-- `<script setup>`、defineProps/defineEmits/defineModel 等官方宏
-- TypeScript（仅擦除类型，不做类型检查）
-- `<style scoped>` / 普通 CSS（运行时不做 SCSS/Less 预处理）
-- 直接导入：`vue`、`element-plus`、`@element-plus/icons-vue`、`@tauri-apps/api/*`、
-  `@tauri-apps/plugin-fs`、`@tauri-apps/plugin-sql`、`handlebars`、`moment`、`lodash`、`vditor`
-- 通过 `@resources/xxx.js` 导入资源目录下的 JS 模块
+构建与注册：
 
-保存文件后自动热加载，**无需重新构建或重启**。在设置 → 扩展中可以启停外部组件；
-启停状态保存在数据库，重新加载应用后生效。
+```bash
+pnpm extensions:build   # 输出到 src-tauri/resources/node_modules/@week-report/<name>/
+```
+
+内置包在 `src-tauri/resources/cordis.yml` 只写 `name`；外部包安装到
+`AppData/plugins/node_modules/<包名>`，在 `AppData/plugins/cordis.yml` 同样只写 `name`
+（宿主读取 package.json 的 `exports` / `module` / `main`）。保存后自动热加载；
+设置 → 扩展中可以启停，启停状态保存在数据库，重新加载应用后生效。
 
 ### 运行时注册组件
 
@@ -233,4 +238,4 @@ weekReport.extensions.errors
 
 ## 10. 安全说明
 
-运行时插件脚本拥有页面全部权限，且可以访问本地数据库。只加载可信来源的资源；安装第三方插件前先审查 `resources/js` 与 `resources/comps`。
+运行时插件脚本拥有页面全部权限，且可以访问本地数据库。只加载可信来源的资源；安装第三方插件前先审查 `resources/js` 与 `AppData/plugins` 中的包。

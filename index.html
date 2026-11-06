@@ -5,9 +5,41 @@
     <link rel="icon" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>周报管理系统</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "/host-vue.js"
+        }
+      }
+    </script>
     <link rel="stylesheet" href="/css/font-awesome.css">
     <script src="/js/moment.min.js"></script>
     <script src="/js/lodash.min.js"></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #f5f7fa;
+      }
+
+      html.dark body {
+        background: #141414;
+      }
+
+      #boot-placeholder {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
+        font-size: 64px;
+        letter-spacing: 1px;
+        color: #3574f0;
+        opacity: 0.55;
+      }
+    </style>
     <script>
       // 首屏应用主题，避免亮色闪烁；后续由 src/composables/useTheme.js 接管
       (function () {
@@ -20,6 +52,7 @@
     </script>
   </head>
   <body>
+    <div id="boot-placeholder" aria-hidden="true">loading</div>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

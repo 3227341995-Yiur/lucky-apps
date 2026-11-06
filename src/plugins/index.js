@@ -22,7 +22,6 @@ import {
   markExtensionsReady
 } from '@/plugins/registry'
 import { loadExtensionResources, startExtensionWatcher } from '@/plugins/loader'
-import { installRuntimeImportMap } from '@/plugins/runtimeSfc'
 
 async function installGlobalModules() {
   window.Vue = await import('vue')
@@ -88,11 +87,9 @@ export async function installExtensions(app) {
   setPluginApp(app)
   installBuiltinComponents(app)
   await installGlobalModules()
-  // 外部 SFC 的裸模块由浏览器原生 Import Map 解析（官方 SFC Playground 同款方案）
-  installRuntimeImportMap()
   await loadExtensionResources()
   markExtensionsReady()
-  // 监听 resources/comps，保存文件即热加载（失败不阻塞应用启动）
+  // 监听 AppData/plugins，外部插件变更时热加载（失败不阻塞应用启动）
   startExtensionWatcher().catch(error => console.warn('[plugins] 热监听启动失败:', error))
 }
 

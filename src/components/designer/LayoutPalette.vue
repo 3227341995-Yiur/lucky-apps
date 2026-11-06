@@ -2,7 +2,9 @@
 import { computed, ref } from 'vue'
 import { SECTION_PRESETS } from '@/config/defaultReportConfig'
 import { WIDGETS } from '@/config/reportLayout'
+import { listCanvasComponents } from '@/plugins/registry'
 import { getAllElComponents, getElComponentLabel, getElWidget } from '@/utils/elementPlusWidgets'
+import ElementPlusGlyph from './ElementPlusGlyph.vue'
 
 defineOptions({ name: 'LayoutPalette' })
 
@@ -22,6 +24,20 @@ const elWidgets = computed(() => {
 const layoutWidgets = WIDGETS
   .filter(widget => widget.type !== 'section')
   .map(widget => ({ ...widget, kind: 'element' }))
+
+const externalWidgets = computed(() => listCanvasComponents()
+  .filter(item => item.source !== 'builtin')
+  .map(item => ({
+    kind: 'component',
+    type: 'component',
+    component: item.name,
+    label: item.name,
+    description: item.description || '外部组件',
+    icon: item.icon || 'fas fa-puzzle-piece',
+    iconSvg: item.iconSvg || '',
+    w: 240,
+    h: 120
+  })))
 
 const tableWidgets = [
   ...SECTION_PRESETS.map(preset => ({
@@ -107,6 +123,35 @@ function onPointerDown(event, widget) {
       </div>
     </section>
 
+    <section v-if="externalWidgets.length" class="palette-group">
+      <header class="palette-head">
+        <span>外部组件</span>
+        <small>{{ externalWidgets.length }} 个</small>
+      </header>
+      <div class="palette-list">
+        <button
+          v-for="widget in externalWidgets"
+          :key="widget.component"
+          type="button"
+          title="拖到画布放置"
+          class="palette-item"
+          @pointerdown="onPointerDown($event, widget)"
+        >
+          <span class="palette-thumb">
+            <span v-if="widget.iconSvg" class="palette-svg" v-html="widget.iconSvg" />
+            <el-icon v-else-if="widget.icon && !widget.icon.startsWith('fa')" :size="13">
+              <component :is="widget.icon" />
+            </el-icon>
+            <i v-else :class="widget.icon" />
+          </span>
+          <span class="palette-copy">
+            <strong>{{ widget.label }}</strong>
+            <small>{{ widget.description }}</small>
+          </span>
+        </button>
+      </div>
+    </section>
+
     <section class="palette-group">
       <header class="palette-head">
         <span>Element Plus</span>
@@ -131,7 +176,7 @@ function onPointerDown(event, widget) {
           @pointerdown="onPointerDown($event, widget)"
         >
           <span class="palette-thumb thumb-el" aria-hidden="true">
-            <i class="fas fa-cube" />
+            <ElementPlusGlyph :name="widget.component" />
           </span>
           <span class="palette-copy">
             <strong>{{ getElComponentLabel(widget.component) }}</strong>
@@ -284,6 +329,19 @@ function onPointerDown(event, widget) {
 
 .palette-item.is-el .palette-thumb {
   font-size: 11px;
+}
+
+.palette-svg {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+}
+
+.palette-svg :deep(svg) {
+  width: 15px;
+  height: 15px;
+  display: block;
 }
 
 .palette-tip {

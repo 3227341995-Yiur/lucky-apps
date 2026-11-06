@@ -16,7 +16,7 @@ const tip = computed(() => `主题：${labels[themeMode.value]}（点击切换�
 </script>
 
 <template>
-  <el-tooltip :content="tip" placement="top">
+  <el-tooltip :content="tip" placement="right">
     <el-button class="theme-toggle" circle text @click="cycleTheme">
       <el-icon :size="18"><component :is="icon" /></el-icon>
     </el-button>

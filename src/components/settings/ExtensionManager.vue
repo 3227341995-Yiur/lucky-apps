@@ -16,10 +16,11 @@ const {
   rescan,
   hotReloadComponents,
   copyResourcesPath,
+  copyPluginsPath,
   reloadApp
 } = useExtensions()
 
-const groupOrder = ['style', 'script', 'component-vue', 'component-slot', 'component-module']
+const groupOrder = ['style', 'script', 'component-module']
 
 const STATUS_META = {
   loaded: { label: '已加载', type: 'success' },
@@ -31,9 +32,7 @@ const STATUS_META = {
 const TYPE_LABELS = {
   style: '样式',
   script: '脚本',
-  'component-vue': '列组件',
-  'component-slot': '列属性',
-  'component-module': 'JS 模块'
+  'component-module': '组件包'
 }
 
 const rescanning = ref(false)
@@ -77,6 +76,15 @@ async function handleCopyPath() {
     ElMessage.success(`资源目录路径已复制：${path}`)
   } catch {
     ElMessage.error('复制资源目录路径失败')
+  }
+}
+
+async function handleCopyPluginsPath() {
+  try {
+    const path = await copyPluginsPath()
+    ElMessage.success(`插件目录路径已复制：${path}`)
+  } catch {
+    ElMessage.error('复制插件目录路径失败')
   }
 }
 
@@ -129,6 +137,9 @@ async function handleToggle(resource) {
         <el-button size="small" @click="handleCopyPath">
           <el-icon><CopyDocument /></el-icon><span>复制资源目录</span>
         </el-button>
+        <el-button size="small" @click="handleCopyPluginsPath">
+          <el-icon><FolderOpened /></el-icon><span>复制插件目录</span>
+        </el-button>
         <el-button size="small" @click="reloadApp">
           <el-icon><SwitchButton /></el-icon><span>重新加载应用</span>
         </el-button>
@@ -136,7 +147,8 @@ async function handleToggle(resource) {
     </div>
 
     <p class="ext-note">
-      修改 resources/comps 下的文件会自动热加载，无需重启；启用 / 禁用需要重新加载应用生效。
+      内置组件包随应用打包；外部包安装到用户插件目录的 node_modules，并在
+      <code>plugins/cordis.yml</code> 写包名即可被 Cordis 注册。启用 / 禁用需要重新加载应用生效。
     </p>
 
     <div v-if="extensionState.loading || rescanning" class="ext-state">
@@ -147,8 +159,8 @@ async function handleToggle(resource) {
     <div v-else-if="extensionState.resources.length === 0" class="wr-empty-state">
       <el-icon :size="28"><FolderOpened /></el-icon>
       <h3>暂无扩展资源</h3>
-      <p>可将样式表与插件脚本放入资源目录的 css / js 文件夹，外部组件放入 comps 文件夹。</p>
-      <el-button size="small" @click="handleCopyPath">复制资源目录路径</el-button>
+      <p>样式表与插件脚本放入资源目录的 css / js；外部组件包安装到用户插件目录的 node_modules。</p>
+      <el-button size="small" @click="handleCopyPluginsPath">复制插件目录路径</el-button>
     </div>
 
     <template v-else>
@@ -161,14 +173,8 @@ async function handleToggle(resource) {
           <span class="group-count">{{ groups[key].length }}</span>
         </div>
 
-        <p v-if="key === 'component-vue'" class="group-note">
-          列组件在周报的列设置中按真实组件名选择；修改文件保存后自动热加载。
-        </p>
-        <p v-if="key === 'component-slot'" class="group-note">
-          .cslot.vue 是列属性编辑插槽，与同名 .vue 列组件配套；例如 Test.vue + Test.cslot.vue。
-        </p>
         <p v-if="key === 'component-module'" class="group-note">
-          .js 模块需默认导出 Vue 组件对象，由官方 @vue/repl 编译器运行时加载。
+          组件包默认导出 Cordis 插件，通过 <code>ctx.weekReport</code> 注册组件与列插槽；保存后自动热加载。
         </p>
 
         <div class="ext-list">

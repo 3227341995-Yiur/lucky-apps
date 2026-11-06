@@ -51,6 +51,9 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
       <header class="td-editor-head">
         <div class="td-file">
           <el-icon class="td-file-icon"><Document /></el-icon>
+          <span v-if="dirty" class="td-dirty-dot" title="有未保存的修改"></span>
+          <span v-if="isSystem" class="td-chip">系统</span>
+          <span v-if="isDefault" class="td-chip is-default">默认</span>
           <input
             v-model="name"
             class="td-name-input"
@@ -58,9 +61,6 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
             spellcheck="false"
             aria-label="模板名称"
           />
-          <span v-if="dirty" class="td-dirty-dot" title="有未保存的修改"></span>
-          <span v-if="isSystem" class="td-chip">系统</span>
-          <span v-if="isDefault" class="td-chip is-default">默认</span>
         </div>
 
         <div class="td-editor-actions">

@@ -2,7 +2,7 @@
  * 扩展注册中心
  *
  * - 组件目录：内置列组件 + 外部 .vue 组件 + 插件运行时注册的组件
- * - 扩展资源：resources/css、resources/js、resources/comps 的扫描结果与加载状态
+ * - 扩展资源：resources/css、resources/js、cordis.yml 插件 profile 的加载状态
  *
  * 组件实例不能放进 reactive（会被 Proxy 包装），这里用普通 Map + catalog 数组。
  */
@@ -41,7 +41,10 @@ export function registerComponent(name, component, meta = {}) {
     value: meta.value || toKebabCase(pascalName),
     component,
     source: meta.source || 'builtin',
-    description: meta.description || ''
+    scope: meta.scope === 'canvas' ? 'canvas' : 'column',
+    description: meta.description || '',
+    icon: meta.icon || '',
+    iconSvg: meta.iconSvg || ''
   }
   const index = componentCatalog.value.findIndex(item => item.name === pascalName)
   if (index === -1) componentCatalog.value = [...componentCatalog.value, entry]
@@ -79,7 +82,15 @@ export function listComponents() {
 }
 
 export function listColumnComponents() {
-  return componentCatalog.value.filter(item => !item.name.endsWith('ColumnModifySlot'))
+  return componentCatalog.value.filter(item => (
+    item.scope === 'column' && !item.name.endsWith('ColumnModifySlot')
+  ))
+}
+
+export function listCanvasComponents() {
+  return componentCatalog.value.filter(item => (
+    item.scope === 'canvas' && !item.name.endsWith('ColumnModifySlot')
+  ))
 }
 
 // ============================================================
