@@ -269,6 +269,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@6.0.3))
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -285,6 +288,9 @@ importers:
 
   extensions/money-cell:
     dependencies:
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -301,6 +307,9 @@ importers:
 
   extensions/progress-board:
     dependencies:
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -317,6 +326,9 @@ importers:
 
   extensions/progress-cell:
     dependencies:
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -333,6 +345,9 @@ importers:
 
   extensions/rating-cell:
     dependencies:
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -349,6 +364,9 @@ importers:
 
   extensions/timeline-card:
     dependencies:
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -368,6 +386,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@6.0.3))
+      '@week-report/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@6.0.3))
@@ -381,6 +402,8 @@ importers:
       vite:
         specifier: ^8.3.5
         version: 8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)
+
+  packages/plugin-api: {}
 
 packages:
 

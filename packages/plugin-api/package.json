@@ -1,0 +1,25 @@
+{
+  "name": "@week-report/plugin-api",
+  "version": "1.0.0",
+  "description": "Week Report external component plugin API",
+  "type": "module",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "index.d.ts",
+    "README.md"
+  ],
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

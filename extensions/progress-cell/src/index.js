@@ -1,16 +1,16 @@
 import ProgressCell from './ProgressCell.vue'
 import ProgressCellSlot from './ProgressCell.cslot.vue'
+import { definePlugin, components } from '@week-report/plugin-api'
 
-export default {
+export default definePlugin({
   name: 'progress-cell',
-  inject: ['weekReport'],
-  apply(ctx) {
-    ctx.weekReport.components.registerColumn('ProgressCell', ProgressCell, {
+  apply() {
+    components.registerColumn('ProgressCell', ProgressCell, {
       value: 'progress-cell',
       description: '进度条'
     })
-    ctx.weekReport.components.registerColumnSlot('ProgressCell', ProgressCellSlot, {
+    components.registerColumnSlot('ProgressCell', ProgressCellSlot, {
       value: 'progress-cell'
     })
   }
-}
+})

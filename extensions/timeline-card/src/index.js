@@ -1,13 +1,13 @@
 import TimelineCard from './TimelineCard.vue'
+import { definePlugin, components } from '@week-report/plugin-api'
 
-export default {
+export default definePlugin({
   name: 'timeline-card',
-  inject: ['weekReport'],
-  apply(ctx) {
-    ctx.weekReport.components.registerCanvas('TimelineCard', TimelineCard, {
+  apply() {
+    components.registerCanvas('TimelineCard', TimelineCard, {
       value: 'timeline-card',
       icon: 'Clock',
       description: '节点时间线'
     })
   }
-}
+})

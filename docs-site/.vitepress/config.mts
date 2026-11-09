@@ -27,6 +27,7 @@ export default defineConfig({
         text: '扩展',
         items: [
           { text: '外部组件', link: '/guide/components' },
+          { text: '插件 API 包', link: '/guide/plugin-api-package' },
           { text: '插件脚本', link: '/guide/plugins' },
           { text: '列扩展', link: '/guide/columns' },
           { text: '模板设计器', link: '/guide/template-designer' },

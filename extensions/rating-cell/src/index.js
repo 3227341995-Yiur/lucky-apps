@@ -1,16 +1,16 @@
 import RatingCell from './RatingCell.vue'
 import RatingCellSlot from './RatingCell.cslot.vue'
+import { definePlugin, components } from '@week-report/plugin-api'
 
-export default {
+export default definePlugin({
   name: 'rating-cell',
-  inject: ['weekReport'],
-  apply(ctx) {
-    ctx.weekReport.components.registerColumn('RatingCell', RatingCell, {
+  apply() {
+    components.registerColumn('RatingCell', RatingCell, {
       value: 'rating-cell',
       description: '评分'
     })
-    ctx.weekReport.components.registerColumnSlot('RatingCell', RatingCellSlot, {
+    components.registerColumnSlot('RatingCell', RatingCellSlot, {
       value: 'rating-cell'
     })
   }
-}
+})

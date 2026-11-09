@@ -19,18 +19,18 @@ extensions/
 `src/index.js` 默认导出 Cordis 插件：
 
 ```js
+import { definePlugin, components } from '@week-report/plugin-api'
 import KpiCard from './KpiCard.vue'
 
-export default {
+export default definePlugin({
   name: 'kpi-card',
-  inject: ['weekReport'],
-  apply(ctx) {
-    ctx.weekReport.components.registerCanvas('KpiCard', KpiCard, {
+  apply() {
+    components.registerCanvas('KpiCard', KpiCard, {
       value: 'kpi-card',
       description: 'KPI 指标卡'
     })
   }
-}
+})
 ```
 
 - `inject: ['weekReport']` 注入系统 API。

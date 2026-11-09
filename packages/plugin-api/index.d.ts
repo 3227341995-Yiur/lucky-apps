@@ -1,0 +1,48 @@
+export interface ComponentMeta {
+  value?: string
+  description?: string
+  icon?: string
+  iconSvg?: string
+  scope?: 'column' | 'canvas'
+}
+
+export interface CordisPlugin {
+  name: string
+  apply(ctx?: unknown, config?: unknown): void | Promise<void>
+  inject?: string[]
+}
+
+export function useWeekReport(): any
+export function definePlugin<T extends CordisPlugin>(plugin: T): T
+
+export const components: {
+  register(name: string, component: unknown, meta?: ComponentMeta): void
+  registerColumn(name: string, component: unknown, meta?: ComponentMeta): void
+  registerCanvas(name: string, component: unknown, meta?: ComponentMeta): void
+  registerColumnSlot(name: string, component: unknown, meta?: ComponentMeta): void
+  list(): unknown[]
+  listColumns(): unknown[]
+  listCanvas(): unknown[]
+  has(name: string): boolean
+}
+
+export const events: {
+  on(name: string, handler: (...args: any[]) => void): () => void
+  once(name: string, handler: (...args: any[]) => void): () => void
+  off(name: string, handler: (...args: any[]) => void): void
+}
+
+export const ui: {
+  toast(message: string, type?: string): void
+  selectReport(id: number | string): Promise<boolean>
+  openSettings(): Promise<boolean>
+  openImportExport(): Promise<boolean>
+  openDesigner(): Promise<boolean>
+  openTemplates(): Promise<boolean>
+}
+
+export const commands: {
+  register(id: string, handler: (...args: any[]) => any, meta?: Record<string, unknown>): () => void
+  run(id: string, ...args: any[]): Promise<any>
+  list(): unknown[]
+}

@@ -45,17 +45,18 @@ profile 的 `cordis.patch.yml`。
 `src/index.js` 默认导出 Cordis 插件：
 
 ```js
-export default {
+import { definePlugin, components } from '@week-report/plugin-api'
+
+export default definePlugin({
   name: 'kpi-card',
-  inject: ['weekReport'],
-  apply(ctx) {
-    ctx.weekReport.components.registerCanvas('KpiCard', KpiCard, {
+  apply() {
+    components.registerCanvas('KpiCard', KpiCard, {
       value: 'kpi-card',
       icon: 'TrendCharts',
       description: 'KPI 指标卡'
     })
   }
-}
+})
 ```
 
 - 画布组件：`components.registerCanvas`

@@ -291,6 +291,7 @@ export const pluginApi = {
 // 插件脚本在扩展加载阶段即可访问；装配期重复赋值无副作用
 if (typeof window !== 'undefined') {
   window.weekReport = pluginApi
+  window.__WEEK_REPORT_HOST__ = pluginApi
 }
 
 export default pluginApi

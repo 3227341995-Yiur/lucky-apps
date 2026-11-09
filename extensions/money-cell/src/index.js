@@ -1,16 +1,16 @@
 import MoneyCell from './MoneyCell.vue'
 import MoneyCellSlot from './MoneyCell.cslot.vue'
+import { definePlugin, components } from '@week-report/plugin-api'
 
-export default {
+export default definePlugin({
   name: 'money-cell',
-  inject: ['weekReport'],
-  apply(ctx) {
-    ctx.weekReport.components.registerColumn('MoneyCell', MoneyCell, {
+  apply() {
+    components.registerColumn('MoneyCell', MoneyCell, {
       value: 'money-cell',
       description: '金额'
     })
-    ctx.weekReport.components.registerColumnSlot('MoneyCell', MoneyCellSlot, {
+    components.registerColumnSlot('MoneyCell', MoneyCellSlot, {
       value: 'money-cell'
     })
   }
-}
+})

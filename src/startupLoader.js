@@ -1,12 +1,13 @@
 /**
- * 启动加载动画：手绘描边 loading + 收尾粒子。
- * 配置保存在 localStorage，启动时同步读取，不依赖数据库。
+ * 启动加载动画：逐字描边 loading + 粒子收尾。
+ * 配置保存在 localStorage；启动时同步读取，不依赖数据库。
  */
 import { animate, createTimeline, stagger, utils } from 'animejs'
 
 const STYLE_ID = 'startup-loader-style'
 const STORAGE_KEY = 'wr:loading'
 const SVG_NS = 'http://www.w3.org/2000/svg'
+const DEFAULT_PALETTE = '#3574f0,#36a3ff,#67c23a,#e6a23c,#f56c6c,#8b5cf6'
 
 const FONTS = [
   { value: '"Segoe Script", "Bradley Hand", "Comic Sans MS", cursive', label: '手写体' },
@@ -21,14 +22,13 @@ export const DEFAULT_LOADING_CONFIG = {
   text: 'loading',
   subtitle: '正在加载资源',
   font: FONTS[0].value,
-  fontSize: 72,
+  fontSize: 76,
   color: '#3574f0',
   background: '',
-  drawStyle: 'draw',
   effect: 'explode',
-  particleCount: 24,
+  particleCount: 8,
   particleShape: 'mixed',
-  particleColors: '#3574f0,#36a3ff,#67c23a,#e6a23c,#f56c6c,#8b5cf6',
+  particleColors: DEFAULT_PALETTE,
   showPen: true,
   speed: 1
 }
@@ -37,10 +37,9 @@ function normalizeConfig(raw = {}) {
   const config = { ...DEFAULT_LOADING_CONFIG, ...raw }
   config.text = String(config.text || 'loading').slice(0, 40)
   config.subtitle = String(config.subtitle ?? '')
-  config.fontSize = Math.min(160, Math.max(28, Number(config.fontSize) || 72))
-  config.particleCount = Math.min(40, Math.max(0, Number(config.particleCount) || 0))
+  config.fontSize = Math.min(140, Math.max(28, Number(config.fontSize) || 76))
+  config.particleCount = Math.min(30, Math.max(0, Number(config.particleCount) || 0))
   config.speed = Math.min(2.5, Math.max(0.4, Number(config.speed) || 1))
-  config.drawStyle = ['draw', 'typewriter', 'fade'].includes(config.drawStyle) ? config.drawStyle : 'draw'
   config.effect = ['explode', 'dissolve', 'spark'].includes(config.effect) ? config.effect : 'explode'
   config.particleShape = ['mixed', 'circle', 'square', 'star'].includes(config.particleShape)
     ? config.particleShape
@@ -82,7 +81,6 @@ function ensureStyles() {
       justify-content: center;
       background: var(--el-bg-color-page, #f5f7fa);
       overflow: hidden;
-      transition: background-color .2s ease;
     }
 
     html.dark .startup-loader {
@@ -90,31 +88,35 @@ function ensureStyles() {
     }
 
     .startup-word {
-      display: block;
-      width: min(720px, 86vw);
+      width: min(520px, 84vw);
       overflow: visible;
     }
 
     .startup-word text {
+      font-family: var(--startup-font, "Segoe Script", cursive);
+      font-size: var(--startup-size, 76px);
       font-weight: 400;
-      stroke-linecap: round;
+      fill: var(--startup-ink, #3574f0);
+      stroke: var(--startup-ink, #3574f0);
+      stroke-width: 1.1;
       stroke-linejoin: round;
       paint-order: stroke fill;
-      filter: drop-shadow(0 0 2px color-mix(in srgb, var(--startup-ink, #3574f0) 30%, transparent));
+      opacity: 0;
     }
 
     .startup-pen {
       fill: var(--startup-ink, #3574f0);
-      filter: drop-shadow(0 0 8px color-mix(in srgb, var(--startup-ink, #3574f0) 70%, transparent));
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--startup-ink, #3574f0) 55%, transparent));
     }
 
     .startup-sub {
-      margin-top: 8px;
+      margin-top: 14px;
       font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.24em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: var(--el-text-color-secondary, #909399);
+      color: var(--startup-ink, #909399);
+      opacity: 0;
     }
 
     .startup-particles {
@@ -127,31 +129,22 @@ function ensureStyles() {
 
     .startup-particle {
       position: fixed;
+      border-radius: 50%;
+      background: var(--startup-ink, #3574f0);
       will-change: transform, opacity;
-      box-shadow: 0 0 9px currentColor;
-      opacity: 1;
     }
 
-    .startup-particle.is-circle { border-radius: 50%; }
     .startup-particle.is-square { border-radius: 2px; }
     .startup-particle.is-star {
+      border-radius: 0;
       clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 94%, 50% 72%, 21% 94%, 32% 57%, 2% 35%, 39% 35%);
-    }
-
-    .startup-shockwave {
-      position: fixed;
-      width: 18px;
-      height: 18px;
-      margin: -9px 0 0 -9px;
-      border: 2px solid var(--startup-ink, #3574f0);
-      border-radius: 50%;
-      box-shadow: 0 0 18px color-mix(in srgb, var(--startup-ink, #3574f0) 65%, transparent);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 100001;
     }
   `
   document.head.appendChild(style)
+}
+
+function removePlaceholder() {
+  document.getElementById('boot-placeholder')?.remove()
 }
 
 function svgEl(tag, attrs = {}) {
@@ -173,10 +166,6 @@ function pickShape(config, index) {
   return ['circle', 'square', 'star'][index % 3]
 }
 
-function removePlaceholder() {
-  document.getElementById('boot-placeholder')?.remove()
-}
-
 /**
  * 启动 / 预览加载动画。
  * @param {{preview?: boolean, config?: object}} options
@@ -185,7 +174,7 @@ export function startStartupLoader(options = {}) {
   if (typeof document === 'undefined') return
   if (options.preview) {
     window.__startupLoader?.finish?.()
-    document.querySelectorAll('.startup-loader, .startup-particles, .startup-shockwave').forEach(node => node.remove())
+    document.querySelectorAll('.startup-loader, .startup-particles').forEach(node => node.remove())
   } else if (window.__startupLoader) {
     return
   }
@@ -198,62 +187,51 @@ export function startStartupLoader(options = {}) {
   overlay.className = 'startup-loader'
   if (config.background) overlay.style.background = config.background
   overlay.style.setProperty('--startup-ink', config.color)
+  overlay.style.setProperty('--startup-font', config.font)
+  overlay.style.setProperty('--startup-size', `${config.fontSize}px`)
 
-  const svg = svgEl('svg', { class: 'startup-word', viewBox: '0 0 720 170', 'aria-hidden': 'true' })
+  const svg = svgEl('svg', { class: 'startup-word', viewBox: '0 0 520 130', 'aria-hidden': 'true' })
   const defs = svgEl('defs')
   svg.appendChild(defs)
   const sub = document.createElement('div')
   sub.className = 'startup-sub'
   sub.textContent = config.subtitle
-  sub.style.color = config.color
   overlay.append(svg, sub)
   document.body.appendChild(overlay)
 
+  // 逐字排布，每个字符独立裁剪、独立绘制
   const letters = []
-  let cursor = 0
+  let cursor = 18
   for (const [index, char] of [...config.text].entries()) {
-    const text = svgEl('text', {
-      x: 0,
-      y: 108,
-      'font-family': config.font,
-      'font-size': config.fontSize,
-      fill: config.color,
-      stroke: config.color,
-      'stroke-width': 1.35,
-      'fill-opacity': 0,
-      'stroke-opacity': 1
-    })
-    text.textContent = char === ' ' ? ' ' : char
+    const text = svgEl('text', { x: cursor, y: 92 })
+    text.textContent = char === ' ' ? ' ' : char
     svg.appendChild(text)
-    const width = Math.max(2, text.getComputedTextLength())
-    letters.push({ char, text, width, index })
-    cursor += width + Math.max(2, config.fontSize * 0.04)
-  }
 
-  const totalWidth = Math.max(80, cursor)
-  const viewWidth = Math.max(320, totalWidth + config.fontSize)
-  svg.setAttribute('viewBox', `0 0 ${viewWidth} 170`)
-  let x = (viewWidth - totalWidth) / 2
-  letters.forEach(letter => {
-    letter.x = x
-    letter.text.setAttribute('x', x)
-    x += letter.width + Math.max(2, config.fontSize * 0.04)
-  })
+    const width = Math.max(1, text.getComputedTextLength())
+    const clip = svgEl('clipPath', { id: `startup-clip-${index}` })
+    const rect = svgEl('rect', { x: cursor - 2, y: 8, width: 0, height: 118 })
+    clip.appendChild(rect)
+    defs.appendChild(clip)
+    text.setAttribute('clip-path', `url(#startup-clip-${index})`)
+
+    letters.push({ char, text, rect, x: cursor, width })
+    cursor += width + 2
+  }
+  const viewWidth = Math.max(300, cursor + 18)
+  svg.setAttribute('viewBox', `0 0 ${viewWidth} 130`)
 
   const pen = svgEl('circle', {
-    cx: letters[0]?.x || 0,
-    cy: 104,
-    r: Math.max(2.5, config.fontSize * 0.06),
+    cx: letters[0]?.x || 18,
+    cy: 92,
+    r: 4.5,
     class: 'startup-pen'
   })
   if (config.showPen) svg.appendChild(pen)
 
-  let finishRequested = false
   let introDone = false
+  let finishRequested = false
   let exploded = false
   const speed = 1 / config.speed
-  const step = 150 * speed
-  const introEnd = 120 + letters.length * step + 420 * speed
 
   const timeline = createTimeline({
     defaults: { ease: 'inOutSine' },
@@ -266,42 +244,26 @@ export function startStartupLoader(options = {}) {
   timeline.add(overlay, { opacity: [0, 1], duration: 260 * speed }, 0)
 
   letters.forEach((letter, index) => {
-    const start = 120 + index * step
-    if (config.drawStyle === 'draw') {
-      const dash = Math.max(80, letter.width * 5 + config.fontSize * 2)
-      letter.text.style.strokeDasharray = `${dash}`
-      letter.text.style.strokeDashoffset = `${dash}`
-      timeline
-        .add(letter.text, { strokeDashoffset: [dash, 0], duration: 360 * speed }, start)
-        .add(letter.text, { fillOpacity: [0, 1], duration: 220 * speed }, start + 220 * speed)
-        .add(letter.text, { translateY: [2, 0], rotate: [-1.2, 0], duration: 300 * speed }, start)
-    } else if (config.drawStyle === 'typewriter') {
-      const clip = svgEl('clipPath', { id: `startup-clip-${index}` })
-      const rect = svgEl('rect', { x: letter.x - 2, y: 10, width: 0, height: 150 })
-      clip.appendChild(rect)
-      defs.appendChild(clip)
-      letter.text.setAttribute('clip-path', `url(#startup-clip-${index})`)
-      timeline
-        .add(rect, { width: [0, letter.width + 4], duration: 300 * speed }, start)
-        .add(letter.text, { fillOpacity: [0, 1], duration: 180 * speed }, start)
-    } else {
-      timeline
-        .add(letter.text, { opacity: [0, 1], translateY: [8, 0], duration: 320 * speed }, start)
-        .add(letter.text, { fillOpacity: [0, 1], duration: 220 * speed }, start)
-    }
-
+    const start = (180 + index * 175) * speed
+    timeline
+      .add(letter.rect, { width: [0, letter.width + 4], duration: 300 * speed }, start)
+      .add(letter.text, { opacity: [0, 1], duration: 220 * speed }, start)
+      .add(letter.text, { translateY: [3, 0], rotate: [-2.5, 0], duration: 300 * speed }, start)
     if (config.showPen) {
       timeline.add(pen, {
-        cx: letter.x + letter.width + (index === letters.length - 1 ? 0 : 2),
-        cy: 104,
+        cx: letter.x + letter.width + 2,
+        cy: 92,
         duration: 300 * speed
       }, start)
     }
   })
 
-  timeline
-    .add(pen, { opacity: [1, 0], duration: 160 * speed }, introEnd - 200 * speed)
-    .add(sub, { opacity: [0, 1], translateY: [4, 0], duration: 300 * speed }, introEnd - 280 * speed)
+  const end = (180 + letters.length * 175 + 120) * speed
+  if (config.showPen) {
+    timeline.add(pen, { opacity: [1, 0], duration: 180 * speed }, end)
+  }
+  timeline.add(sub, { opacity: [0, 1], translateY: [4, 0], duration: 300 * speed }, end - 120 * speed)
+  const introEnd = end + 240 * speed
 
   function explode() {
     if (exploded) return
@@ -311,82 +273,55 @@ export function startStartupLoader(options = {}) {
     const layer = document.createElement('div')
     layer.className = 'startup-particles'
     document.body.appendChild(layer)
-    const particles = []
 
-    letters.forEach((letter, letterIndex) => {
+    const particles = []
+    letters.forEach((letter, index) => {
       const rect = letter.text.getBoundingClientRect()
       const centerX = rect.left + rect.width / 2
       const centerY = rect.top + rect.height / 2
       for (let i = 0; i < config.particleCount; i += 1) {
         const particle = document.createElement('span')
-        const shape = pickShape(config, letterIndex + i)
-        particle.className = `startup-particle is-${shape}`
+        particle.className = `startup-particle is-${pickShape(config, index + i)}`
         particle.style.left = `${centerX}px`
         particle.style.top = `${centerY}px`
-        particle.style.background = colors[(letterIndex + i) % colors.length]
-        const size = utils.random(4, 11)
+        particle.style.background = colors[(index + i) % colors.length]
+        const size = utils.random(3, 7)
         particle.style.width = `${size}px`
         particle.style.height = `${size}px`
-        particle.style.color = particle.style.background
         layer.appendChild(particle)
         particles.push(particle)
       }
 
       animate(letter.text, {
-        scale: config.effect === 'dissolve' ? [1, 0.75] : [1, 1.32],
+        scale: config.effect === 'dissolve' ? [1, 0.85] : [1, 1.25],
         opacity: [1, 0],
-        rotate: () => utils.random(-30, 30),
-        duration: (config.effect === 'spark' ? 380 : 560) * speed,
-        delay: letterIndex * 16 * speed,
+        rotate: () => utils.random(-35, 35),
+        duration: (config.effect === 'spark' ? 420 : 520) * speed,
+        delay: index * 18 * speed,
         ease: 'outExpo'
       })
     })
 
-    const wordRect = svg.getBoundingClientRect()
-    const center = {
-      x: wordRect.left + wordRect.width / 2,
-      y: wordRect.top + wordRect.height / 2
-    }
-
-    if (config.effect !== 'spark') {
-      const wave = document.createElement('span')
-      wave.className = 'startup-shockwave'
-      wave.style.left = `${center.x}px`
-      wave.style.top = `${center.y}px`
-      wave.style.borderColor = config.color
-      layer.appendChild(wave)
-      animate(wave, {
-        scale: [0.35, 10],
-        opacity: [0.35, 0],
-        duration: 700 * speed,
-        ease: 'outQuad'
-      })
-    }
-
     animate(particles, {
-      x: () => utils.random(-300, 300),
-      y: () => (
-        config.effect === 'dissolve'
-          ? utils.random(-260, -80)
-          : utils.random(-240, 240)
-      ),
-      scale: config.effect === 'spark' ? [1, 0.15] : [1, 0],
-      rotate: () => utils.random(-360, 360),
+      x: () => utils.random(-260, 260),
+      y: () => (config.effect === 'dissolve' ? utils.random(-220, -60) : utils.random(-190, 190)),
+      scale: config.effect === 'spark' ? [1, 0.2] : [1, 0],
       opacity: [1, 0],
+      rotate: () => utils.random(-220, 220),
       duration: () => utils.random(
-        config.effect === 'spark' ? 550 : 900,
-        config.effect === 'spark' ? 950 : 1650
+        config.effect === 'spark' ? 550 : 650,
+        config.effect === 'spark' ? 900 : 1150
       ) * speed,
-      delay: stagger(4 * speed),
+      delay: stagger(6 * speed),
       ease: 'outExpo'
     })
 
-    animate(sub, { opacity: [1, 0], duration: 260 * speed, ease: 'outQuad' })
+    animate(sub, { opacity: [1, 0], duration: 220 * speed, ease: 'outQuad' })
 
     animate(overlay, {
       opacity: [1, 0],
-      duration: 520 * speed,
-      delay: (config.effect === 'spark' ? 260 : 680) * speed,
+      duration: 480 * speed,
+      delay: 280 * speed,
       ease: 'outQuad',
       onComplete: () => {
         overlay.remove()
@@ -403,7 +338,7 @@ export function startStartupLoader(options = {}) {
   }
 
   if (options.preview) {
-    const timer = window.setTimeout(() => explode(), introEnd + 300)
+    const timer = window.setTimeout(() => explode(), introEnd + 350)
     window.__startupLoader = {
       preview: true,
       finish: () => {

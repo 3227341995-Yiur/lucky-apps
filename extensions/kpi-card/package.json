@@ -14,7 +14,8 @@
   "dependencies": {
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
-    "@element-plus/icons-vue": "^2.3.2"
+    "@element-plus/icons-vue": "^2.3.2",
+    "@week-report/plugin-api": "workspace:*"
   },
   "devDependencies": {
     "vite": "^8.3.5",

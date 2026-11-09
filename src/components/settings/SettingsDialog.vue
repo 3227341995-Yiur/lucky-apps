@@ -36,11 +36,60 @@ const loadingEffects = [
   { value: 'dissolve', label: '上升消散' },
   { value: 'spark', label: '火花飞散' }
 ]
-const loadingStyles = [
-  { value: 'draw', label: '手绘描边' },
-  { value: 'typewriter', label: '逐字显示' },
-  { value: 'fade', label: '淡入' }
+const loadingPresets = [
+  {
+    key: 'classic',
+    label: '经典蓝',
+    hint: '干净、克制',
+    config: {
+      color: '#3574f0',
+      background: '',
+      effect: 'explode',
+      particleColors: '#3574f0,#36a3ff,#67c23a,#e6a23c,#f56c6c,#8b5cf6'
+    }
+  },
+  {
+    key: 'neon',
+    label: '霓虹',
+    hint: '高对比',
+    config: {
+      color: '#22d3ee',
+      background: '#0b1020',
+      effect: 'spark',
+      particleColors: '#22d3ee,#a78bfa,#f472b6,#facc15'
+    }
+  },
+  {
+    key: 'candy',
+    label: '糖果',
+    hint: '轻快、明亮',
+    config: {
+      color: '#ec4899',
+      background: '#fff7ed',
+      effect: 'explode',
+      particleColors: '#ec4899,#f59e0b,#8b5cf6,#22c55e'
+    }
+  },
+  {
+    key: 'night',
+    label: '暗夜',
+    hint: '安静、消散',
+    config: {
+      color: '#a78bfa',
+      background: '#111827',
+      effect: 'dissolve',
+      particleColors: '#a78bfa,#60a5fa,#34d399,#f472b6'
+    }
+  }
 ]
+const activePreset = computed(() => {
+  const config = loadingConfig.value
+  return loadingPresets.find(preset => (
+    preset.config.color === config.color
+    && preset.config.background === config.background
+    && preset.config.effect === config.effect
+  ))?.key || ''
+})
 const loadingShapes = [
   { value: 'mixed', label: '混合' },
   { value: 'circle', label: '圆点' },
@@ -55,6 +104,10 @@ function persistLoading(patch = {}) {
 function previewLoading() {
   persistLoading()
   previewStartupLoader(loadingConfig.value)
+}
+
+function applyLoadingPreset(preset) {
+  loadingConfig.value = saveLoadingConfig({ ...loadingConfig.value, ...preset.config })
 }
 
 function resetLoading() {
@@ -193,6 +246,46 @@ async function handleCopyResources() {
 
         <!-- 加载动画 -->
         <div v-else-if="activeTab === 'loading'" class="panel loading-panel">
+          <div class="loading-hero">
+            <div class="loading-hero-copy">
+              <span class="loading-eyebrow">LOADING STUDIO</span>
+              <h3>把启动页改成你的样子</h3>
+              <p>文字、字体、颜色、粒子都可以自己调。改完点预览，满意后下次启动生效。</p>
+              <div class="loading-actions">
+                <el-button type="primary" @click="previewLoading">
+                  <el-icon><VideoPlay /></el-icon><span>预览动画</span>
+                </el-button>
+                <el-button plain @click="resetLoading">恢复经典</el-button>
+              </div>
+            </div>
+            <div
+              class="loading-word-preview"
+              :style="{
+                color: loadingConfig.color,
+                fontFamily: loadingConfig.font,
+                fontSize: `${Math.min(46, loadingConfig.fontSize * 0.62)}px`
+              }"
+            >{{ loadingConfig.text }}</div>
+          </div>
+
+          <div class="loading-presets">
+            <button
+              v-for="preset in loadingPresets"
+              :key="preset.key"
+              type="button"
+              class="loading-preset"
+              :class="{ active: activePreset === preset.key }"
+              :style="{ '--preset-color': preset.config.color }"
+              @click="applyLoadingPreset(preset)"
+            >
+              <span class="preset-swatch" :style="{ background: preset.config.color }"></span>
+              <span class="preset-copy">
+                <strong>{{ preset.label }}</strong>
+                <small>{{ preset.hint }}</small>
+              </span>
+            </button>
+          </div>
+
           <div class="loading-card">
             <h4>文字</h4>
             <div class="loading-row">
@@ -250,13 +343,7 @@ async function handleCopyResources() {
           </div>
 
           <div class="loading-card">
-            <h4>绘制与收尾</h4>
-            <div class="loading-row">
-              <span class="loading-label">绘制方式</span>
-              <el-select v-model="loadingConfig.drawStyle" @change="persistLoading()">
-                <el-option v-for="item in loadingStyles" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-            </div>
+            <h4>收尾</h4>
             <div class="loading-row">
               <span class="loading-label">收尾效果</span>
               <el-select v-model="loadingConfig.effect" @change="persistLoading()">
@@ -301,13 +388,6 @@ async function handleCopyResources() {
             </div>
           </div>
 
-          <div class="loading-actions">
-            <el-button type="primary" @click="previewLoading">
-              <el-icon><VideoPlay /></el-icon><span>预览动画</span>
-            </el-button>
-            <el-button @click="resetLoading">恢复默认</el-button>
-          </div>
-          <p class="hint">保存后下次启动生效；预览会立即覆盖当前窗口播放一遍。</p>
         </div>
 
         <!-- 扩展 -->
@@ -709,26 +789,203 @@ async function handleCopyResources() {
 .loading-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.loading-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 174px;
+  padding: 22px 26px;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(34, 211, 238, 0.42), transparent 32%),
+    radial-gradient(circle at 12% 88%, rgba(139, 92, 246, 0.34), transparent 34%),
+    linear-gradient(135deg, #0f172a 0%, #1e3a8a 52%, #0891b2 100%);
+  color: #fff;
+  box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.7);
+}
+
+.loading-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.08) 48%, transparent 64%);
+}
+
+.loading-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 58%;
+  min-width: 0;
+}
+
+.loading-eyebrow {
+  display: inline-flex;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: var(--wr-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.loading-hero h3 {
+  margin: 10px 0 6px;
+  font-size: 20px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.loading-hero p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.loading-hero .loading-actions {
+  margin-top: 14px;
+}
+
+.loading-hero :deep(.el-button--primary) {
+  --el-button-bg-color: #fff;
+  --el-button-border-color: #fff;
+  --el-button-text-color: #0f172a;
+  --el-button-hover-bg-color: #e2e8f0;
+  --el-button-hover-border-color: #e2e8f0;
+  --el-button-hover-text-color: #0f172a;
+}
+
+.loading-hero :deep(.el-button.is-plain) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.loading-hero :deep(.el-button.is-plain:hover) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.loading-word-preview {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  max-width: 42%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.24);
+}
+
+.loading-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.loading-preset {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-bg-color);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.loading-preset:hover {
+  transform: translateY(-1px);
+  border-color: var(--preset-color);
+  box-shadow: 0 8px 20px -14px var(--preset-color);
+}
+
+.loading-preset.active {
+  border-color: var(--preset-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--preset-color) 22%, transparent);
+}
+
+.preset-swatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.preset-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.preset-copy strong {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+}
+
+.preset-copy small {
+  font-size: 9.5px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loading-card {
   padding: 16px 18px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  background: var(--el-fill-color-lighter);
+  border-radius: 14px;
+  background: var(--el-bg-color);
+  box-shadow: 0 8px 24px -26px rgba(15, 23, 42, 0.54);
 }
 
 .loading-card h4 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin: 0 0 14px;
-  font-size: 12px;
-  font-weight: 650;
-  color: var(--el-text-color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.loading-card h4::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-primary);
 }
 
 .loading-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-height: 34px;
@@ -790,6 +1047,22 @@ async function handleCopyResources() {
 .loading-actions {
   display: flex;
   gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .loading-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .loading-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .loading-hero-copy,
+  .loading-word-preview {
+    max-width: 100%;
+  }
 }
 
 </style>
