@@ -73,12 +73,11 @@ resources/           运行时样式 / 插件脚本（服务端按清单下发�
 空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
 Node 服务用真实 Cordis loader 按行里的包名从 profile 的 `node_modules` 解析并挂载；
 Tauri 窗口只打开服务地址。系统依赖 `vue` / `element-plus` / 图标和各 bundle 都在
-`profile/node_modules`；首次启动会复制到 `%APPDATA%/com.lu.dev/profile`，用户可直接改 profile。
+`profile/node_modules`；首次启动会复制到 `%APPDATA%/com.lu.week-report/profile`，用户可直接改 profile。
 浏览器侧 client bundle 构建为 IIFE，Vue / Element Plus / 图标使用宿主 `window` 上的同一份实例。
 运行时脚本与样式放入 `resources/js|css/`，由服务端 `/api/boot` 清单下发。
 
-完整 API、事件、组件契约见 [docs/plugin-api.md](docs/plugin-api.md)；
-画布设计器说明见 [docs/report-designer.md](docs/report-designer.md)。
+完整开发文档（架构、API、组件、列、模板/画布设计器、常见问题）在 [docs-site](docs-site) 与设置中心 → 帮助文档中。
 
 ## 主题
 

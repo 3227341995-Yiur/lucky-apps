@@ -4,7 +4,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import ReportPage from '@/components/report/ReportPage.vue'
 import { useReports } from '@/composables/useReports'
 import { debounce } from '@/utils/debounce'
-import { renderReportContent } from '@/utils/reportExport'
+import { getCopySettings, renderCopyContent } from '@/utils/reportExport'
+import { getTemplateTypes } from '@/services/templateService'
+import { events } from '@/utils/eventBus'
 import { formatDateTime } from '@/utils/date'
 import { createDefaultLayout, extractLayout, normalizeReportLayout } from '@/config/reportLayout'
 
@@ -14,6 +16,36 @@ const emit = defineEmits(['open-import-export', 'open-design'])
 
 const reports = useReports()
 const { state } = reports
+
+const copySettings = ref({ enabled: true, defaultType: 'html' })
+const copyTypes = ref([
+  { value: 'html', label: 'HTML' },
+  { value: 'markdown', label: 'Markdown' }
+])
+const copyBusy = ref(false)
+const defaultCopyLabel = computed(() => {
+  const type = copySettings.value.defaultType
+  return copyTypes.value.find(item => item.value === type)?.label || String(type || 'HTML')
+})
+let offCopySettings = null
+
+async function loadCopyOptions() {
+  try {
+    const [settings, types] = await Promise.all([getCopySettings(), getTemplateTypes()])
+    copyTypes.value = types.length ? types : [
+      { value: 'html', label: 'HTML' },
+      { value: 'markdown', label: 'Markdown' }
+    ]
+    copySettings.value = {
+      enabled: settings.enabled,
+      defaultType: types.some(item => item.value === settings.defaultType)
+        ? settings.defaultType
+        : (types[0]?.value || 'html')
+    }
+  } catch (error) {
+    console.warn('[editor] 加载复制设置失败:', error)
+  }
+}
 
 const dirty = ref(false)
 const savedVisible = ref(false)
@@ -107,6 +139,8 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(fitPage)
   if (viewportRef.value) resizeObserver.observe(viewportRef.value)
   fitPage()
+  loadCopyOptions()
+  offCopySettings = events.on('template:copy-settings', loadCopyOptions)
 })
 
 watch(() => layout.value?.page?.width, fitPage)
@@ -116,6 +150,7 @@ onBeforeUnmount(() => {
   persist.cancel()
   clearTimeout(savedTimer)
   resizeObserver?.disconnect()
+  offCopySettings?.()
 })
 
 async function copyText(text) {
@@ -133,15 +168,23 @@ async function copyText(text) {
   document.body.removeChild(textarea)
 }
 
-async function copyContent(event) {
-  if (!state.currentReport) return
-  const isMarkdown = Boolean(event?.shiftKey)
+async function copyContent(type) {
+  if (!state.currentReport || copyBusy.value) return
+  copyBusy.value = true
+  const target = copySettings.value.enabled
+    ? (typeof type === 'string' && type ? type : copySettings.value.defaultType)
+    : 'canvas'
   try {
-    const content = await renderReportContent(state.currentReport, isMarkdown ? 'markdown' : 'html')
+    const content = await renderCopyContent(state.currentReport, target, copySettings.value)
     await copyText(content)
-    ElMessage.success(isMarkdown ? '已复制 Markdown 内容' : '已复制报告 HTML（按住 Shift 复制 Markdown）')
+    const label = copySettings.value.enabled
+      ? (copyTypes.value.find(item => item.value === target)?.label || target)
+      : '画布'
+    ElMessage.success(`已复制 ${label} 内容`)
   } catch (error) {
     ElMessage.error(`复制失败: ${error.message}`)
+  } finally {
+    copyBusy.value = false
   }
 }
 
@@ -187,9 +230,33 @@ function handleCommand(command) {
           <span>{{ dirty ? '保存中…' : '已保存' }}</span>
         </span>
 
-        <el-button class="editor-action" @click="copyContent">
+        <el-dropdown
+          v-if="copySettings.enabled"
+          split-button
+          trigger="click"
+          placement="bottom-end"
+          class="editor-copy"
+          @click="copyContent()"
+          @command="copyContent"
+        >
           <el-icon><CopyDocument /></el-icon>
-          <span>复制</span>
+          <span>复制 {{ defaultCopyLabel }}</span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item
+                v-for="item in copyTypes"
+                :key="item.value"
+                :command="item.value"
+              >
+                <span>{{ item.label }}</span>
+                <span v-if="item.value === copySettings.defaultType" class="copy-default-tag">默认</span>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-button v-else class="editor-action" @click="copyContent()">
+          <el-icon><CopyDocument /></el-icon>
+          <span>复制画布</span>
         </el-button>
 
         <el-button class="editor-action" type="primary" @click="emit('open-import-export', 'export')">
@@ -253,8 +320,9 @@ function handleCommand(command) {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 50px;
-  padding: 8px 22px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0 22px;
   border-bottom: 1px solid var(--wr-border);
   background: var(--wr-surface);
 }
@@ -311,6 +379,20 @@ function handleCommand(command) {
   margin-right: 4px;
 }
 
+.editor-copy {
+  display: inline-flex;
+}
+
+.editor-copy :deep(.el-button) {
+  height: 30px;
+}
+
+.copy-default-tag {
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--el-color-primary);
+}
+
 .save-state {
   display: inline-flex;
   align-items: center;
@@ -347,7 +429,7 @@ function handleCommand(command) {
 .page-stage {
   width: max-content;
   min-width: 100%;
-  padding: 30px 32px 44px;
+  padding: 22px 24px 40px;
   display: flex;
   flex-direction: column;
   align-items: center;

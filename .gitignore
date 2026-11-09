@@ -17,6 +17,7 @@ node_modules
 dist
 public/docs
 .tmp-extensions
+.tmp-*
 dist-ssr
 coverage
 *.local

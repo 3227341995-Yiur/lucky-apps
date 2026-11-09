@@ -2,6 +2,9 @@
   "name": "week-report-profile",
   "private": true,
   "dependencies": {
+    "vue": "^3.5.44",
+    "element-plus": "^2.14.7",
+    "@element-plus/icons-vue": "^2.3.2",
     "week-report-base": "1.0.0",
     "kpi-card": "1.0.0",
     "progress-board": "1.0.0",

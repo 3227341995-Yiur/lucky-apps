@@ -4,7 +4,7 @@ import CodeEditor from '@/components/CodeEditor.vue'
 
 defineOptions({ name: 'TemplateEditorPane' })
 
-defineProps({
+const props = defineProps({
   hasDraft: {
     type: Boolean,
     default: false
@@ -32,6 +32,10 @@ defineProps({
   showPreview: {
     type: Boolean,
     default: true
+  },
+  types: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -41,7 +45,19 @@ const name = defineModel('name', { type: String, default: '' })
 const type = defineModel('type', { type: String, default: 'html' })
 const content = defineModel('content', { type: String, default: '' })
 
-const typeLabel = computed(() => (type.value === 'markdown' ? 'Markdown' : 'HTML'))
+const typeOptions = computed(() => {
+  const list = [...(props.types || [])]
+  if (type.value && !list.some(item => item.value === type.value)) {
+    list.push({ value: type.value, label: type.value })
+  }
+  return list
+})
+const typeLabel = computed(
+  () => typeOptions.value.find(item => item.value === type.value)?.label || type.value || 'HTML'
+)
+const editorLanguage = computed(() => (
+  ['html', 'markdown'].includes(type.value) ? type.value : 'markdown'
+))
 const lineCount = computed(() => (content.value ? content.value.split('\n').length : 0))
 </script>
 
@@ -64,10 +80,22 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
         </div>
 
         <div class="td-editor-actions">
-          <el-radio-group v-model="type" size="small">
-            <el-radio-button value="html">HTML</el-radio-button>
-            <el-radio-button value="markdown">Markdown</el-radio-button>
-          </el-radio-group>
+          <el-select
+            v-model="type"
+            size="small"
+            class="td-type-select"
+            filterable
+            allow-create
+            default-first-option
+            placeholder="周报类型"
+          >
+            <el-option
+              v-for="item in typeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
 
           <span class="td-shortcut" title="保存模板">
             <span class="wr-kbd">Ctrl</span>
@@ -98,7 +126,7 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
       </div>
 
       <div class="td-editor-surface">
-        <CodeEditor v-model="content" :language="type" />
+        <CodeEditor v-model="content" :language="editorLanguage" />
       </div>
 
       <footer class="td-statusbar">
@@ -115,7 +143,7 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
     <div v-else class="td-editor-empty">
       <el-icon :size="40"><DocumentAdd /></el-icon>
       <h3>还没有可编辑的模板</h3>
-      <p>从左侧新建一个 HTML 或 Markdown 模板开始设计。</p>
+      <p>从左侧新建一个模板开始设计，类型可以是 HTML、Markdown 或自定义周报类型。</p>
       <el-button type="primary" @click="emit('create', 'html')">新建 HTML 模板</el-button>
     </div>
   </section>
@@ -154,6 +182,10 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
 .td-file-icon {
   flex: none;
   color: var(--el-text-color-secondary);
+}
+
+.td-type-select {
+  width: 132px;
 }
 
 .td-name-input {

@@ -28,7 +28,10 @@ export default defineConfig({
         items: [
           { text: '外部组件', link: '/guide/components' },
           { text: '插件脚本', link: '/guide/plugins' },
-          { text: '列扩展', link: '/guide/columns' }
+          { text: '列扩展', link: '/guide/columns' },
+          { text: '模板设计器', link: '/guide/template-designer' },
+          { text: '启动加载动画', link: '/guide/loading' },
+          { text: '画布设计器', link: '/guide/report-designer' }
         ]
       },
       {

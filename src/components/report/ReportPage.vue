@@ -199,13 +199,22 @@ function saveColumnSettings(nextSection) {
 }
 
 function evaluateExpression(element) {
-  const code = String(element.expression || '').trim()
+  let code = String(element.expression || '').trim()
   if (!code) return null
+  // 兼容 {{ report.title }} 这种旧写法，表达式本身仍按 JS 执行
+  const wrapped = /^\{\{([\s\S]*)\}\}$/.exec(code)
+  if (wrapped) code = wrapped[1].trim()
+
+  const moment = typeof window !== 'undefined' ? window.moment : undefined
   try {
-    const result = new Function('report', 'moment', `"use strict"; return (${code});`)(
-      props.report,
-      typeof window !== 'undefined' ? window.moment : undefined
-    )
+    let result
+    try {
+      result = new Function('report', 'moment', `"use strict"; return (${code});`)(props.report, moment)
+    } catch (expressionError) {
+      // 允许写多行脚本，最后一行用 return
+      result = new Function('report', 'moment', `"use strict";
+${code}`)(props.report, moment)
+    }
     return result === undefined || result === null ? '' : String(result)
   } catch (error) {
     console.warn('[report] 内容表达式执行失败:', code, error)

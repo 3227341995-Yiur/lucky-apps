@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "week-report",
   "version": "1.0.0",
-  "identifier": "com.lu.dev",
+  "identifier": "com.lu.week-report",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://127.0.0.1:34115",
@@ -12,18 +12,7 @@
   "app": {
     "windows": [],
     "security": {
-      "csp": null,
-      "assetProtocol": {
-        "enable": true,
-        "scope": [
-          "**"
-        ]
-      }
-    }
-  },
-  "plugins": {
-    "fs": {
-      "requireLiteralLeadingDot": false
+      "csp": null
     }
   },
   "bundle": {

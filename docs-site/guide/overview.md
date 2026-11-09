@@ -10,16 +10,43 @@
 | 插件脚本 | `resources/js` | 重新加载应用 |
 | 全局样式 | `resources/css` | 重新加载应用 |
 
+## 运行架构
+
+```text
+Tauri WebView（只负责显示）
+        │  http://127.0.0.1:34115
+        ▼
+Cordis Node 服务（server/）
+  ├─ 真实 @cordisjs/plugin-loader
+  ├─ profile: package.json / cordis.yml / cordis.patch.yml / node_modules
+  ├─ SQLite（node:sqlite）+ /api/db RPC
+  ├─ /api/boot 下发 client bundle 清单
+  └─ 静态托管 dist 与运行时资源
+        │  /client/<name>/index.js
+        ▼
+浏览器 client bundle（IIFE，Vue / Element Plus 用宿主 window 实例）
+```
+
+- 启动：Tauri 启动 Node 服务 → 等待服务返回地址 → WebView 打开该地址。
+- 配置：Node 侧组合 profile bundles / patches，用真实 Loader 挂载插件。
+- 客户端：浏览器读取 `/api/boot`，加载组件包并注册到 `window.weekReport`。
+
+::: warning 与 DSH 的差异
+DSH 是纯 Node 进程 + Web 前端；这里是 Tauri 窗口 + Node 服务。
+profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复用 DSH app-boot。
+`profile/node_modules` 由构建脚本生成并随应用打包，不是 pnpm 安装出来的。
+:::
+
 ## 装配顺序
 
 1. 安装内置能力并暴露 `window.weekReport`。
 2. 按文件名顺序注入 `resources/css/*.css`。
 3. 按文件名顺序加载 `resources/js/*.js`。
-4. Node 服务用真实 Cordis Loader 组合 `profile`（首次启动复制到 `%APPDATA%/com.lu.dev/profile`）：bundle patches → 用户 patch，按包名从 `node_modules` 挂载。
+4. Node 服务用真实 Cordis Loader 组合 `profile`（首次启动复制到 `%APPDATA%/com.lu.week-report/profile`）：bundle patches → 用户 patch，按包名从 `node_modules` 挂载。
 5. 挂载 Vue 应用；插件脚本执行时 API 已就绪。
 
 ::: tip 热加载
-外部组件包由项目自己构建，宿主在启动时通过 Cordis profile 注册；内置 profile 随应用打包，用户 profile 在 %APPDATA%/com.lu.dev/profile。
+外部组件包由项目自己构建，宿主在启动时通过 Cordis profile 注册；内置 profile 随应用打包，用户 profile 在 %APPDATA%/com.lu.week-report/profile。
 :::
 
 ## API 版本

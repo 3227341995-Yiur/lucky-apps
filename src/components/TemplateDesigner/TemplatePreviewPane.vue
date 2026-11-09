@@ -62,6 +62,7 @@ const markdownRef = ref(null)
 let markdownSeq = 0
 
 const isMarkdown = computed(() => props.type === 'markdown')
+const isCustom = computed(() => !['html', 'markdown'].includes(props.type))
 const templateEmpty = computed(() => !props.template || !props.template.trim())
 
 function reportDateText(report) {
@@ -249,6 +250,7 @@ onBeforeUnmount(() => {
           Markdown 预览渲染失败，已降级为纯文本
         </div>
       </template>
+      <pre v-else-if="isCustom" class="td-custom-content">{{ rendered }}</pre>
       <iframe
         v-else
         class="td-html-frame"
@@ -419,6 +421,17 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--el-text-color-regular);
+}
+
+.td-custom-content {
+  margin: 0;
+  padding: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--wr-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-primary);
 }
 
 .td-html-frame {

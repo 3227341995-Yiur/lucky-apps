@@ -7,6 +7,13 @@ import { useExtensions } from '@/composables/useExtensions'
 import { resetReportConfig } from '@/services/reportConfigService'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
+import {
+  DEFAULT_LOADING_CONFIG,
+  LOADING_FONT_OPTIONS,
+  previewStartupLoader,
+  readLoadingConfig,
+  saveLoadingConfig
+} from '@/startupLoader'
 import FullscreenIcon from '@/components/common/FullscreenIcon.vue'
 import ExtensionManager from '@/components/settings/ExtensionManager.vue'
 import pkg from '../../../package.json'
@@ -23,6 +30,36 @@ const { copyResourcesPath } = useExtensions()
 
 const activeTab = ref('appearance')
 const docsFullscreen = ref(false)
+const loadingConfig = ref(readLoadingConfig())
+const loadingEffects = [
+  { value: 'explode', label: '爆炸粒子' },
+  { value: 'dissolve', label: '上升消散' },
+  { value: 'spark', label: '火花飞散' }
+]
+const loadingStyles = [
+  { value: 'draw', label: '手绘描边' },
+  { value: 'typewriter', label: '逐字显示' },
+  { value: 'fade', label: '淡入' }
+]
+const loadingShapes = [
+  { value: 'mixed', label: '混合' },
+  { value: 'circle', label: '圆点' },
+  { value: 'square', label: '方块' },
+  { value: 'star', label: '星形' }
+]
+
+function persistLoading(patch = {}) {
+  loadingConfig.value = saveLoadingConfig({ ...loadingConfig.value, ...patch })
+}
+
+function previewLoading() {
+  persistLoading()
+  previewStartupLoader(loadingConfig.value)
+}
+
+function resetLoading() {
+  loadingConfig.value = saveLoadingConfig(DEFAULT_LOADING_CONFIG)
+}
 
 watch(visible, open => {
   if (!open) docsFullscreen.value = false
@@ -30,6 +67,7 @@ watch(visible, open => {
 
 const tabs = [
   { key: 'appearance', label: '外观', icon: 'Sunny', desc: '选择界面主题' },
+  { key: 'loading', label: '加载动画', icon: 'MagicStick', desc: '自定义启动 loading 文字、手绘动效与粒子' },
   { key: 'extensions', label: '扩展', icon: 'Grid', desc: '管理样式表、插件脚本与外部组件' },
   { key: 'templates', label: '模板', icon: 'Document', desc: '编辑导出模板与周报预览' },
   { key: 'data', label: '数据', icon: 'Coin', desc: '查看统计并维护周报结构' },
@@ -151,6 +189,117 @@ async function handleCopyResources() {
             </button>
           </div>
           <p class="hint">默认跟随系统，选择后立即生效并记住设置。</p>
+        </div>
+
+        <!-- 加载动画 -->
+        <div v-else-if="activeTab === 'loading'" class="panel loading-panel">
+          <div class="loading-grid">
+            <label class="loading-field">
+              <span>加载文字</span>
+              <el-input
+                v-model="loadingConfig.text"
+                maxlength="40"
+                show-word-limit
+                @input="persistLoading()"
+              />
+            </label>
+            <label class="loading-field">
+              <span>副标题</span>
+              <el-input
+                v-model="loadingConfig.subtitle"
+                maxlength="60"
+                @input="persistLoading()"
+              />
+            </label>
+            <label class="loading-field">
+              <span>字体</span>
+              <el-select v-model="loadingConfig.font" @change="persistLoading()">
+                <el-option
+                  v-for="font in LOADING_FONT_OPTIONS"
+                  :key="font.value"
+                  :label="font.label"
+                  :value="font.value"
+                />
+              </el-select>
+            </label>
+            <label class="loading-field">
+              <span>字号</span>
+              <el-input-number
+                v-model="loadingConfig.fontSize"
+                :min="28"
+                :max="160"
+                controls-position="right"
+                @change="persistLoading()"
+              />
+            </label>
+            <label class="loading-field">
+              <span>文字颜色</span>
+              <el-color-picker v-model="loadingConfig.color" @change="persistLoading()" />
+            </label>
+            <label class="loading-field">
+              <span>背景颜色</span>
+              <el-color-picker v-model="loadingConfig.background" @change="persistLoading()" />
+            </label>
+            <label class="loading-field">
+              <span>绘制方式</span>
+              <el-select v-model="loadingConfig.drawStyle" @change="persistLoading()">
+                <el-option v-for="item in loadingStyles" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </label>
+            <label class="loading-field">
+              <span>收尾效果</span>
+              <el-select v-model="loadingConfig.effect" @change="persistLoading()">
+                <el-option v-for="item in loadingEffects" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </label>
+            <label class="loading-field">
+              <span>粒子形状</span>
+              <el-select v-model="loadingConfig.particleShape" @change="persistLoading()">
+                <el-option v-for="item in loadingShapes" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </label>
+            <label class="loading-field">
+              <span>粒子数量 / 字</span>
+              <el-slider
+                v-model="loadingConfig.particleCount"
+                :min="0"
+                :max="40"
+                :step="1"
+                show-input
+                @change="persistLoading()"
+              />
+            </label>
+            <label class="loading-field">
+              <span>速度</span>
+              <el-slider
+                v-model="loadingConfig.speed"
+                :min="0.4"
+                :max="2.5"
+                :step="0.1"
+                show-input
+                @change="persistLoading()"
+              />
+            </label>
+            <label class="loading-field switching">
+              <span>显示笔尖</span>
+              <el-switch v-model="loadingConfig.showPen" @change="persistLoading()" />
+            </label>
+            <label class="loading-field loading-colors">
+              <span>粒子颜色（逗号分隔）</span>
+              <el-input
+                v-model="loadingConfig.particleColors"
+                placeholder="#3574f0,#67c23a"
+                @input="persistLoading()"
+              />
+            </label>
+          </div>
+          <div class="loading-actions">
+            <el-button type="primary" @click="previewLoading">
+              <el-icon><VideoPlay /></el-icon><span>预览动画</span>
+            </el-button>
+            <el-button @click="resetLoading">恢复默认</el-button>
+          </div>
+          <p class="hint">保存后下次启动生效；预览会立即覆盖当前窗口播放一遍。</p>
         </div>
 
         <!-- 扩展 -->
@@ -549,4 +698,58 @@ async function handleCopyResources() {
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.loading-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.loading-field > span {
+  color: var(--el-text-color-regular);
+}
+
+.loading-field :deep(.el-select),
+.loading-field :deep(.el-input-number),
+.loading-field :deep(.el-color-picker) {
+  width: 100%;
+}
+
+.loading-field :deep(.el-color-picker__trigger) {
+  width: 100%;
+}
+
+.loading-field.switching {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loading-colors {
+  grid-column: 1 / -1;
+}
+
+.loading-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.loading-panel .hint {
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .loading-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 </style>

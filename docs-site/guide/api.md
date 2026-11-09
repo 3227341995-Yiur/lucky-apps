@@ -44,4 +44,4 @@ await weekReport.config.set(config)
 await weekReport.config.reset()
 ```
 
-完整字段与示例见仓库内的 `docs/plugin-api.md` 和 `docs/report-designer.md`。
+完整字段与示例见 [API 参考](/guide/api) 与 [画布设计器](/guide/report-designer)。

@@ -489,13 +489,14 @@ function commitElProps(text) {
           留空时绑定周报默认{{ element.type === 'title' ? '标题' : '日期范围' }}；填写 JS 表达式可自定义取值。
         </p>
         <label class="field">
-          <span>内容表达式</span>
-          <el-input
-            :model-value="element.expression || ''"
-            size="small"
-            placeholder="留空使用周报默认值"
-            @update:model-value="v => updateElement({ expression: v })"
-          />
+          <span>内容表达式（JS）</span>
+          <div class="expression-editor">
+            <code-editor
+              :model-value="element.expression || ''"
+              language="javascript"
+              @update:model-value="v => updateElement({ expression: v })"
+            />
+          </div>
         </label>
         <p class="group-hint">
           {{ element.type === 'title'
@@ -1343,4 +1344,12 @@ function commitElProps(text) {
   font-size: 10.5px;
   color: var(--el-color-danger);
 }
+.expression-editor {
+  height: 92px;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+  background: var(--el-bg-color);
+}
+
 </style>

@@ -6,14 +6,19 @@ import TemplateListPane from './TemplateListPane.vue'
 import TemplateEditorPane from './TemplateEditorPane.vue'
 import TemplatePreviewPane from './TemplatePreviewPane.vue'
 import {
+  BUILTIN_TEMPLATE_TYPES,
   createDefaultTemplateData,
   createMarkdownTemplateData,
   createTemplate,
   deleteTemplate,
   getAllTemplates,
+  getTemplateTypes,
   saveTemplate,
-  setDefaultTemplate
+  setDefaultTemplate,
+  templateTypeLabel
 } from '@/services/templateService'
+import { getCopySettings, saveCopySettings } from '@/utils/reportExport'
+import { emit } from '@/utils/eventBus'
 import { loadAllReports, loadReportSections } from '@/services/database'
 
 defineOptions({ name: 'TemplateDesigner' })
@@ -36,6 +41,9 @@ const baseline = ref('')
 const saving = ref(false)
 const showPreview = ref(true)
 const previewFullscreen = ref(false)
+const copyEnabled = ref(true)
+const copyDefaultType = ref('html')
+const templateTypes = ref([...BUILTIN_TEMPLATE_TYPES])
 
 const reports = ref([])
 const loadingReports = ref(false)
@@ -60,12 +68,43 @@ function applyTemplate(template) {
   }
   draft.id = template.id
   draft.name = template.name || ''
-  draft.type = template.type === 'markdown' ? 'markdown' : 'html'
+  draft.type = template.type || 'html'
   draft.isDefault = Boolean(template.isDefault)
   draft.isSystem = Boolean(template.isSystem)
   draft.template = template.template || ''
   currentId.value = template.id
   baseline.value = snapshot()
+}
+
+async function refreshTemplateTypes() {
+  try {
+    const [types, settings] = await Promise.all([getTemplateTypes(), getCopySettings()])
+    templateTypes.value = types
+    copyEnabled.value = settings.enabled
+    const fallback = types[0]?.value || 'html'
+    const nextType = types.some(item => item.value === settings.defaultType)
+      ? settings.defaultType
+      : fallback
+    if (nextType !== copyDefaultType.value) copyDefaultType.value = nextType
+    if (nextType !== settings.defaultType) {
+      await saveCopySettings({ defaultType: nextType })
+    }
+  } catch (error) {
+    console.warn('[TemplateDesigner] 加载模板类型失败:', error)
+  }
+}
+
+async function handleCopyEnabledChange(value) {
+  copyEnabled.value = Boolean(value)
+  await saveCopySettings({ enabled: copyEnabled.value })
+  emit('template:copy-settings')
+}
+
+async function handleCopyDefaultTypeChange(value) {
+  if (!value) return
+  copyDefaultType.value = value
+  await saveCopySettings({ defaultType: value })
+  emit('template:copy-settings')
 }
 
 function clearDraft() {
@@ -117,7 +156,7 @@ async function openWorkspace() {
   sections.value = []
   loadingSections.value = false
 
-  const next = await refreshTemplates(currentId.value)
+  const [next] = await Promise.all([refreshTemplates(currentId.value), refreshTemplateTypes()])
   if (seq !== openSeq) return
   applyTemplate(next)
 
@@ -184,20 +223,48 @@ function uniqueTemplateName(base) {
 
 async function handleCreate(type = 'html') {
   if (!(await confirmDiscard('新建模板'))) return
-  const isMarkdown = type === 'markdown'
+  const label = templateTypeLabel(type, templateTypes.value)
+  const content = type === 'markdown'
+    ? createMarkdownTemplateData()
+    : type === 'html'
+      ? createDefaultTemplateData()
+      : `# {{title}}
+
+**日期范围：** {{dateRange}}
+
+{{#each sections}}## {{title}}
+
+{{/each}}`
   try {
-    const template = createTemplate(
-      uniqueTemplateName(isMarkdown ? '新建 Markdown 模板' : '新建 HTML 模板'),
-      isMarkdown ? 'markdown' : 'html',
-      isMarkdown ? createMarkdownTemplateData() : createDefaultTemplateData()
-    )
+    const template = createTemplate(uniqueTemplateName(`新建 ${label} 模板`), type, content)
     const id = await saveTemplate(template)
+    await refreshTemplateTypes()
+    emit('template:copy-settings')
     const created = await refreshTemplates(id)
     if (created) applyTemplate(created)
     ElMessage.success('已创建模板')
   } catch (error) {
     console.error('[TemplateDesigner] 新建模板失败:', error)
     ElMessage.error(`新建模板失败：${error?.message || error}`)
+  }
+}
+
+async function handleCreateCustomType() {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '输入模板类型名称，例如 text、jira、weekly',
+      '新建模板类型',
+      {
+        confirmButtonText: '创建',
+        cancelButtonText: '取消',
+        inputPattern: /^[A-Za-z][\w-]*$/,
+        inputErrorMessage: '类型只能包含字母、数字、下划线或短横线，并以字母开头'
+      }
+    )
+    const type = String(value || '').trim()
+    if (type) await handleCreate(type)
+  } catch {
+    // 用户取消
   }
 }
 
@@ -231,6 +298,7 @@ async function handleSetDefault(template) {
   if (!template || template.isDefault) return
   try {
     await setDefaultTemplate(template.id, template.type)
+    emit('template:copy-settings')
     templates.value = await getAllTemplates()
     const current = templates.value.find(item => item.id === draft.id)
     if (current) draft.isDefault = Boolean(current.isDefault)
@@ -276,6 +344,8 @@ async function handleRemove(template) {
     }
 
     templates.value = list
+    await refreshTemplateTypes()
+    emit('template:copy-settings')
     if (isCurrent) {
       const next = list[Math.min(Math.max(index, 0), list.length - 1)] || null
       if (next) applyTemplate(next)
@@ -312,6 +382,8 @@ async function handleSave() {
     // 以提交时的内容作为已保存基线，保存期间的新编辑仍应保持未保存状态
     baseline.value = JSON.stringify([id, payload.name, payload.type, payload.template])
 
+    await refreshTemplateTypes()
+    emit('template:copy-settings')
     const saved = await refreshTemplates(id)
     if (saved) {
       draft.isDefault = Boolean(saved.isDefault)
@@ -383,12 +455,19 @@ onBeforeUnmount(() => {
         @copy="handleCopy"
         @remove="handleRemove"
         @set-default="handleSetDefault"
+        @create-custom="handleCreateCustomType"
+        :types="templateTypes"
+        :copy-enabled="copyEnabled"
+        :copy-default-type="copyDefaultType"
+        @update:copy-enabled="handleCopyEnabledChange"
+        @update:copy-default-type="handleCopyDefaultTypeChange"
       />
 
       <TemplateEditorPane
         v-model:name="draft.name"
         v-model:type="draft.type"
         v-model:content="draft.template"
+        :types="templateTypes"
         :has-draft="hasDraft"
         :template-id="draft.id"
         :is-default="draft.isDefault"

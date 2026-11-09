@@ -3,7 +3,8 @@
  * 抽取自 App.vue 的 copyContent / exportWeekly，供单份复制、单份导出、批量导出复用
  */
 import { renderHtml, renderMarkdown } from '@/utils/templateRenderer'
-import { getDefaultTemplate } from '@/services/templateService'
+import { getTemplateForType } from '@/services/templateService'
+import { getSetting, setSetting } from '@/services/database'
 import { renderLayoutHtml } from '@/config/reportLayout'
 
 /**
@@ -18,15 +19,36 @@ export function formatDateRange(dateRange) {
   return dateRange
 }
 
+export const COPY_TEMPLATE_ENABLED_KEY = 'template.copy.enabled'
+export const COPY_DEFAULT_TYPE_KEY = 'template.copy.defaultType'
+
+/** 模板设计器里的复制设置：是否使用模板、默认类型 */
+export async function getCopySettings() {
+  const [enabled, defaultType] = await Promise.all([
+    getSetting(COPY_TEMPLATE_ENABLED_KEY, true),
+    getSetting(COPY_DEFAULT_TYPE_KEY, 'html')
+  ])
+  return {
+    enabled: enabled !== false,
+    defaultType: typeof defaultType === 'string' && defaultType ? defaultType : 'html'
+  }
+}
+
+export async function saveCopySettings(patch = {}) {
+  if ('enabled' in patch) await setSetting(COPY_TEMPLATE_ENABLED_KEY, Boolean(patch.enabled))
+  if ('defaultType' in patch && patch.defaultType) {
+    await setSetting(COPY_DEFAULT_TYPE_KEY, String(patch.defaultType))
+  }
+  return getCopySettings()
+}
+
 /**
- * 渲染单份周报内容（复用 copyContent 的模板渲染逻辑）
- * @param {object} report - { title, dateRange, sections }
- * @param {'html'|'markdown'} format
- * @returns {Promise<string>} 渲染后的内容
+ * 渲染单份周报内容（复制/导出共用）
+ * @param {object} report
+ * @param {string} format - html / markdown / 自定义模板类型
  */
 export async function renderReportContent(report, format = 'html') {
-  // 复制/导出优先使用模板设计器里的默认模板；只有没有模板时才回退到画布 HTML
-  const template = await getDefaultTemplate(format)
+  const template = await getTemplateForType(format)
   if (template?.template) {
     const reportData = {
       title: report.title,
@@ -42,7 +64,22 @@ export async function renderReportContent(report, format = 'html') {
     return renderLayoutHtml(report, report.layout, report.sections || [])
   }
 
-  throw new Error(`未找到${format === 'markdown' ? ' Markdown ' : ' HTML '}默认模板`)
+  throw new Error(`未找到「${format}」类型的模板`)
+}
+
+/** 画布 HTML（模板开关关闭时复制使用） */
+export async function renderCanvasContent(report) {
+  if (report?.layout && Array.isArray(report.layout.elements) && report.layout.elements.length) {
+    return renderLayoutHtml(report, report.layout, report.sections || [])
+  }
+  return renderReportContent(report, 'html')
+}
+
+/** 按复制设置渲染：关闭模板时直接复制画布内容 */
+export async function renderCopyContent(report, type, settings) {
+  const config = settings || await getCopySettings()
+  if (!config.enabled) return renderCanvasContent(report)
+  return renderReportContent(report, type || config.defaultType)
 }
 
 /**

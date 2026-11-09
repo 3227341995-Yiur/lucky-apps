@@ -1,5 +1,5 @@
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 
@@ -39,13 +39,74 @@ fn project_root(app: &tauri::AppHandle) -> PathBuf {
   }
 }
 
+
+fn legacy_data_dir(app_data: &Path) -> Option<PathBuf> {
+  let parent = app_data.parent()?;
+  let legacy = parent.join("com.lu.dev");
+  legacy.is_dir().then_some(legacy)
+}
+
+fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+  std::fs::create_dir_all(dst)?;
+  for entry in std::fs::read_dir(src)? {
+    let entry = entry?;
+    let target = dst.join(entry.file_name());
+    if entry.file_type()?.is_dir() {
+      copy_dir_all(&entry.path(), &target)?;
+    } else {
+      std::fs::copy(entry.path(), target)?;
+    }
+  }
+  Ok(())
+}
+
+/// 旧版本标识是 com.lu.dev；首次用新标识启动时把数据库和用户 profile 迁过来。
+fn migrate_legacy_data(app_data: &Path) -> std::io::Result<()> {
+  let Some(legacy) = legacy_data_dir(app_data) else {
+    return Ok(());
+  };
+  std::fs::create_dir_all(app_data)?;
+  let new_db = app_data.join("week_report.db");
+  let old_db = legacy.join("week_report.db");
+  if old_db.is_file() && !new_db.exists() {
+    std::fs::copy(&old_db, &new_db)?;
+    for suffix in ["week_report.db-wal", "week_report.db-shm"] {
+      let source = legacy.join(suffix);
+      if source.is_file() {
+        let _ = std::fs::copy(source, app_data.join(suffix));
+      }
+    }
+  }
+  let old_profile = legacy.join("profile");
+  let new_profile = app_data.join("profile");
+  if old_profile.is_dir() && !new_profile.exists() {
+    copy_dir_all(&old_profile, &new_profile)?;
+  }
+  Ok(())
+}
+
 fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let root = project_root(app);
   let server_script = root.join("server").join("dist").join("index.mjs");
-  let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-  let db_path = std::env::var("WR_DB_PATH")
-    .map(PathBuf::from)
-    .unwrap_or_else(|_| app_data.join("week_report.db"));
+  let app_data = strip_verbatim(app.path().app_data_dir().map_err(|e| e.to_string())?);
+  let env_db = std::env::var("WR_DB_PATH").ok().map(PathBuf::from);
+  let env_profile = std::env::var("WR_PROFILE_DIR").ok();
+  if env_db.is_none() && env_profile.is_none() {
+    if let Err(error) = migrate_legacy_data(&app_data) {
+      eprintln!("[shell] 旧数据迁移失败: {error}");
+    }
+  }
+  let has_env_db = env_db.is_some();
+  let mut db_path = env_db.unwrap_or_else(|| app_data.join("week_report.db"));
+  // 只有没有显式指定数据库时才回退旧标识的数据；测试/多实例不能被旧库覆盖。
+  if !has_env_db && !db_path.exists() {
+    if let Some(legacy) = legacy_data_dir(&app_data) {
+      let legacy_db = legacy.join("week_report.db");
+      if legacy_db.is_file() {
+        db_path = legacy_db;
+      }
+    }
+  }
 
   eprintln!("[shell] root={:?} server={:?} db={:?}", root, server_script, db_path);
   let node = std::env::var("WR_NODE_BIN").unwrap_or_else(|_| "node".to_string());
@@ -60,7 +121,7 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
     .env("WR_BUNDLED_PROFILE_DIR", root.join("profile"))
     .env("WR_DB_PATH", &db_path)
     .env("WR_PARENT_PID", std::process::id().to_string())
-    .env("WR_PORT", if cfg!(debug_assertions) { "34115" } else { "0" })
+    .env("WR_PORT", "34115")
     .stdout(Stdio::piped())
     .stderr(Stdio::inherit())
     .spawn()

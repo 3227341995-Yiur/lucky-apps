@@ -99,7 +99,7 @@ profile 的 `cordis.patch.yml`。patch 支持 `insert` 新行和按 `id` 覆盖�
       name: kpi-card
 ```
 
-用户 profile 在 `%APPDATA%\com.lu.dev\plugins`，结构相同；把包放进
+用户 profile 在 `%APPDATA%\com.lu.week-report\plugins`，结构相同；把包放进
 `plugins/node_modules` 并加入 `plugins/package.json` 的
 `weekReport.profile.bundles` 即可，不需要重新打包应用。
 

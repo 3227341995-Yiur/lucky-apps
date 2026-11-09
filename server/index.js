@@ -27,8 +27,8 @@ export async function startServer(options = {}) {
   const distDir = options.distDir || process.env.WR_DIST_DIR || join(projectRoot, 'dist')
   const resourcesDir = options.resourcesDir || process.env.WR_RESOURCES_DIR || join(projectRoot, 'resources')
   const bundledProfileDir = options.bundledProfileDir || process.env.WR_BUNDLED_PROFILE_DIR || join(projectRoot, 'profile')
-  const profileDir = options.profileDir || process.env.WR_PROFILE_DIR || join(appDataRoot(), 'com.lu.dev', 'profile')
-  const dbPath = options.dbPath || process.env.WR_DB_PATH || join(appDataRoot(), 'com.lu.dev', 'week_report.db')
+  const profileDir = options.profileDir || process.env.WR_PROFILE_DIR || join(appDataRoot(), 'com.lu.week-report', 'profile')
+  const dbPath = options.dbPath || process.env.WR_DB_PATH || join(appDataRoot(), 'com.lu.week-report', 'week_report.db')
   const port = Number(options.port ?? process.env.WR_PORT ?? 0)
 
   await mkdir(dirname(profileDir), { recursive: true })

@@ -150,6 +150,53 @@ export async function getTemplateById(id) {
   return null
 }
 
+
+export const BUILTIN_TEMPLATE_TYPES = [
+  { value: 'html', label: 'HTML' },
+  { value: 'markdown', label: 'Markdown' }
+]
+
+export function templateTypeLabel(type, types = BUILTIN_TEMPLATE_TYPES) {
+  return types.find(item => item.value === type)?.label || String(type || '').toUpperCase()
+}
+
+/** 模板类型不写死：HTML / Markdown + 数据库里用户创建的自定义类型 */
+export async function getTemplateTypes() {
+  let rows = []
+  try {
+    rows = await database.select(`SELECT DISTINCT type FROM ${TABLE_NAME} ORDER BY type`)
+  } catch {
+    rows = []
+  }
+  const types = new Map(BUILTIN_TEMPLATE_TYPES.map(item => [item.value, item.label]))
+  for (const row of rows) {
+    if (row?.type) types.set(row.type, templateTypeLabel(row.type))
+  }
+  return [...types.entries()].map(([value, label]) => ({ value, label }))
+}
+
+/** 复制/导出按类型取模板：优先默认模板，其次同类型最近创建的模板 */
+export async function getTemplateForType(type = 'html') {
+  const preferred = await getDefaultTemplate(type)
+  if (preferred?.template) return preferred
+  const rows = await database.select(
+    `SELECT * FROM ${TABLE_NAME} WHERE type = $1 ORDER BY createdAt DESC LIMIT 1`,
+    [type]
+  )
+  if (!rows.length) return null
+  const row = rows[0]
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    isDefault: row.isDefault === 1,
+    isSystem: row.isSystem === 1,
+    template: row.template,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  }
+}
+
 /**
  * 获取默认模板（按类型）
  */

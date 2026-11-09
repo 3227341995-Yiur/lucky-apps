@@ -15,10 +15,25 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  types: {
+    type: Array,
+    default: () => []
+  },
+  copyEnabled: {
+    type: Boolean,
+    default: true
+  },
+  copyDefaultType: {
+    type: String,
+    default: 'html'
   }
 })
 
-const emit = defineEmits(['select', 'create', 'copy', 'remove', 'set-default'])
+const emit = defineEmits([
+  'select', 'create', 'copy', 'remove', 'set-default', 'create-custom',
+  'update:copy-enabled', 'update:copy-default-type'
+])
 
 const keyword = ref('')
 
@@ -28,13 +43,27 @@ const filtered = computed(() => {
   return props.templates.filter(item => (item.name || '').toLowerCase().includes(kw))
 })
 
-const groups = computed(() => [
-  { type: 'html', label: 'HTML 模板', items: filtered.value.filter(item => item.type !== 'markdown') },
-  { type: 'markdown', label: 'Markdown 模板', items: filtered.value.filter(item => item.type === 'markdown') }
-].filter(group => group.items.length))
+const typeOptions = computed(() => {
+  const map = new Map((props.types || []).map(item => [item.value, item.label]))
+  map.set('html', map.get('html') || 'HTML')
+  map.set('markdown', map.get('markdown') || 'Markdown')
+  for (const template of props.templates) {
+    if (template.type && !map.has(template.type)) map.set(template.type, template.type)
+  }
+  return [...map.entries()].map(([value, label]) => ({ value, label }))
+})
+
+const groups = computed(() => typeOptions.value
+  .map(item => ({
+    type: item.value,
+    label: `${item.label} 模板`,
+    items: filtered.value.filter(template => template.type === item.value)
+  }))
+  .filter(group => group.items.length))
 
 function handleCreateCommand(command) {
-  emit('create', command === 'markdown' ? 'markdown' : 'html')
+  if (command === 'custom') emit('create-custom')
+  else emit('create', command)
 }
 </script>
 
@@ -51,11 +80,15 @@ function handleCreateCommand(command) {
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="html">
-                <el-icon><Document /></el-icon>新建 HTML 模板
+              <el-dropdown-item
+                v-for="item in typeOptions"
+                :key="item.value"
+                :command="item.value"
+              >
+                <el-icon><Document /></el-icon>新建 {{ item.label }} 模板
               </el-dropdown-item>
-              <el-dropdown-item command="markdown">
-                <el-icon><Document /></el-icon>新建 Markdown 模板
+              <el-dropdown-item command="custom" divided>
+                <el-icon><Plus /></el-icon>新建周报类型…
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -72,6 +105,33 @@ function handleCreateCommand(command) {
           <el-icon><Search /></el-icon>
         </template>
       </el-input>
+
+      <div class="td-copy-settings">
+        <div class="td-copy-row">
+          <span>复制使用模板</span>
+          <el-switch
+            :model-value="copyEnabled"
+            size="small"
+            @change="value => emit('update:copy-enabled', value)"
+          />
+        </div>
+        <div class="td-copy-row">
+          <span>默认复制类型</span>
+          <el-select
+            :model-value="copyDefaultType"
+            size="small"
+            :disabled="!copyEnabled"
+            @change="value => emit('update:copy-default-type', value)"
+          >
+            <el-option
+              v-for="item in typeOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+      </div>
     </header>
 
     <el-scrollbar class="td-tpl-list">
@@ -203,6 +263,27 @@ function handleCreateCommand(command) {
 
 .td-tpl-create {
   margin-left: auto;
+}
+
+.td-copy-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+
+.td-copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.td-copy-row :deep(.el-select) {
+  width: 112px;
 }
 
 .td-tpl-list {

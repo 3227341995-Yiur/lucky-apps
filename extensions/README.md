@@ -37,8 +37,8 @@ pnpm extensions:build
 `weekReport.profile.bundles` 列出各 bundle；组合顺序为空根 → bundle patches →
 profile 的 `cordis.patch.yml`。
 
-外部包安装到 `%APPDATA%/com.lu.dev/profile/node_modules/<包名>`，并在
-`%APPDATA%/com.lu.dev/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
+外部包安装到 `%APPDATA%/com.lu.week-report/profile/node_modules/<包名>`，并在
+`%APPDATA%/com.lu.week-report/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
 
 ## 入口
 

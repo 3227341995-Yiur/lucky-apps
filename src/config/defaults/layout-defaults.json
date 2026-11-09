@@ -20,7 +20,7 @@
     "width": 794,
     "height": 1123,
     "background": "var(--el-bg-color)",
-    "padding": 48
+    "padding": 32
   },
   "elementTypes": [
     "title",
