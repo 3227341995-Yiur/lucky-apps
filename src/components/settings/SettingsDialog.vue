@@ -92,8 +92,7 @@ const activePreset = computed(() => {
 })
 const loadingShapes = [
   { value: 'circle', label: '圆点' },
-  { value: 'star', label: '星形' },
-  { value: 'square', label: '方块' }
+  { value: 'star', label: '星形' }
 ]
 
 function persistLoading(patch = {}) {

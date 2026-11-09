@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { resolveDefaultValue } from '@/config/defaultReportConfig'
+import { evaluateJsExpression } from '@/utils/expression'
 import { hasComponent } from '@/plugins/registry'
 import ElementWidget from './ElementWidget.vue'
 
@@ -27,29 +28,12 @@ const props = defineProps({
 
 
 function evaluateExpression(element, fallback) {
-  let code = String(element?.expression || '').trim()
-  if (!code) return fallback
-  const wrapped = /^\{\{([\s\S]*)\}\}$/.exec(code)
-  if (wrapped) code = wrapped[1].trim()
   const dateText = typeof props.dateRange === 'string' ? props.dateRange : ''
-  const report = {
-    title: props.title,
-    dateRange: dateText,
-    sections: []
-  }
-  try {
-    let result
-    try {
-      result = new Function('report', 'moment', `"use strict"; return (${code});`)(report, window.moment)
-    } catch {
-      result = new Function('report', 'moment', `"use strict";
-${code}`)(report, window.moment)
-    }
-    return result === undefined || result === null ? '' : String(result)
-  } catch (error) {
-    console.warn('[designer] 内容表达式执行失败:', code, error)
-    return fallback
-  }
+  return evaluateJsExpression(
+    element?.expression,
+    { title: props.title, dateRange: dateText, sections: [] },
+    fallback
+  )
 }
 
 const displayTitle = computed(() => evaluateExpression(props.element, props.title))

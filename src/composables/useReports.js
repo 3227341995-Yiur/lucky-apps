@@ -18,6 +18,7 @@ import {
 } from '@/services/database'
 import { ensureDefaultTemplate } from '@/services/templateService'
 import { getReportConfig } from '@/services/reportConfigService'
+import { evaluateJsExpression } from '@/utils/expression'
 import {
   createSectionsFromConfig,
   createRow,
@@ -184,10 +185,17 @@ async function createReport() {
   const config = await getReportConfig()
   const sections = createSectionsFromConfig(config.sections)
   const [start, end] = getWeekRange()
+  const fallbackTitle = `工作周报 - ${start} ~ ${end}`
+  const titleElement = (config.elements || []).find(element => element.type === 'title')
+  const title = evaluateJsExpression(
+    titleElement?.expression,
+    { title: fallbackTitle, dateRange: [start, end], sections },
+    fallbackTitle
+  )
 
   const report = await pluginApi.reports.create({
     id: generateId(),
-    title: `工作周报 - ${start} ~ ${end}`,
+    title,
     dateRange: [start, end],
     sections,
     layout: extractLayout(config)

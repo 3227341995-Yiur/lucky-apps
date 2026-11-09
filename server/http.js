@@ -6,6 +6,7 @@ import { createServer } from 'node:http'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { installProfilePlugin } from './plugins.js'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -161,6 +162,12 @@ export async function createHttpServer({
           if (typeof reload !== 'function') return sendJson(res, 501, { error: 'reload unavailable' })
           await reload()
           return sendJson(res, 200, await bootPayload())
+        }
+        if (pathname === '/api/plugins/install' && req.method === 'POST') {
+          const body = await readJsonBody(req)
+          const result = installProfilePlugin(profileDir, String(body.spec || ''))
+          if (typeof reload === 'function') await reload()
+          return sendJson(res, 200, result)
         }
         if (pathname === '/api/health') {
           return sendJson(res, 200, { ok: true })

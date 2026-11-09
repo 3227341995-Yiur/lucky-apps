@@ -155,6 +155,13 @@ export async function reloadExtensionComponents() {
   return { loaded, failed, total: loaded + failed }
 }
 
+/** 通过服务端安装外部组件包（设置面板使用） */
+export async function installPlugin(spec) {
+  const result = await apiPost('/api/plugins/install', { spec })
+  await reloadExtensionComponents()
+  return result
+}
+
 /** 监听服务端 profile 变化（轮询清单） */
 export async function startExtensionWatcher() {
   if (pollTimer) return

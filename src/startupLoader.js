@@ -41,9 +41,9 @@ function normalizeConfig(raw = {}) {
   config.particleCount = Math.min(30, Math.max(0, Number(config.particleCount) || 0))
   config.speed = Math.min(2.5, Math.max(0.4, Number(config.speed) || 1))
   config.effect = ['explode', 'dissolve', 'spark'].includes(config.effect) ? config.effect : 'explode'
-  config.particleShape = ['mixed', 'circle', 'square', 'star'].includes(config.particleShape)
+  config.particleShape = ['circle', 'star'].includes(config.particleShape)
     ? config.particleShape
-    : 'mixed'
+    : 'circle'
   config.showPen = config.showPen !== false
   return config
 }
@@ -161,9 +161,8 @@ function particleColors(config) {
   return colors.length ? colors : [config.color]
 }
 
-function pickShape(config, index) {
-  if (config.particleShape === 'mixed') return 'circle'
-  return config.particleShape
+function pickShape(config) {
+  return config.particleShape === 'star' ? 'star' : 'circle'
 }
 
 /**
@@ -281,9 +280,9 @@ export function startStartupLoader(options = {}) {
       const centerY = rect.top + rect.height / 2
       for (let i = 0; i < config.particleCount; i += 1) {
         const particle = document.createElement('span')
-        particle.className = `startup-particle is-${pickShape(config, index + i)}`
-        particle.style.left = `${centerX}px`
-        particle.style.top = `${centerY}px`
+        particle.className = `startup-particle is-${pickShape(config)}`
+        particle.style.left = `${rect.left + utils.random(rect.width * 0.18, rect.width * 0.82)}px`
+        particle.style.top = `${rect.top + utils.random(rect.height * 0.18, rect.height * 0.82)}px`
         particle.style.background = colors[(index + i) % colors.length]
         const size = utils.random(3, 7)
         particle.style.width = `${size}px`
@@ -312,7 +311,8 @@ export function startStartupLoader(options = {}) {
         config.effect === 'spark' ? 550 : 650,
         config.effect === 'spark' ? 900 : 1150
       ) * speed,
-      delay: stagger(6 * speed),
+      // 每个字符一组，按字符顺序依次炸开
+      delay: (_, index) => Math.floor(index / Math.max(1, config.particleCount)) * 32 * speed + (index % Math.max(1, config.particleCount)) * 2 * speed,
       ease: 'outExpo'
     })
 

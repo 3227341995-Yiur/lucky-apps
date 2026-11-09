@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
+import { installPlugin } from '@/plugins/loader'
 
 defineOptions({ name: 'ExtensionManager' })
 
@@ -37,6 +38,8 @@ const TYPE_LABELS = {
 
 const rescanning = ref(false)
 const hotReloading = ref(false)
+const installSpec = ref('')
+const installing = ref(false)
 
 function statusOf(resource) {
   return STATUS_META[resource.status] || STATUS_META.pending
@@ -88,6 +91,37 @@ async function handleCopyPluginsPath() {
   }
 }
 
+async function handleInstall() {
+  const spec = installSpec.value.trim()
+  if (!spec) {
+    ElMessage.warning('请输入 npm 包名或本地组件目录')
+    return
+  }
+  installing.value = true
+  try {
+    const result = await installPlugin(spec)
+    installSpec.value = ''
+    await rescan()
+    ElMessage.success(`已安装 ${result?.name || spec}${result?.hasBundle ? '，已加入 profile' : '（普通依赖）'}`)
+  } catch (error) {
+    ElMessage.error(`安装失败：${error?.message || error}`)
+  } finally {
+    installing.value = false
+  }
+}
+
+function typeIcon(key) {
+  if (key === "style") return "Brush"
+  if (key === "script") return "Document"
+  return "Grid"
+}
+
+function handleMoreCommand(command) {
+  if (command === "resources") handleCopyPath()
+  else if (command === "plugins") handleCopyPluginsPath()
+  else if (command === "reload") reloadApp()
+}
+
 async function handleToggle(resource) {
   let enabled
   try {
@@ -117,19 +151,47 @@ async function handleToggle(resource) {
 
 <template>
   <div class="extension-manager">
-    <div class="ext-toolbar">
-      <div class="ext-counts">
-        <span class="ext-count"><strong>{{ enabledCount }}</strong> 项已启用</span>
-        <span class="ext-count" :class="{ danger: errorCount > 0 }">
-          <strong>{{ errorCount }}</strong> 项加载失败
-        </span>
-        <span class="ext-count">
-          profile：<strong>{{ extensionState.profile?.bundles?.length || 0 }}</strong> 个 bundle
-        </span>
-        <span class="ext-count" :class="{ danger: extensionState.watcher === 'error' }">
-          文件监听：{{ extensionState.watcher === 'active' ? '已启用' : extensionState.watcher === 'error' ? '不可用' : '未启动' }}
-        </span>
+    <div class="ext-hero">
+      <div class="ext-hero-copy">
+        <span class="ext-eyebrow">EXTENSIONS</span>
+        <h3>扩展中心</h3>
+        <p>外部组件就是独立的 Cordis 包。安装后由 Node 服务组合进 profile，无需重新打包应用。</p>
       </div>
+      <div class="ext-hero-stats">
+        <span><strong>{{ enabledCount }}</strong> 已启用</span>
+        <span :class="{ danger: errorCount > 0 }"><strong>{{ errorCount }}</strong> 失败</span>
+        <span><strong>{{ extensionState.profile?.bundles?.length || 0 }}</strong> bundles</span>
+      </div>
+    </div>
+
+    <div class="install-card">
+      <div class="install-copy">
+        <span class="install-icon"><el-icon :size="18"><Download /></el-icon></span>
+        <div>
+          <strong>安装外部组件</strong>
+          <p>输入 npm 包名或本地组件项目路径，自动执行 pnpm add 并加入 profile。</p>
+        </div>
+      </div>
+      <div class="install-form">
+        <el-input
+          v-model="installSpec"
+          placeholder="@acme/widget 或本地组件目录"
+          clearable
+          @keyup.enter="handleInstall"
+        >
+          <template #prefix><el-icon><Link /></el-icon></template>
+        </el-input>
+        <el-button type="primary" :loading="installing" @click="handleInstall">
+          <el-icon><Plus /></el-icon><span>安装</span>
+        </el-button>
+      </div>
+    </div>
+
+    <div class="ext-toolbar">
+      <span class="ext-watcher" :class="{ danger: extensionState.watcher === 'error' }">
+        <i></i>
+        {{ extensionState.watcher === 'active' ? 'profile 热监听已启用' : extensionState.watcher === 'error' ? '文件监听不可用' : '文件监听未启动' }}
+      </span>
       <div class="ext-actions">
         <el-button size="small" :loading="rescanning" @click="handleRescan">
           <el-icon><Refresh /></el-icon><span>重新扫描</span>
@@ -137,22 +199,25 @@ async function handleToggle(resource) {
         <el-button size="small" type="primary" plain :loading="hotReloading" @click="handleHotReload">
           <el-icon><RefreshRight /></el-icon><span>热加载组件</span>
         </el-button>
-        <el-button size="small" @click="handleCopyPath">
-          <el-icon><CopyDocument /></el-icon><span>复制资源目录</span>
-        </el-button>
-        <el-button size="small" @click="handleCopyPluginsPath">
-          <el-icon><FolderOpened /></el-icon><span>复制插件目录</span>
-        </el-button>
-        <el-button size="small" @click="reloadApp">
-          <el-icon><SwitchButton /></el-icon><span>重新加载应用</span>
-        </el-button>
+        <el-dropdown trigger="click" @command="handleMoreCommand">
+          <el-button size="small">
+            <el-icon><MoreFilled /></el-icon><span>更多</span>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="resources">复制资源目录</el-dropdown-item>
+              <el-dropdown-item command="plugins">复制插件目录</el-dropdown-item>
+              <el-dropdown-item command="reload" divided>重新加载应用</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
     </div>
 
     <p class="ext-note">
       profile 由 <code>package.json</code> 的 <code>weekReport.profile.bundles</code> 组合：
       先叠加各 bundle 的 <code>cordis.patch.yml</code>，再叠加 profile 自己的
-      <code>cordis.patch.yml</code>。外部包安装到用户 profile 的 node_modules 并加入 bundles 即可。
+      <code>cordis.patch.yml</code>。
     </p>
 
     <div v-if="extensionState.loading || rescanning" class="ext-state">
@@ -183,15 +248,18 @@ async function handleToggle(resource) {
 
         <div class="ext-list">
           <div v-for="resource in groups[key]" :key="resource.id" class="ext-item">
-            <span class="type-mark" :class="`is-${key}`">{{ TYPE_LABELS[key] }}</span>
+            <span class="ext-type-icon">
+              <el-icon :size="16"><component :is="typeIcon(key)" /></el-icon>
+            </span>
             <div class="ext-info">
               <div class="ext-line">
                 <span class="ext-name">{{ resource.name }}</span>
-                <code v-if="isComponentGroup(key)" class="ext-file">{{ resource.file }}</code>
-                <el-tag size="small" effect="light" :type="statusOf(resource).type">
+                <el-tag size="small" effect="light" round :type="statusOf(resource).type">
                   {{ statusOf(resource).label }}
                 </el-tag>
+                <span class="ext-type">{{ TYPE_LABELS[key] }}</span>
               </div>
+              <code v-if="isComponentGroup(key) && resource.file" class="ext-file">{{ resource.file }}</code>
               <p v-if="resource.error || resource.status === 'error'" class="ext-error">
                 {{ resource.error || '资源加载失败' }}
               </p>
@@ -209,36 +277,155 @@ async function handleToggle(resource) {
 </template>
 
 <style scoped>
-.ext-toolbar {
+.extension-manager {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 10px;
+}
+
+.ext-hero {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 20px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(34, 211, 238, 0.3), transparent 32%),
+    linear-gradient(135deg, #111827, #1e3a8a);
+  color: #fff;
 }
 
-.ext-counts {
+.ext-eyebrow {
+  font-family: var(--wr-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ext-hero h3 {
+  margin: 7px 0 5px;
+  font-size: 20px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.ext-hero p {
+  max-width: 480px;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.ext-hero-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 7px;
+  flex: none;
 }
 
-.ext-count {
-  padding: 3px 9px;
-  border-radius: 6px;
-  background: var(--el-fill-color-light);
+.ext-hero-stats span {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.ext-hero-stats strong {
+  color: #fff;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 
-.ext-count strong {
-  font-size: 12.5px;
+.ext-hero-stats span.danger strong {
+  color: #fecaca;
+}
+
+.install-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-bg-color);
+  box-shadow: 0 8px 24px -28px rgba(15, 23, 42, 0.5);
+}
+
+.install-copy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.install-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.install-copy strong {
+  display: block;
+  font-size: 12px;
   color: var(--el-text-color-primary);
 }
 
-.ext-count.danger strong {
-  color: var(--el-color-danger);
+.install-copy p {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder);
+}
+
+.install-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex: 1;
+  max-width: 480px;
+}
+
+.install-form :deep(.el-input) {
+  flex: 1;
+}
+
+.ext-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ext-watcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.ext-watcher i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-success) 14%, transparent);
+}
+
+.ext-watcher.danger i {
+  background: var(--el-color-danger);
 }
 
 .ext-actions {
@@ -252,10 +439,18 @@ async function handleToggle(resource) {
 }
 
 .ext-note {
-  margin: 0 0 14px;
-  font-size: 11.5px;
+  margin: 0;
+  font-size: 11px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-placeholder);
+}
+
+.ext-note code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  font-family: var(--wr-mono);
+  font-size: 10px;
 }
 
 .ext-state {
@@ -263,25 +458,24 @@ async function handleToggle(resource) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 48px 20px;
+  padding: 42px 20px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
 
 .ext-group {
-  margin-bottom: 18px;
-}
-
-.ext-group:last-child {
-  margin-bottom: 0;
+  padding: 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-bg-color);
 }
 
 .group-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .group-title-wrap {
@@ -293,12 +487,12 @@ async function handleToggle(resource) {
 
 .group-title {
   font-size: 12.5px;
-  font-weight: 650;
+  font-weight: 700;
   color: var(--el-text-color-primary);
 }
 
 .group-hint {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--el-text-color-placeholder);
 }
 
@@ -307,62 +501,51 @@ async function handleToggle(resource) {
   padding: 0 6px;
   border-radius: 999px;
   background: var(--el-fill-color);
-  font-size: 10.5px;
+  font-size: 10px;
   line-height: 17px;
   text-align: center;
   color: var(--el-text-color-secondary);
 }
 
 .group-note {
-  margin: 0 0 8px;
-  font-size: 11.5px;
+  margin: 0 0 10px;
+  font-size: 10.5px;
   line-height: 1.6;
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-placeholder);
 }
 
 .ext-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  overflow: hidden;
+  gap: 6px;
 }
 
 .ext-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  background: var(--el-bg-color);
+  padding: 9px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  transition: border-color 0.16s ease, background-color 0.16s ease;
 }
 
-.ext-item + .ext-item {
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.type-mark {
-  flex: 0 0 54px;
-  padding: 2px 0;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 10.5px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-light);
-}
-
-.type-mark.is-component-vue {
-  color: var(--el-color-primary);
+.ext-item:hover {
+  border-color: var(--el-color-primary-light-7);
   background: var(--el-color-primary-light-9);
 }
 
-.type-mark.is-component-slot {
-  color: var(--el-color-warning);
-  background: var(--el-color-warning-light-9);
-}
-
-.type-mark.is-component-module {
-  color: var(--el-color-success);
-  background: var(--el-color-success-light-9);
+.ext-type-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
 }
 
 .ext-info {
@@ -374,29 +557,33 @@ async function handleToggle(resource) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
 }
 
 .ext-name {
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--el-text-color-primary);
   overflow-wrap: anywhere;
 }
 
+.ext-type {
+  font-size: 9.5px;
+  color: var(--el-text-color-placeholder);
+}
+
 .ext-file {
+  display: block;
+  margin-top: 3px;
   font-family: var(--wr-mono);
-  font-size: 10.5px;
-  color: var(--el-text-color-secondary);
-  padding: 0 5px;
-  border-radius: 4px;
-  background: var(--el-fill-color-lighter);
+  font-size: 9.5px;
+  color: var(--el-text-color-placeholder);
   overflow-wrap: anywhere;
 }
 
 .ext-error {
-  margin: 3px 0 0;
-  font-size: 11.5px;
+  margin: 4px 0 0;
+  font-size: 10.5px;
   line-height: 1.5;
   color: var(--el-color-danger);
   overflow-wrap: anywhere;
@@ -404,5 +591,23 @@ async function handleToggle(resource) {
 
 .ext-item :deep(.el-switch) {
   flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .ext-hero,
+  .install-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ext-hero-stats {
+    justify-content: flex-start;
+  }
+
+  .install-form {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
 }
 </style>
