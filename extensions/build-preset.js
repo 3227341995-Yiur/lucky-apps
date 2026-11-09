@@ -32,36 +32,20 @@ function cssInjectedByJs(name) {
   }
 }
 
-function writePackageManifest(name) {
+function writeNodeHalf(name) {
   return {
-    name: 'week-report-package-manifest',
+    name: 'week-report-package-files',
     apply: 'build',
     async writeBundle(options) {
       const outDir = options.dir
       if (!outDir) return
-      const manifest = {
-        name,
-        version: '1.0.0',
-        private: true,
-        type: 'module',
-        main: 'lib/node.js',
-        module: 'lib/node.js',
-        exports: {
-          '.': './lib/node.js',
-          './client': './lib/client.js'
-        },
-        weekReport: {
-          bundle: { patch: './cordis.patch.yml' },
-          client: { entry: './lib/client.js' }
-        }
-      }
+      const root = path.dirname(outDir)
       await writeFile(
-        path.join(path.dirname(outDir), 'package.json'),
-        `${JSON.stringify(manifest, null, 2)}\n`
-      )
-      await writeFile(
-        path.join(path.dirname(outDir), 'cordis.patch.yml'),
-        `- insert:\n    - id: ${name}\n      name: ${name}\n`
+        path.join(root, 'cordis.patch.yml'),
+        `- insert:
+    - id: ${name}
+      name: ${name}
+`
       )
       await writeFile(
         path.join(outDir, 'node.js'),
@@ -89,7 +73,7 @@ export default { name, inject, apply }
 
 export function createExtensionConfig({ name, entry = 'src/index.js', root = process.cwd() }) {
   return {
-    plugins: [vue(), cssInjectedByJs(name), writePackageManifest(name)],
+    plugins: [vue(), cssInjectedByJs(name), writeNodeHalf(name)],
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
       __VUE_OPTIONS_API__: 'true',
@@ -97,7 +81,7 @@ export function createExtensionConfig({ name, entry = 'src/index.js', root = pro
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
     },
     build: {
-      outDir: path.resolve(root, '../../profile/node_modules', name, 'lib'),
+      outDir: path.resolve(root, 'lib'),
       emptyOutDir: true,
       cssCodeSplit: false,
       lib: {

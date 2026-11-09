@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://127.0.0.1:34115",
-    "beforeDevCommand": "pnpm build && node scripts/build-server.mjs",
-    "beforeBuildCommand": "pnpm build && node scripts/build-server.mjs"
+    "beforeDevCommand": "pnpm extensions:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs",
+    "beforeBuildCommand": "pnpm extensions:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs"
   },
   "app": {
     "windows": [],

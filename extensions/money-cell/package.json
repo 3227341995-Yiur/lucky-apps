@@ -3,21 +3,34 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "src/index.js",
+  "main": "lib/node.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./lib/node.js",
+    "./client": "./lib/client.js"
   },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
   },
-  "dependencies": {
+  "devDependencies": {
+    "vite": "^8.3.5",
+    "@vitejs/plugin-vue": "^6.0.10",
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
     "@week-report/plugin-api": "workspace:*"
   },
-  "devDependencies": {
-    "vite": "^8.3.5",
-    "@vitejs/plugin-vue": "^6.0.10"
+  "module": "lib/node.js",
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "weekReport": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "entry": "./lib/client.js"
+    }
   }
 }

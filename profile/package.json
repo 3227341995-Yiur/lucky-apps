@@ -5,14 +5,16 @@
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
     "@element-plus/icons-vue": "^2.3.2",
-    "week-report-base": "1.0.0",
-    "kpi-card": "1.0.0",
-    "progress-board": "1.0.0",
-    "timeline-card": "1.0.0",
-    "rating-cell": "1.0.0",
-    "progress-cell": "1.0.0",
-    "user-cell": "1.0.0",
-    "money-cell": "1.0.0"
+    "kpi-card": "file:./vendor/kpi-card-1.0.0.tgz",
+    "money-cell": "file:./vendor/money-cell-1.0.0.tgz",
+    "progress-board": "file:./vendor/progress-board-1.0.0.tgz",
+    "progress-cell": "file:./vendor/progress-cell-1.0.0.tgz",
+    "rating-cell": "file:./vendor/rating-cell-1.0.0.tgz",
+    "timeline-card": "file:./vendor/timeline-card-1.0.0.tgz",
+    "user-cell": "file:./vendor/user-cell-1.0.0.tgz",
+    "week-report-base": "file:./vendor/week-report-base-1.0.0.tgz",
+    "week-report-client-modules": "file:./vendor/week-report-client-modules-1.0.0.tgz",
+    "week-report-database": "file:./vendor/week-report-database-1.0.0.tgz"
   },
   "weekReport": {
     "profile": {

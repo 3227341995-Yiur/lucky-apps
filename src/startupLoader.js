@@ -88,7 +88,7 @@ function ensureStyles() {
     }
 
     .startup-word {
-      width: min(520px, 84vw);
+      width: min(430px, 78vw);
       overflow: visible;
     }
 
@@ -115,7 +115,7 @@ function ensureStyles() {
       font-weight: 600;
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: var(--startup-ink, #909399);
+      color: var(--el-text-color-secondary, #909399);
       opacity: 0;
     }
 
@@ -163,7 +163,7 @@ function particleColors(config) {
 
 function pickShape(config, index) {
   if (config.particleShape !== 'mixed') return config.particleShape
-  return ['circle', 'square', 'star'][index % 3]
+  return index % 3 === 0 ? 'square' : 'circle'
 }
 
 /**
@@ -190,7 +190,7 @@ export function startStartupLoader(options = {}) {
   overlay.style.setProperty('--startup-font', config.font)
   overlay.style.setProperty('--startup-size', `${config.fontSize}px`)
 
-  const svg = svgEl('svg', { class: 'startup-word', viewBox: '0 0 520 130', 'aria-hidden': 'true' })
+  const svg = svgEl('svg', { class: 'startup-word', viewBox: '0 0 430 130', 'aria-hidden': 'true' })
   const defs = svgEl('defs')
   svg.appendChild(defs)
   const sub = document.createElement('div')
@@ -217,7 +217,7 @@ export function startStartupLoader(options = {}) {
     letters.push({ char, text, rect, x: cursor, width })
     cursor += width + 2
   }
-  const viewWidth = Math.max(300, cursor + 18)
+  const viewWidth = Math.max(430, cursor + 18)
   svg.setAttribute('viewBox', `0 0 ${viewWidth} 130`)
 
   const pen = svgEl('circle', {
@@ -303,8 +303,8 @@ export function startStartupLoader(options = {}) {
     })
 
     animate(particles, {
-      x: () => utils.random(-260, 260),
-      y: () => (config.effect === 'dissolve' ? utils.random(-220, -60) : utils.random(-190, 190)),
+      x: () => utils.random(-240, 240),
+      y: () => (config.effect === 'dissolve' ? utils.random(-180, -60) : utils.random(-180, 180)),
       scale: config.effect === 'spark' ? [1, 0.2] : [1, 0],
       opacity: [1, 0],
       rotate: () => utils.random(-220, 220),

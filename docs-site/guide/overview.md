@@ -34,7 +34,8 @@ Cordis Node 服务（server/）
 ::: warning 与 DSH 的差异
 DSH 是纯 Node 进程 + Web 前端；这里是 Tauri 窗口 + Node 服务。
 profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复用 DSH app-boot。
-`profile/node_modules` 由构建脚本生成并随应用打包，不是 pnpm 安装出来的。
+`profile` 是真实 pnpm 项目：组件包先 `pnpm pack` 成 tarball，和 `vue` /
+`element-plus` 一起由 `pnpm install` 安装到 `profile/node_modules`。
 :::
 
 ## 装配顺序

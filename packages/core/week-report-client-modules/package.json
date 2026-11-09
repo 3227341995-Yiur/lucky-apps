@@ -1,0 +1,15 @@
+{
+  "name": "week-report-client-modules",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "cordis.patch.yml"
+  ]
+}

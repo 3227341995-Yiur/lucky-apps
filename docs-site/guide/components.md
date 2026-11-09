@@ -68,18 +68,21 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 
 ## 包与 profile
 
-每个插件是独立包，自己执行 `vite build`，产物按 node_modules 结构输出到
-`profile/node_modules/<name>/`（含 `package.json`、`cordis.patch.yml`、`lib/node.js`
-和浏览器 `lib/client.js`）。宿主只负责运行时加载，不参与插件打包。
+每个插件是独立包，自己执行 `vite build`，产物在包内 `lib/`：
+`lib/node.js`（Node half）和 `lib/client.js`（浏览器 bundle），包根目录带
+`cordis.patch.yml`。`pnpm profile:build` 会把包 `pnpm pack` 成 tarball，
+再由 `pnpm install` 安装到 `profile/node_modules`（真实 pnpm profile，不是手工复制）。
 
 profile 结构：
 
 ```text
 profile/
-├─ package.json        weekReport.profile.bundles
+├─ package.json        weekReport.profile.bundles + 依赖
 ├─ cordis.yml          []（空根节点）
 ├─ cordis.patch.yml    用户 patch 层
-└─ node_modules/
+├─ vendor/             pnpm pack 生成的包 tarball
+├─ pnpm-lock.yaml      pnpm 安装锁
+└─ node_modules/       pnpm install 的真实依赖树
    ├─ vue/
    ├─ element-plus/
    ├─ @element-plus/icons-vue/
