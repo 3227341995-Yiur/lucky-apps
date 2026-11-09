@@ -2,7 +2,7 @@
 
 每个目录都是独立 workspace 包，自己用 Vite 构建成单文件 IIFE，按 node_modules 结构输出到
 `profile/node_modules/<name>/`（含 `package.json`、`cordis.patch.yml`
-和 `lib/index.js`），由 profile 组合后交给 Cordis 挂载。宿主不参与插件打包。
+、`lib/node.js` 和浏览器 `lib/client.js`），由 profile 组合后交给 Cordis 挂载。宿主不参与插件打包。
 
 ```text
 extensions/
