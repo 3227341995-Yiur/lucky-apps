@@ -1,8 +1,11 @@
 # 外部组件插件包
 
-每个目录都是独立 workspace 包，自己用 Vite 构建到包内 `lib/`
-（`lib/node.js` + 浏览器 `lib/client.js`），再由 `pnpm profile:build` 打包安装到
-`profile/node_modules`。宿主不参与插件打包。
+每个目录都是独立包，目录结构和入口文件名由包自己决定。宿主只认 `package.json`：
+
+- `weekReport.client.entry`：浏览器组件 bundle
+- `main` / `exports`：可选的 Cordis Node 插件入口
+
+这里的示例用 Vite 构建到包内 `lib/`，但不是宿主限制。`pnpm profile:build` 只负责把包安装到 `server/profile/node_modules`。
 
 ```text
 extensions/
@@ -38,7 +41,7 @@ pnpm extensions:build
 profile 的 `cordis.patch.yml`。
 
 外部包用 `pnpm --dir <profile> add <包名>` 安装到用户 profile 的 node_modules，
-并在 `profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
+并在 `server/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
 
 ## 入口
 

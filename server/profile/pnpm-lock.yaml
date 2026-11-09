@@ -32,6 +32,9 @@ importers:
       timeline-card:
         specifier: file:./vendor/timeline-card-1.0.0.tgz
         version: file:vendor/timeline-card-1.0.0.tgz
+      trash-bin:
+        specifier: file:./vendor/trash-bin-1.0.0.tgz
+        version: file:vendor/trash-bin-1.0.0.tgz
       user-cell:
         specifier: file:./vendor/user-cell-1.0.0.tgz
         version: file:vendor/user-cell-1.0.0.tgz
@@ -165,7 +168,7 @@ packages:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
 
   kpi-card@file:vendor/kpi-card-1.0.0.tgz:
-    resolution: {integrity: sha512-MoAdVveLXK+oHy2FnmCZ/NDBYyK0bIXn/t6QsxRFcGLyrhbuau9+vO1Zc4Be1YwRrh7gvuW7+svdULruMO113Q==, tarball: file:vendor/kpi-card-1.0.0.tgz}
+    resolution: {integrity: sha512-752XIqr4+ldtW03hcswVXBRSp0Cx9YxaGlnuemrZSyRPzFYHs9sanfp1uaU8yP0PqsmqlsoXxrCy+PUg09N7Fg==, tarball: file:vendor/kpi-card-1.0.0.tgz}
     version: 1.0.0
 
   lodash-es@4.18.1:
@@ -188,7 +191,7 @@ packages:
     resolution: {integrity: sha512-rkpe71W0N0c0Xz6QD0eJETuWAJGnJ9afsl1srmwPrI+yBCkge5EycXXbYRyvL29zZVUWQCY7InPRCv3GDXuZNw==}
 
   money-cell@file:vendor/money-cell-1.0.0.tgz:
-    resolution: {integrity: sha512-+tXUzz5M4oGtbJHYRi0izd0QNi4imZRIQ29fhyCUWJYnLtKaknJqecu6PgNkH6cvWN977sKPu1OesgD4TiuUjw==, tarball: file:vendor/money-cell-1.0.0.tgz}
+    resolution: {integrity: sha512-XgaMGUyZvbMlp+ZoZvz6lNj5WHFmmGLiVPPifizxizoSuJKiARM8H0lRBlBZRHky5qv1PMJHN26iDvJXRF9Fbw==, tarball: file:vendor/money-cell-1.0.0.tgz}
     version: 1.0.0
 
   nanoid@3.3.20:
@@ -207,15 +210,15 @@ packages:
     engines: {node: ^10 || ^12 || >=14}
 
   progress-board@file:vendor/progress-board-1.0.0.tgz:
-    resolution: {integrity: sha512-lsja7aZ9WshnMFLCJ/ctOMy8LiEDsNdehv+NusZSZ95kW48ck0Ghml6ZgUbOaCiPvfnqnRcacr+ETYCckALzIA==, tarball: file:vendor/progress-board-1.0.0.tgz}
+    resolution: {integrity: sha512-fUZMKvi1748JN/yUvQslLQ+ztftMcKIg75IVj7gneWiN1HpseHcFjxA05VtR4l031N5xfN1Q+zb+7y+PrckMEw==, tarball: file:vendor/progress-board-1.0.0.tgz}
     version: 1.0.0
 
   progress-cell@file:vendor/progress-cell-1.0.0.tgz:
-    resolution: {integrity: sha512-lFsuhCCTwsHheb2Etsbur2ySfUbTb2IrCWIdViBuBoXUOn7IJbCs+eYjrrGf5gubyRc6gZN9ixFScGPclpi5Gg==, tarball: file:vendor/progress-cell-1.0.0.tgz}
+    resolution: {integrity: sha512-cGbKiD26baOnYUyqqdgzi5RPFmdrxJTqOKUcL1vTBU9Ri+GTWUxMZcHq7PSpCnUIgKxNVKPpXrdgGw3YvrQrbA==, tarball: file:vendor/progress-cell-1.0.0.tgz}
     version: 1.0.0
 
   rating-cell@file:vendor/rating-cell-1.0.0.tgz:
-    resolution: {integrity: sha512-DWIUxHty6S0b0smqZueXOtLrRriBA20nCJLxnLW0yNv9qYbfQFnYT0CedeRr9eV/qvZ3hkKAtw7gJDlBMECGCA==, tarball: file:vendor/rating-cell-1.0.0.tgz}
+    resolution: {integrity: sha512-NTafZnabBhCcLFMWW0y/wIftaCGSfxH08Vjnqhu8RqHnEImkpp9DdsQobap/mjEKd4bjpr+cDFURuPusYE/6wA==, tarball: file:vendor/rating-cell-1.0.0.tgz}
     version: 1.0.0
 
   source-map-js@1.2.2:
@@ -223,11 +226,15 @@ packages:
     engines: {node: '>=0.10.0'}
 
   timeline-card@file:vendor/timeline-card-1.0.0.tgz:
-    resolution: {integrity: sha512-Xz49f2LsqQ4UZSCLcfDJMFq54+zDeuBz1AjA6r+e6+JeUufxn3Eq0JjTD+lSs2hgmNwfO/5KAQros21hLmHMzQ==, tarball: file:vendor/timeline-card-1.0.0.tgz}
+    resolution: {integrity: sha512-9FXRK2PbeHPKnscfkscAQxRo9C0VUwENwF0+zV0zbr9IjpB+rTJetdX0RwYwBTzmv3uGrn6FZOZClQQIzj7cEA==, tarball: file:vendor/timeline-card-1.0.0.tgz}
+    version: 1.0.0
+
+  trash-bin@file:vendor/trash-bin-1.0.0.tgz:
+    resolution: {integrity: sha512-Wta/ys5f610UV4MLiSJYcL3lo8be7cqa64bDemlTXcRRPE8A6dt0z2UqEcgwNPUFoGKGa0lxCxjg8HPjXeV3+w==, tarball: file:vendor/trash-bin-1.0.0.tgz}
     version: 1.0.0
 
   user-cell@file:vendor/user-cell-1.0.0.tgz:
-    resolution: {integrity: sha512-R2/G8f0auTf5odyye1qOwVD4f+2Rmz+9Xf0Tt2GkJXZ48VOEFvQMS1nkqOCCyXguXbiUSjWoQpIakRdBYJ5lRw==, tarball: file:vendor/user-cell-1.0.0.tgz}
+    resolution: {integrity: sha512-2i0zBoTxU/x4oijfALAjSaZpsU9MM8Msl+jjcfpruO3bx6hEzJq7ezQ4v33U/W9ulWQwBsHXjt6aEb9Zbur4gg==, tarball: file:vendor/user-cell-1.0.0.tgz}
     version: 1.0.0
 
   vue-component-type-helpers@3.3.14:
@@ -434,6 +441,8 @@ snapshots:
   source-map-js@1.2.2: {}
 
   timeline-card@file:vendor/timeline-card-1.0.0.tgz: {}
+
+  trash-bin@file:vendor/trash-bin-1.0.0.tgz: {}
 
   user-cell@file:vendor/user-cell-1.0.0.tgz: {}
 

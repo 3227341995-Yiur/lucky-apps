@@ -9,7 +9,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
-const profileDir = join(root, 'profile')
+const profileDir = join(root, 'server', 'profile')
 const vendorDir = join(profileDir, 'vendor')
 
 async function packageDirs(parent) {

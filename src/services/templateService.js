@@ -2,6 +2,8 @@
  * 模板服务 - 模板的 CRUD 操作
  * 使用 SQLite 数据库存储模板
  */
+import defaultHtmlTemplate from '@/config/defaults/templates/default-html.html?raw'
+import defaultMarkdownTemplate from '@/config/defaults/templates/default-markdown.md?raw'
 import { database } from '@/services/database'
 import { generateId } from '@/utils/idGenerator'
 
@@ -31,83 +33,14 @@ export async function initTemplateTable() {
  * 周报数据结构: title, dateRange, sections[{title, columns[{label, prop}], items, hasExpandColumn}]
  */
 export function createDefaultTemplateData() {
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>{{title}}</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 1000px; margin: 0 auto; }
-    h1 { color: #333; border-bottom: 2px solid #409EFF; padding-bottom: 10px; }
-    h2, h3 { color: #333; }
-    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f5f7fa; font-weight: bold; }
-    .section { margin-bottom: 30px; }
-    .section-title { border-bottom: 2px solid #409EFF; padding-bottom: 5px; margin-bottom: 15px; }
-    .support-detail { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; }
-    .support-item { margin-bottom: 20px; }
-    img { max-width: 100%; }
-    pre { background-color: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto; }
-    code { font-family: monospace; background-color: rgba(27,31,35,0.05); border-radius: 3px; padding: 0.2em 0.4em; }
-    blockquote { border-left: 4px solid #dfe2e5; color: #6a737d; padding: 0 1em; }
-    ul, ol { padding-left: 2em; }
-  </style>
-</head>
-<body>
-  <h1>{{title}}</h1>
-  {{#each sections}}
-  <div class="section">
-    <h2 class="section-title">{{title}}</h2>
-    <table>
-      <thead>
-        <tr>
-          <th width="40">序号</th>
-          {{#each columns}}
-          <th>{{label}}</th>
-          {{/each}}
-        </tr>
-      </thead>
-      <tbody>
-        {{#each items}}
-        <tr>
-          <td>{{add @index 1}}</td>
-          {{#each ../columns}}
-            {{!-- 根据 column.prop 从当前 item 中取出对应的值 --}}
-            <td>{{lookup .. prop}}</td>
-          {{/each}}
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  </div>
-  {{/each}}
-</body>
-</html>`
+  return defaultHtmlTemplate
 }
 
 /**
  * 创建 Markdown 模板配置
  */
 export function createMarkdownTemplateData() {
-  return `# {{title}}
-
-**日期范围：** {{dateRange}}
-
-{{#each sections}}
-## {{title}}
-
-{{#if items.length}}
-| 序号 | {{#each columns}}{{label}} | {{/each}} |
-| --- | {{#each columns}}--- | {{/each}} |
-{{#each items}}
-| {{add @index 1}} | {{#each ../columns}}{{lookup .. prop}} | {{/each}} |
-{{/each}}
-
-{{else}}
-暂无数据
-{{/if}}
-{{/each}}`
+  return defaultMarkdownTemplate
 }
 
 /**

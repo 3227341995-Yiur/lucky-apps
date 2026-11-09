@@ -31,12 +31,36 @@ export default definePlugin({
 | `components.registerCanvas` | 注册画布组件 |
 | `components.registerColumnSlot` | 注册列属性编辑插槽 |
 | `components.list` / `listColumns` / `listCanvas` / `has` | 查询已注册组件 |
+| `navigation.register` | 注册左侧栏入口和自定义页面 |
+| `settings.register` | 注册设置中心面板 |
+| `branding.get` / `set` / `onChange` | 读取或修改程序名称、图标 |
 | `events.on` / `once` / `off` | 订阅宿主事件 |
 | `ui.toast` / `selectReport` / `openSettings` / `openImportExport` / `openDesigner` / `openTemplates` | 调用宿主界面 |
 | `commands.register` / `run` / `list` | 注册/执行命令 |
 | `useWeekReport()` | 返回完整宿主 API |
 
 宿主加载 client bundle 前会设置 `__WEEK_REPORT_HOST__`，API 在 `apply()` 内或之后调用都有效。
+
+## 侧边栏页面与设置面板
+
+```js
+import { definePlugin, navigation, settings } from '@week-report/plugin-api'
+import TrashPage from './TrashPage.vue'
+
+export default definePlugin({
+  name: 'trash-bin',
+  apply() {
+    navigation.register({
+      id: 'trash-bin',
+      label: '回收站',
+      icon: 'Delete',
+      component: TrashPage
+    })
+  }
+})
+```
+
+设置面板同理使用 `settings.register({ id, label, icon, component })`。
 
 ## 包结构
 

@@ -52,6 +52,36 @@ export const components = {
   }
 }
 
+export const branding = {
+  get() {
+    return requireHost().branding.get()
+  },
+  set(patch) {
+    return requireHost().branding.set(patch)
+  },
+  onChange(handler) {
+    return requireHost().branding.onChange(handler)
+  }
+}
+
+export const navigation = {
+  register(item) {
+    return requireHost().navigation.register(item)
+  },
+  list() {
+    return requireHost().navigation.list()
+  }
+}
+
+export const settings = {
+  register(item) {
+    return requireHost().settings.register(item)
+  },
+  list() {
+    return requireHost().settings.list()
+  }
+}
+
 export const events = {
   on(name, handler) {
     return requireHost().events.on(name, handler)
@@ -82,6 +112,12 @@ export const ui = {
   },
   openTemplates() {
     return requireHost().ui.openTemplates()
+  },
+  openReports() {
+    return requireHost().ui.openReports()
+  },
+  openWelcome() {
+    return requireHost().ui.openWelcome()
   }
 }
 
@@ -97,4 +133,4 @@ export const commands = {
   }
 }
 
-export default { useWeekReport, definePlugin, components, events, ui, commands }
+export default { useWeekReport, definePlugin, components, navigation, settings, branding, events, ui, commands }

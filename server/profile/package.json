@@ -11,6 +11,7 @@
     "progress-cell": "file:./vendor/progress-cell-1.0.0.tgz",
     "rating-cell": "file:./vendor/rating-cell-1.0.0.tgz",
     "timeline-card": "file:./vendor/timeline-card-1.0.0.tgz",
+    "trash-bin": "file:./vendor/trash-bin-1.0.0.tgz",
     "user-cell": "file:./vendor/user-cell-1.0.0.tgz",
     "week-report-base": "file:./vendor/week-report-base-1.0.0.tgz",
     "week-report-client-modules": "file:./vendor/week-report-client-modules-1.0.0.tgz",
@@ -26,7 +27,8 @@
         "rating-cell",
         "progress-cell",
         "user-cell",
-        "money-cell"
+        "money-cell",
+        "trash-bin"
       ]
     }
   }

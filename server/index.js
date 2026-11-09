@@ -9,7 +9,8 @@ import { pathToFileURL } from 'node:url'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { watch } from 'node:fs'
 import { Context } from 'cordis'
 import Loader from '@cordisjs/plugin-loader'
@@ -64,12 +65,52 @@ export async function startServer(options = {}) {
   }
   await mountRows(profile.rows)
 
+  // 包可以在 package.json 里自己声明 weekReport.client.entry，无需强制 index.js 或 Node half。
+  const registerClientEntries = async () => {
+    const manifestPath = join(profileDir, 'package.json')
+    let manifest = {}
+    try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')) } catch {}
+    for (const dep of Object.keys(manifest.dependencies || {})) {
+      const pkgDir = join(profileDir, 'node_modules', dep)
+      const pkgPath = join(pkgDir, 'package.json')
+      if (!existsSync(pkgPath)) continue
+      let pkg = {}
+      try { pkg = JSON.parse(await readFile(pkgPath, 'utf8')) } catch { continue }
+      const entry = pkg.weekReport?.client?.entry
+      if (!entry) continue
+      const id = pkg.name || dep
+      if (ctx.clientModules.get(id)) continue
+      const file = resolve(pkgDir, String(entry).replace(/^\.\//, ''))
+      if (!existsSync(file)) continue
+      ctx.clientModules.register({
+        id,
+        package: id,
+        file,
+        url: `/client/${encodeURIComponent(id)}/index.js`
+      })
+    }
+  }
+  const annotateClientKinds = async () => {
+    for (const module of ctx.clientModules.list()) {
+      const pkgPath = join(profileDir, 'node_modules', module.package, 'package.json')
+      if (!existsSync(pkgPath)) continue
+      try {
+        const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
+        module.kind = pkg.weekReport?.kind || 'component'
+      } catch {}
+    }
+  }
+  await registerClientEntries()
+  await annotateClientKinds()
+
   const reload = async () => {
     for (const entry of [...ctx.loader.entries()]) {
       try { ctx.loader.remove(entry.id) } catch {}
     }
     currentProfile = await composeProfile(profileDir)
     await mountRows(currentProfile.rows)
+    await registerClientEntries()
+    await annotateClientKinds()
     return currentProfile
   }
 

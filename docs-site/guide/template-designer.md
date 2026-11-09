@@ -21,6 +21,11 @@
 
 每个类型都可以有一个默认模板，复制时默认使用该模板。没有默认模板时使用该类型最近创建的模板。
 
+系统默认模板现在是外部文件，不硬编码在 JS 里：
+
+- `src/config/defaults/templates/default-html.html`
+- `src/config/defaults/templates/default-markdown.md`
+
 ## 复制设置
 
 模板设计器左侧的「复制设置」控制周报编辑器的复制行为：

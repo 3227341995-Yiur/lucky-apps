@@ -6,7 +6,8 @@ import { createServer } from 'node:http'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { installProfilePlugin } from './plugins.js'
+import { installProfilePlugin, searchRegistry } from './plugins.js'
+import { getAutostart, setAutostart } from './system.js'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -110,6 +111,7 @@ export async function createHttpServer({
       ...modules.map(module => ({
         id: `plugin:${module.id}`,
         kind: 'component',
+        componentKind: module.kind || 'component',
         subtype: 'plugin',
         name: module.id,
         package: module.package,
@@ -163,6 +165,20 @@ export async function createHttpServer({
           await reload()
           return sendJson(res, 200, await bootPayload())
         }
+        if (pathname === '/api/app/autostart' && req.method === 'GET') {
+          return sendJson(res, 200, getAutostart())
+        }
+        if (pathname === '/api/app/autostart' && req.method === 'POST') {
+          const body = await readJsonBody(req)
+          return sendJson(res, 200, setAutostart(Boolean(body.enabled)))
+        }
+        if (pathname === '/api/plugins/search' && req.method === 'GET') {
+          try {
+            return sendJson(res, 200, await searchRegistry(url.searchParams.get('q') || ''))
+          } catch (error) {
+            return sendJson(res, 502, { error: error.message })
+          }
+        }
         if (pathname === '/api/plugins/install' && req.method === 'POST') {
           const body = await readJsonBody(req)
           const result = installProfilePlugin(profileDir, String(body.spec || ''))
@@ -175,9 +191,9 @@ export async function createHttpServer({
         return sendJson(res, 404, { error: 'not found' })
       }
 
-      const clientMatch = /^\/client\/([^/]+)\/index\.js$/.exec(pathname)
+      const clientMatch = /^\/client\/(.+)\/index\.js$/.exec(pathname)
       if (clientMatch && req.method === 'GET') {
-        const module = ctx.clientModules?.get?.(clientMatch[1])
+        const module = ctx.clientModules?.get?.(decodeURIComponent(clientMatch[1]))
         if (!module?.file) return sendJson(res, 404, { error: 'client module not found' })
         const data = await readFile(module.file)
         res.writeHead(200, {

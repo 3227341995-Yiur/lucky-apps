@@ -155,6 +155,11 @@ export async function reloadExtensionComponents() {
   return { loaded, failed, total: loaded + failed }
 }
 
+/** npm 搜索组件包（设置面板使用） */
+export async function searchPlugins(query) {
+  return apiGet(`/api/plugins/search?q=${encodeURIComponent(query)}`)
+}
+
 /** 通过服务端安装外部组件包（设置面板使用） */
 export async function installPlugin(spec) {
   const result = await apiPost('/api/plugins/install', { spec })

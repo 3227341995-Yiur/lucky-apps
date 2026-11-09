@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "week-report",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "identifier": "com.lu.week-report",
   "build": {
     "frontendDist": "../dist",
@@ -28,8 +28,8 @@
     "resources": {
       "../dist": "dist",
       "../server/dist/index.mjs": "server/dist/index.mjs",
-      "../profile": "profile",
-      "../resources": "resources"
+      "../resources": "resources",
+      "../server/profile": "profile"
     },
     "windows": {
       "wix": {

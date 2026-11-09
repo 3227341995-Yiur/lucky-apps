@@ -19,6 +19,10 @@ export const extensionState = reactive({
 })
 
 export const componentCatalog = ref([])
+export const navItemCatalog = ref([])
+const navItemMap = new Map()
+export const settingsSectionCatalog = ref([])
+const settingsSectionMap = new Map()
 // 外部组件热更新版本号：渲染层用它强制重新解析动态组件
 export const extensionVersion = ref(0)
 
@@ -91,6 +95,65 @@ export function listCanvasComponents() {
   return componentCatalog.value.filter(item => (
     item.scope === 'canvas' && !item.name.endsWith('ColumnModifySlot')
   ))
+}
+
+export function registerNavItem(item) {
+  if (!item?.id || !item?.label || !item?.component) {
+    throw new Error('[registry] 导航项需要 id、label、component')
+  }
+  navItemMap.set(item.id, item.component)
+  const entry = {
+    id: item.id,
+    label: item.label,
+    icon: item.icon || 'Grid',
+    iconSvg: item.iconSvg || '',
+    order: Number(item.order) || 100
+  }
+  const index = navItemCatalog.value.findIndex(existing => existing.id === item.id)
+  if (index === -1) navItemCatalog.value = [...navItemCatalog.value, entry]
+  else {
+    const next = [...navItemCatalog.value]
+    next[index] = entry
+    navItemCatalog.value = next
+  }
+  return entry
+}
+
+export function listNavItems() {
+  return [...navItemCatalog.value].sort((a, b) => a.order - b.order)
+}
+
+export function getNavItemComponent(id) {
+  return navItemMap.get(id) || null
+}
+
+export function registerSettingsSection(item) {
+  if (!item?.id || !item?.label || !item?.component) {
+    throw new Error('[registry] 设置面板需要 id、label、component')
+  }
+  settingsSectionMap.set(item.id, item.component)
+  const entry = {
+    id: item.id,
+    label: item.label,
+    icon: item.icon || 'Setting',
+    order: Number(item.order) || 100
+  }
+  const index = settingsSectionCatalog.value.findIndex(existing => existing.id === item.id)
+  if (index === -1) settingsSectionCatalog.value = [...settingsSectionCatalog.value, entry]
+  else {
+    const next = [...settingsSectionCatalog.value]
+    next[index] = entry
+    settingsSectionCatalog.value = next
+  }
+  return entry
+}
+
+export function listSettingsSections() {
+  return [...settingsSectionCatalog.value].sort((a, b) => a.order - b.order)
+}
+
+export function getSettingsSectionComponent(id) {
+  return settingsSectionMap.get(id) || null
 }
 
 // ============================================================

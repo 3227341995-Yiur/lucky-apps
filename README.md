@@ -1,4 +1,4 @@
-# 周报管理系统
+# 周报管理系统 v2.0.0
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的桌面周报工具。
 
@@ -14,7 +14,8 @@
 - 模板设计器：IDE 风格布局，选择周报实时预览（Handlebars）
 - 亮色 / 暗色主题，默认跟随系统
 - 插件化：外部脚本、样式、Vue 组件、命令、事件、`window.weekReport` API v2
-- 设置中心：外观、扩展、模板、数据、关于
+- 设置中心：外观、加载动画、扩展、模板、数据、托盘/自启动、关于
+- 外部功能扩展：侧边栏入口/页面、设置面板、程序名称/图标、组件安装
 
 ## 开发
 
@@ -57,7 +58,7 @@ server/              Cordis Node 服务（真实 @cordisjs/plugin-loader）
 ├─ index.js          启动、组合 profile、监听配置
 ├─ profile.js        bundle / patch 组合
 └─ http.js           静态前端 + /api/db RPC + /api/boot
-profile/             随应用携带的 Cordis profile
+server/profile/      随应用携带的 Cordis profile
 ├─ package.json      weekReport.profile.bundles
 ├─ cordis.yml        空根节点
 ├─ cordis.patch.yml  用户 patch 层
@@ -69,12 +70,12 @@ resources/           运行时样式 / 插件脚本（服务端按清单下发�
 
 外部组件是标准 Vue 项目，放在 `extensions/<name>/`，各自构建到包内 `lib/`。
 `pnpm profile:build` 会用 `pnpm pack` 打包成 profile 依赖，再由 `pnpm install` 生成
-`profile/node_modules`。每个包声明
+`server/profile/node_modules`。每个包声明
 `weekReport.bundle.patch`，由 profile 的 `weekReport.profile.bundles` 按顺序组合：
 空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
 Node 服务用真实 Cordis loader 按行里的包名从 profile 的 `node_modules` 解析并挂载；
 Tauri 窗口只打开服务地址。系统依赖 `vue` / `element-plus` / 图标和各 bundle 都由
-`profile/package.json` 声明、`pnpm install` 安装到 `profile/node_modules`。
+`server/profile/package.json` 声明、`pnpm install` 安装到 `server/profile/node_modules`。
 首次启动会复制到 `%APPDATA%/com.lu.week-report/profile`，用户可直接改 profile。
 浏览器侧 client bundle 构建为 IIFE，Vue / Element Plus / 图标使用宿主 `window` 上的同一份实例。
 运行时脚本与样式放入 `resources/js|css/`，由服务端 `/api/boot` 清单下发。

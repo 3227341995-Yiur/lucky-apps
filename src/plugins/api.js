@@ -45,7 +45,12 @@ import { createBackup, exportBackupFile } from '@/services/importExportService'
 import { generateId } from '@/utils/idGenerator'
 import { events } from '@/utils/eventBus'
 import { useTheme } from '@/composables/useTheme'
+import { branding, setBranding } from '@/composables/useBranding'
 import {
+  registerNavItem,
+  listNavItems,
+  registerSettingsSection,
+  listSettingsSections,
   registerComponent,
   registerColumnSlot,
   listComponents,
@@ -259,6 +264,14 @@ export const pluginApi = {
     listCanvas: listCanvasComponents,
     has: hasComponent
   },
+  navigation: {
+    register: registerNavItem,
+    list: listNavItems
+  },
+  settings: {
+    register: registerSettingsSection,
+    list: listSettingsSections
+  },
   /** Cordis 扩展生命周期（插件脚本可注册自己的插件） */
   cordis,
   commands: {
@@ -277,7 +290,16 @@ export const pluginApi = {
     openSettings: () => callUi('openSettings'),
     openImportExport: () => callUi('openImportExport'),
     openDesigner: () => callUi('openDesigner'),
-    openTemplates: () => callUi('openTemplates')
+    openTemplates: () => callUi('openTemplates'),
+    openReports: () => callUi('openReports'),
+    openWelcome: () => callUi('openWelcome')
+  },
+  branding: {
+    get: () => ({ ...branding }),
+    set: patch => setBranding(patch),
+    onChange(fn) {
+      return events.on('branding:changed', fn)
+    }
   },
   theme: themeApi,
   extensions: {

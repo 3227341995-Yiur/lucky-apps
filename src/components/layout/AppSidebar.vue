@@ -3,15 +3,22 @@ import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useReports } from '@/composables/useReports'
 import { getIsoWeek } from '@/utils/date'
+import { listNavItems } from '@/plugins/registry'
+import { branding } from '@/composables/useBranding'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 defineOptions({ name: 'AppSidebar' })
 
-const emit = defineEmits(['create', 'settings', 'templates', 'import-export'])
+const props = defineProps({
+  activePluginPage: { type: String, default: null }
+})
+
+const emit = defineEmits(['create', 'settings', 'templates', 'import-export', 'open-plugin-page'])
 
 const reports = useReports()
 const { state } = reports
 const keyword = ref('')
+const pluginNavItems = computed(() => listNavItems())
 const panelScrollRef = ref(null)
 
 function reportStart(report) {
@@ -95,10 +102,6 @@ function handleScroll({ scrollTop }) {
   }
 }
 
-function openTrash() {
-  reports.setView('trash')
-}
-
 function openReports() {
   reports.setView('reports')
 }
@@ -112,7 +115,10 @@ function openWelcome() {
 <template>
   <aside class="wr-nav">
     <nav class="nav-rail" aria-label="主导航">
-      <div class="rail-brand" title="Week Report">WR</div>
+      <div class="rail-brand" :title="branding.name">
+        <img v-if="branding.icon" :src="branding.icon" alt="" />
+        <span v-else>WR</span>
+      </div>
 
       <el-tooltip content="新建周报（Ctrl N）" placement="right" :show-after="500">
         <button type="button" class="rail-create" aria-label="新建周报" @click="emit('create')">
@@ -145,17 +151,23 @@ function openWelcome() {
             <el-icon :size="18"><Document /></el-icon>
           </button>
         </el-tooltip>
-        <el-tooltip content="回收站" placement="right" :show-after="500">
+        <el-tooltip
+          v-for="item in pluginNavItems"
+          :key="item.id"
+          :content="item.label"
+          placement="right"
+          :show-after="500"
+        >
           <button
             type="button"
             class="rail-item"
-            title="回收站"
-            aria-label="回收站"
-            :class="{ active: state.view === 'trash' }"
-            @click="openTrash"
+            :title="item.label"
+            :aria-label="item.label"
+            :class="{ active: activePluginPage === item.id }"
+            @click="emit('open-plugin-page', item)"
           >
-            <el-icon :size="18"><Delete /></el-icon>
-            <span v-if="state.stats.trash > 0" class="rail-badge">{{ state.stats.trash }}</span>
+            <span v-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
+            <el-icon v-else :size="18"><component :is="item.icon || 'Grid'" /></el-icon>
           </button>
         </el-tooltip>
       </div>
@@ -276,6 +288,25 @@ function openWelcome() {
   padding: 10px 0 8px;
   background: var(--wr-sidebar-bg);
   border-right: 1px solid var(--wr-border);
+}
+
+.rail-custom-icon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
+
+.rail-custom-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
+}
+
+.rail-brand img {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
 }
 
 .rail-brand {

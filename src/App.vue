@@ -1,16 +1,17 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import ReportEditor from '@/components/ReportEditor.vue'
 import WelcomePage from '@/components/WelcomePage.vue'
-import TrashView from '@/components/trash/TrashView.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import ImportExportDialog from '@/components/importexport/ImportExportDialog.vue'
 import ReportStructureDesigner from '@/components/designer/ReportStructureDesigner.vue'
 import TemplateDesigner from '@/components/TemplateDesigner/index.vue'
 import { useReports } from '@/composables/useReports'
 import { pluginApi } from '@/plugins/api'
+import { getNavItemComponent } from '@/plugins/registry'
+import { branding } from '@/composables/useBranding'
 
 const reports = useReports()
 const { state } = reports
@@ -21,6 +22,10 @@ const importInitialTab = ref('export')
 const showDesigner = ref(false)
 const designerMode = ref('edit')
 const showTemplates = ref(false)
+const activePluginPage = ref(null)
+const pluginPageComponent = computed(() => (
+  activePluginPage.value ? getNavItemComponent(activePluginPage.value) : null
+))
 let offExtensionsChanged = null
 
 function closeDialogs() {
@@ -30,13 +35,20 @@ function closeDialogs() {
   showTemplates.value = false
 }
 
+function openPluginPage(item) {
+  closeDialogs()
+  activePluginPage.value = item.id
+}
+
 function openSettings() {
   closeDialogs()
+  activePluginPage.value = null
   showSettings.value = true
 }
 
 function openTemplates() {
   closeDialogs()
+  activePluginPage.value = null
   showTemplates.value = true
 }
 
@@ -53,6 +65,7 @@ function openDesigner(mode = 'edit') {
 }
 
 async function handleCreate() {
+  activePluginPage.value = null
   try {
     await reports.createReport()
   } catch (error) {
@@ -113,7 +126,9 @@ onMounted(async () => {
     openSettings,
     openImportExport: () => openImportExport('export'),
     openDesigner: () => openDesigner('edit'),
-    openTemplates
+    openTemplates,
+    openReports: () => { activePluginPage.value = null; reports.setView('reports') },
+    openWelcome: () => { activePluginPage.value = null; reports.clearCurrent(); reports.setView('reports') }
   })
   await reports.init()
 })
@@ -124,9 +139,22 @@ onBeforeUnmount(() => {
 })
 
 watch(
+  () => branding.name,
+  () => {
+    const title = state.currentReport?.title
+    document.title = title ? `${title} · ${branding.name}` : branding.name
+  }
+)
+
+watch(
+  () => state.currentId,
+  id => { if (id != null) activePluginPage.value = null }
+)
+
+watch(
   () => state.currentReport?.title,
   title => {
-    document.title = title ? `${title} · 周报管理系统` : '周报管理系统'
+    document.title = title ? `${title} · ${branding.name}` : branding.name
   },
   { immediate: true }
 )
@@ -139,11 +167,18 @@ watch(
       @settings="openSettings"
       @templates="openTemplates"
       @import-export="openImportExport('export')"
+      :active-plugin-page="activePluginPage"
+      @open-plugin-page="openPluginPage"
     />
 
     <main class="wr-main">
+      <component
+        :is="pluginPageComponent"
+        v-if="activePluginPage && pluginPageComponent"
+        class="plugin-page-host"
+      />
       <ReportEditor
-        v-if="state.view === 'reports' && state.currentReport"
+        v-else-if="state.view === 'reports' && state.currentReport"
         :key="state.currentReport.id"
         @open-import-export="openImportExport"
         @open-design="openDesigner('edit')"
@@ -156,7 +191,6 @@ watch(
         @open-designer="openDesigner('edit')"
         @open-settings="openSettings"
       />
-      <TrashView v-else-if="state.view === 'trash'" @back="reports.setView('reports')" />
     </main>
 
     <SettingsDialog

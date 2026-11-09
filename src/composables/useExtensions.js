@@ -15,13 +15,19 @@ import { getSetting, setSetting } from '@/services/database'
 const GROUP_LABELS = {
   style: '样式表',
   script: '插件脚本',
-  'component-module': '组件包（profile）'
+  'component-canvas': '画布组件',
+  'component-column': '列组件',
+  'component-feature': '功能组件',
+  'component-other': '其他组件'
 }
 
 const GROUP_HINTS = {
   style: '运行时注入的 CSS 文件',
   script: '按文件名排序加载的插件脚本',
-  'component-module': '由 profile bundles 组合，运行时注册组件与列插槽'
+  'component-canvas': '拖入自由画布的组件',
+  'component-column': '表格单元格 / 列编辑组件',
+  'component-feature': '侧边栏入口、页面与后台功能',
+  'component-other': '未声明 weekReport.kind 的组件包'
 }
 
 async function readDisabled() {
@@ -88,11 +94,18 @@ export function useExtensions() {
     const result = {
       style: [],
       script: [],
-      'component-module': []
+      'component-canvas': [],
+      'component-column': [],
+      'component-feature': [],
+      'component-other': []
     }
     for (const resource of extensionState.resources) {
-      if (resource.kind === 'component') result['component-module'].push(resource)
-      else result[resource.kind]?.push(resource)
+      if (resource.kind === 'component') {
+        const key = `component-${resource.componentKind || 'other'}`
+        ;(result[key] || result['component-other']).push(resource)
+      } else if (result[resource.kind]) {
+        result[resource.kind].push(resource)
+      }
     }
     return result
   })

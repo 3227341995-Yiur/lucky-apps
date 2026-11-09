@@ -28,8 +28,8 @@ week-report plugin add <包名|本地目录> [--profile <dir>|--user]
    `weekReport.profile.bundles`；
 4. 如果没有组合包声明，只作为普通依赖安装，不进入 profile。
 
-它不会复制 `node_modules`，也不会手写一份固定配置。组件包需要先完成构建
-（产物在包内 `lib/`），或者发布到 npm 后直接写包名。
+它不会复制 `node_modules`，也不会手写一份固定配置。组件包可以自己决定构建产物在哪，只要 `package.json` 的
+`weekReport.client.entry` 指向它；发布到 npm 后直接写包名即可。
 
 ## 包要求
 

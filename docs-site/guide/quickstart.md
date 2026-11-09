@@ -3,7 +3,7 @@
 周报由 Tauri 窗口 + Cordis Node 服务组成。扩展分两类：
 
 ```text
-profile/
+server/profile/
 ├─ package.json        weekReport.profile.bundles
 ├─ cordis.yml          []
 ├─ cordis.patch.yml    用户 patch
@@ -20,7 +20,7 @@ resources/
 
 ## 三步开始
 
-1. **组件包**：在 `extensions/<name>` 里开发，`pnpm extensions:build` 输出到包内 `lib/`；`pnpm profile:build` 打包并 `pnpm install` 到 `profile/node_modules`，profile 的 `weekReport.profile.bundles` 加上包名。
+1. **组件包**：在 `extensions/<name>` 里开发，`pnpm extensions:build` 输出到包内 `lib/`；`pnpm profile:build` 打包并 `pnpm install` 到 `server/profile/node_modules`，profile 的 `weekReport.profile.bundles` 加上包名。
 2. **脚本 / 样式**：放入 `resources/js` / `resources/css`，服务端 `/api/boot` 清单会下发。
 3. **启用**：到「设置 → 扩展」确认已加载；profile 变化由 Node 服务自动重载。
 

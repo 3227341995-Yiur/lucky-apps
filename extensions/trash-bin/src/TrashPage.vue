@@ -1,18 +1,30 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useReports } from '@/composables/useReports'
-import { formatDateRange } from '@/utils/reportExport'
-import { formatDateTime, getIsoWeek } from '@/utils/date'
+import { useWeekReport } from '@week-report/plugin-api'
 
 defineOptions({ name: 'TrashView' })
 
-const emit = defineEmits(['back'])
+const api = useWeekReport()
+const items = ref([])
+const trashLoading = ref(false)
+let off = null
 
-const reports = useReports()
-const { state } = reports
+const isEmpty = computed(() => items.value.length === 0)
 
-const isEmpty = computed(() => state.trash.length === 0)
+function formatDateRange(range) {
+  return Array.isArray(range) && range.length === 2 ? range.join(' ~ ') : String(range || '')
+}
+
+function formatDateTime(value) {
+  const parsed = window.moment?.(value)
+  return parsed?.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : String(value || '')
+}
+
+function getIsoWeek(value) {
+  const parsed = window.moment?.(value)
+  return parsed?.isValid() ? parsed.isoWeek() : null
+}
 
 function weekOf(report) {
   const start = Array.isArray(report.dateRange) ? report.dateRange[0] : ''
@@ -21,17 +33,29 @@ function weekOf(report) {
   return week ? `W${String(week).padStart(2, '0')}` : '—'
 }
 
-onMounted(() => {
-  reports.loadTrash().catch(error => {
+async function loadTrash() {
+  trashLoading.value = true
+  try {
+    items.value = await api.reports.trashed({ limit: 200, offset: 0 })
+  } catch (error) {
     ElMessage.error(error?.message || '加载回收站失败')
-  })
+  } finally {
+    trashLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadTrash()
+  off = api.events.on('report:changed', loadTrash)
 })
 
-// 恢复：store 会自动刷新列表、切回周报视图并打开该周报
+onBeforeUnmount(() => off?.())
+
 async function handleRestore(report) {
   try {
-    await reports.restoreReport(report.id)
+    await api.reports.restore(report.id)
     ElMessage.success(`已恢复「${report.title}」`)
+    await api.ui.selectReport(report.id)
   } catch (error) {
     ElMessage.error(error?.message || '恢复失败')
   }
@@ -45,12 +69,12 @@ async function handlePurge(report) {
       { confirmButtonText: '彻底删除', cancelButtonText: '取消', type: 'warning' }
     )
   } catch {
-    return // 用户取消
+    return
   }
-
   try {
-    await reports.purgeReport(report.id)
+    await api.reports.purge(report.id)
     ElMessage.success('已彻底删除')
+    await loadTrash()
   } catch (error) {
     ElMessage.error(error?.message || '删除失败')
   }
@@ -64,12 +88,12 @@ async function handleEmpty() {
       { confirmButtonText: '清空回收站', cancelButtonText: '取消', type: 'warning' }
     )
   } catch {
-    return // 用户取消
+    return
   }
-
   try {
-    const count = await reports.emptyTrash()
+    const count = await api.reports.emptyTrash()
     ElMessage.success(`已清空回收站，共删除 ${count} 份周报`)
+    await loadTrash()
   } catch (error) {
     ElMessage.error(error?.message || '清空失败')
   }
@@ -81,14 +105,14 @@ async function handleEmpty() {
     <div class="wr-page-inner trash-inner">
       <header class="trash-header">
         <div class="header-main">
-          <el-button class="back-button" text @click="emit('back')">
+          <el-button class="back-button" text @click="api.ui.openReports()">
             <el-icon><ArrowLeft /></el-icon>
             <span>返回周报</span>
           </el-button>
           <div class="wr-eyebrow">Trash</div>
           <div class="title-row">
             <h1 class="wr-page-title">回收站</h1>
-            <span class="wr-chip">{{ state.trash.length }} 份</span>
+            <span class="wr-chip">{{ items.length }} 份</span>
           </div>
           <p class="wr-page-subtitle">删除的周报会保留在这里，可随时恢复；彻底删除后不可恢复。</p>
         </div>
@@ -111,16 +135,16 @@ async function handleEmpty() {
         <span class="trash-toolbar-hint">按删除时间倒序排列</span>
       </div>
 
-      <div v-loading="state.trashLoading" element-loading-text="加载中…" class="trash-body">
-        <div v-if="!state.trashLoading && isEmpty" class="trash-empty-state">
+      <div v-loading="trashLoading" element-loading-text="加载中…" class="trash-body">
+        <div v-if="!trashLoading && isEmpty" class="trash-empty-state">
           <span class="empty-icon"><el-icon :size="26"><Delete /></el-icon></span>
           <h3>回收站是空的</h3>
           <p>删除的周报会出现在这里，可以随时恢复。</p>
-          <el-button type="primary" plain @click="emit('back')">返回周报</el-button>
+          <el-button type="primary" plain @click="api.ui.openReports()">返回周报</el-button>
         </div>
 
         <div v-else class="trash-list">
-          <article v-for="report in state.trash" :key="report.id" class="trash-card">
+          <article v-for="report in items" :key="report.id" class="trash-card">
             <span class="trash-week">{{ weekOf(report) }}</span>
 
             <div class="row-main">

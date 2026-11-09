@@ -47,3 +47,20 @@ export function installProfilePlugin(profileDir, spec) {
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
   return { name, hasBundle }
 }
+
+
+export async function searchRegistry(query) {
+  const text = String(query || '').trim()
+  if (!text) return []
+  const response = await fetch(
+    `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(text)}&size=20`,
+    { headers: { accept: 'application/json' } }
+  )
+  if (!response.ok) throw new Error(`npm search ${response.status}`)
+  const data = await response.json()
+  return (data.objects || []).map(item => ({
+    name: item.package?.name || '',
+    version: item.package?.version || '',
+    description: item.package?.description || ''
+  })).filter(item => item.name)
+}

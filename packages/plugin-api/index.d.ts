@@ -26,6 +26,29 @@ export const components: {
   has(name: string): boolean
 }
 
+export const branding: {
+  get(): { name: string; icon: string }
+  set(patch: { name?: string; icon?: string }): { name: string; icon: string }
+  onChange(handler: (value: { name: string; icon: string }) => void): () => void
+}
+
+export const navigation: {
+  register(item: {
+    id: string
+    label: string
+    component: unknown
+    icon?: string
+    iconSvg?: string
+    order?: number
+  }): unknown
+  list(): unknown[]
+}
+
+export const settings: {
+  register(item: { id: string; label: string; component: unknown; icon?: string; order?: number }): unknown
+  list(): unknown[]
+}
+
 export const events: {
   on(name: string, handler: (...args: any[]) => void): () => void
   once(name: string, handler: (...args: any[]) => void): () => void

@@ -2,11 +2,14 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTheme } from '@/composables/useTheme'
+import { branding, setBranding } from '@/composables/useBranding'
+import { apiGet, apiPost } from '@/services/rpc'
 import { useReports } from '@/composables/useReports'
 import { useExtensions } from '@/composables/useExtensions'
 import { resetReportConfig } from '@/services/reportConfigService'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
+import { getSettingsSectionComponent, listSettingsSections } from '@/plugins/registry'
 import {
   DEFAULT_LOADING_CONFIG,
   LOADING_FONT_OPTIONS,
@@ -31,6 +34,9 @@ const { copyResourcesPath } = useExtensions()
 const activeTab = ref('appearance')
 const docsFullscreen = ref(false)
 const loadingConfig = ref(readLoadingConfig())
+const autostartEnabled = ref(false)
+const autostartSupported = ref(true)
+const autostartLoading = ref(false)
 const loadingEffects = [
   { value: 'explode', label: '爆炸粒子' },
   { value: 'dissolve', label: '上升消散' },
@@ -95,6 +101,35 @@ const loadingShapes = [
   { value: 'star', label: '星形' }
 ]
 
+async function loadAutostart() {
+  try {
+    const result = await apiGet('/api/app/autostart')
+    autostartSupported.value = result.supported !== false
+    autostartEnabled.value = Boolean(result.enabled)
+  } catch {
+    autostartSupported.value = false
+  }
+}
+
+async function toggleAutostart(value) {
+  autostartLoading.value = true
+  try {
+    const result = await apiPost('/api/app/autostart', { enabled: value })
+    autostartEnabled.value = Boolean(result.enabled)
+    ElMessage.success(value ? '已开启开机自启动' : '已关闭开机自启动')
+  } catch (error) {
+    autostartEnabled.value = !value
+    ElMessage.error(`设置开机自启动失败：${error?.message || error}`)
+  } finally {
+    autostartLoading.value = false
+  }
+}
+
+function saveBranding() {
+  setBranding({ name: branding.name, icon: branding.icon })
+  ElMessage.success('程序名称与图标已保存')
+}
+
 function persistLoading(patch = {}) {
   loadingConfig.value = saveLoadingConfig({ ...loadingConfig.value, ...patch })
 }
@@ -114,9 +149,10 @@ function resetLoading() {
 
 watch(visible, open => {
   if (!open) docsFullscreen.value = false
+  else loadAutostart()
 })
 
-const tabs = [
+const BASE_TABS = [
   { key: 'appearance', label: '外观', icon: 'Sunny', desc: '选择界面主题' },
   { key: 'loading', label: '加载动画', icon: 'MagicStick', desc: '自定义启动 loading 文字、手绘动效与粒子' },
   { key: 'extensions', label: '扩展', icon: 'Grid', desc: '管理样式表、插件脚本与外部组件' },
@@ -125,6 +161,11 @@ const tabs = [
   { key: 'docs', label: '开发文档', icon: 'Reading', desc: '插件、外部组件与二开 API' },
   { key: 'about', label: '关于', icon: 'InfoFilled', desc: '版本与运行环境信息' }
 ]
+
+const tabs = computed(() => [
+  ...BASE_TABS,
+  ...listSettingsSections().map(item => ({ ...item, key: item.id, desc: '外部插件注册的设置面板' }))
+])
 
 const themeOptions = [
   { value: 'system', icon: 'Monitor', desc: '自动跟随操作系统的亮暗色' },
@@ -139,7 +180,7 @@ const dataStats = computed(() => [
   { label: '模板', value: state.stats.templates }
 ])
 
-const currentTab = computed(() => tabs.find(tab => tab.key === activeTab.value) || tabs[0])
+const currentTab = computed(() => tabs.value.find(tab => tab.key === activeTab.value) || tabs.value[0])
 
 async function handleResetConfig() {
   try {
@@ -240,6 +281,52 @@ async function handleCopyResources() {
             </button>
           </div>
           <p class="hint">默认跟随系统，选择后立即生效并记住设置。</p>
+
+          <div class="brand-card">
+            <div class="brand-head">
+              <span class="brand-logo">
+                <img v-if="branding.icon" :src="branding.icon" alt="" />
+                <span v-else>WR</span>
+              </span>
+              <div>
+                <strong>程序名称与图标</strong>
+                <p>也可以由外部插件通过 weekReport.branding.set 修改。</p>
+              </div>
+            </div>
+            <div class="brand-fields">
+              <label class="loading-field">
+                <span>程序名称</span>
+                <el-input v-model="branding.name" maxlength="40" />
+              </label>
+              <label class="loading-field">
+                <span>程序图标 URL</span>
+                <el-input v-model="branding.icon" placeholder="https://… 或 data:image/…" />
+              </label>
+            </div>
+            <el-button type="primary" plain @click="saveBranding">保存品牌</el-button>
+          </div>
+
+          <div class="brand-card">
+            <div class="brand-head">
+              <span class="brand-logo system-logo"><el-icon :size="18"><Monitor /></el-icon></span>
+              <div>
+                <strong>启动与托盘</strong>
+                <p>关闭或最小化窗口会隐藏到系统托盘，从托盘图标恢复。</p>
+              </div>
+            </div>
+            <div class="system-row">
+              <div>
+                <strong>开机自启动</strong>
+                <span>登录 Windows 后自动启动周报系统</span>
+              </div>
+              <el-switch
+                v-model="autostartEnabled"
+                :loading="autostartLoading"
+                :disabled="!autostartSupported"
+                @change="toggleAutostart"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- 加载动画 -->
@@ -432,6 +519,11 @@ async function handleCopyResources() {
             </div>
             <el-button type="danger" plain @click="handleResetConfig">恢复系统默认结构</el-button>
           </div>
+        </div>
+
+        <!-- 外部设置面板 -->
+        <div v-else-if="getSettingsSectionComponent(activeTab)" class="panel">
+          <component :is="getSettingsSectionComponent(activeTab)" />
         </div>
 
         <!-- 关于 -->
@@ -1061,6 +1153,88 @@ async function handleCopyResources() {
   .loading-word-preview {
     max-width: 100%;
   }
+}
+
+.system-logo {
+  background: var(--el-color-success);
+}
+
+.system-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+}
+
+.system-row strong {
+  display: block;
+  font-size: 12px;
+  color: var(--el-text-color-primary);
+}
+
+.system-row span {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+}
+
+.brand-card {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-bg-color);
+}
+
+.brand-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.brand-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--el-color-primary);
+  color: #fff;
+  font-family: var(--wr-mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-head strong {
+  display: block;
+  font-size: 12.5px;
+  color: var(--el-text-color-primary);
+}
+
+.brand-head p {
+  margin: 3px 0 0;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+}
+
+.brand-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 </style>

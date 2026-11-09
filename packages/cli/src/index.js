@@ -39,12 +39,12 @@ function parseArgs(argv) {
 function repoProfileDir() {
   let dir = process.cwd()
   for (let i = 0; i < 6; i += 1) {
-    if (existsSync(join(dir, 'profile', 'package.json'))) return join(dir, 'profile')
+    if (existsSync(join(dir, 'server', 'profile', 'package.json'))) return join(dir, 'server', 'profile')
     const parent = resolve(dir, '..')
     if (parent === dir) break
     dir = parent
   }
-  return join(packageRoot, '..', '..', 'profile')
+  return join(packageRoot, '..', '..', 'server', 'profile')
 }
 
 function profileDirOf(options) {

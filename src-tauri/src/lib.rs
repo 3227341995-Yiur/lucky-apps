@@ -9,9 +9,14 @@ use std::os::windows::process::CommandExt;
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+  menu::{MenuBuilder, MenuItemBuilder},
+  tray::{TrayIcon, TrayIconBuilder, TrayIconEvent},
+  Manager, RunEvent, WindowEvent, WebviewUrl, WebviewWindowBuilder,
+};
 
 struct ServerProcess(Mutex<Option<Child>>);
+struct TrayProcess(Mutex<Option<TrayIcon>>);
 
 fn strip_verbatim(path: PathBuf) -> PathBuf {
   let text = path.to_string_lossy();
@@ -118,9 +123,10 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
     .env("WR_APP_ROOT", &root)
     .env("WR_DIST_DIR", root.join("dist"))
     .env("WR_RESOURCES_DIR", root.join("resources"))
-    .env("WR_BUNDLED_PROFILE_DIR", root.join("profile"))
+    .env("WR_BUNDLED_PROFILE_DIR", if cfg!(debug_assertions) { root.join("server").join("profile") } else { root.join("profile") })
     .env("WR_DB_PATH", &db_path)
     .env("WR_PARENT_PID", std::process::id().to_string())
+    .env("WR_APP_EXE", std::env::current_exe().unwrap_or_default())
     .env("WR_PORT", "34115")
     .stdout(Stdio::piped())
     .stderr(Stdio::inherit())
@@ -169,7 +175,7 @@ pub fn run() {
       let (child, url) = spawn_server(app.handle())?;
       app.manage(ServerProcess(Mutex::new(Some(child))));
 
-      WebviewWindowBuilder::new(
+      let window = WebviewWindowBuilder::new(
         app,
         "main",
         WebviewUrl::External(url.parse().map_err(|e| format!("无效的服务地址: {e}"))?),
@@ -179,6 +185,51 @@ pub fn run() {
       .resizable(true)
       .devtools(cfg!(debug_assertions))
       .build()?;
+
+      let win = window.clone();
+      window.on_window_event(move |event| match event {
+        WindowEvent::CloseRequested { api, .. } => {
+          api.prevent_close();
+          let _ = win.hide();
+        }
+        WindowEvent::Resized(_) => {
+          if win.is_minimized().unwrap_or(false) {
+            let _ = win.hide();
+          }
+        }
+        _ => {}
+      });
+
+      let show_item = MenuItemBuilder::with_id("show", "显示周报").build(app)?;
+      let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
+      let menu = MenuBuilder::new(app).items(&[&show_item, &quit_item]).build()?;
+      let tray = TrayIconBuilder::new()
+        .icon(app.default_window_icon().cloned().expect("window icon"))
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+          "show" => {
+            if let Some(window) = app.get_webview_window("main") {
+              let _ = window.show();
+              let _ = window.unminimize();
+              let _ = window.set_focus();
+            }
+          }
+          "quit" => app.exit(0),
+          _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+          if let TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
+            let app = tray.app_handle();
+            if let Some(window) = app.get_webview_window("main") {
+              let _ = window.show();
+              let _ = window.unminimize();
+              let _ = window.set_focus();
+            }
+          }
+        })
+        .build(app)?;
+      app.manage(TrayProcess(Mutex::new(Some(tray))));
 
       Ok(())
     })
@@ -191,6 +242,9 @@ pub fn run() {
         if let Some(mut child) = state.0.lock().unwrap().take() {
           let _ = child.kill();
         }
+      }
+      if let Some(state) = app.try_state::<TrayProcess>() {
+        state.0.lock().unwrap().take();
       }
     }
   });

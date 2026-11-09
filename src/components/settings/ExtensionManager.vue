@@ -1,8 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
-import { installPlugin } from '@/plugins/loader'
+import { installPlugin, searchPlugins } from '@/plugins/loader'
 
 defineOptions({ name: 'ExtensionManager' })
 
@@ -21,7 +21,10 @@ const {
   reloadApp
 } = useExtensions()
 
-const groupOrder = ['style', 'script', 'component-module']
+const groupOrder = [
+  'style', 'script',
+  'component-canvas', 'component-column', 'component-feature', 'component-other'
+]
 
 const STATUS_META = {
   loaded: { label: '已加载', type: 'success' },
@@ -33,13 +36,22 @@ const STATUS_META = {
 const TYPE_LABELS = {
   style: '样式',
   script: '脚本',
-  'component-module': '组件包'
+  'component-canvas': '画布',
+  'component-column': '列',
+  'component-feature': '功能',
+  'component-other': '组件'
 }
 
 const rescanning = ref(false)
 const hotReloading = ref(false)
 const installSpec = ref('')
+const installOpen = ref(false)
+const installQuery = ref('')
+const installResults = ref([])
+const installInputRef = ref(null)
+const searching = ref(false)
 const installing = ref(false)
+let searchTimer = null
 
 function statusOf(resource) {
   return STATUS_META[resource.status] || STATUS_META.pending
@@ -91,8 +103,43 @@ async function handleCopyPluginsPath() {
   }
 }
 
-async function handleInstall() {
-  const spec = installSpec.value.trim()
+function openInstallDialog() {
+  installOpen.value = true
+  installQuery.value = ''
+  installResults.value = []
+  nextTick(() => installInputRef.value?.focus())
+}
+
+function closeInstallDialog() {
+  if (installing.value) return
+  installOpen.value = false
+}
+
+function scheduleSearch() {
+  clearTimeout(searchTimer)
+  const query = installQuery.value.trim()
+  if (!query) {
+    installResults.value = []
+    return
+  }
+  searchTimer = setTimeout(async () => {
+    if (/[\\/]|^\.|^[A-Za-z]:/.test(query)) {
+      installResults.value = [{ name: '本地组件目录', version: '', description: query, spec: query }]
+      return
+    }
+    searching.value = true
+    try {
+      installResults.value = await searchPlugins(query)
+    } catch {
+      installResults.value = []
+    } finally {
+      searching.value = false
+    }
+  }, 280)
+}
+
+async function handleInstall(specArg) {
+  const spec = String(specArg ?? installSpec.value ?? installQuery.value).trim()
   if (!spec) {
     ElMessage.warning('请输入 npm 包名或本地组件目录')
     return
@@ -102,6 +149,9 @@ async function handleInstall() {
     const result = await installPlugin(spec)
     installSpec.value = ''
     await rescan()
+    installOpen.value = false
+    installQuery.value = ''
+    installResults.value = []
     ElMessage.success(`已安装 ${result?.name || spec}${result?.hasBundle ? '，已加入 profile' : '（普通依赖）'}`)
   } catch (error) {
     ElMessage.error(`安装失败：${error?.message || error}`)
@@ -172,19 +222,11 @@ async function handleToggle(resource) {
           <p>输入 npm 包名或本地组件项目路径，自动执行 pnpm add 并加入 profile。</p>
         </div>
       </div>
-      <div class="install-form">
-        <el-input
-          v-model="installSpec"
-          placeholder="@acme/widget 或本地组件目录"
-          clearable
-          @keyup.enter="handleInstall"
-        >
-          <template #prefix><el-icon><Link /></el-icon></template>
-        </el-input>
-        <el-button type="primary" :loading="installing" @click="handleInstall">
-          <el-icon><Plus /></el-icon><span>安装</span>
-        </el-button>
-      </div>
+      <button type="button" class="install-trigger" @click="openInstallDialog">
+        <el-icon><Search /></el-icon>
+        <span>搜索并安装组件…</span>
+        <kbd>Ctrl K</kbd>
+      </button>
     </div>
 
     <div class="ext-toolbar">
@@ -199,7 +241,7 @@ async function handleToggle(resource) {
         <el-button size="small" type="primary" plain :loading="hotReloading" @click="handleHotReload">
           <el-icon><RefreshRight /></el-icon><span>热加载组件</span>
         </el-button>
-        <el-dropdown trigger="click" @command="handleMoreCommand">
+        <el-dropdown trigger="click" placement="bottom-end" @command="handleMoreCommand">
           <el-button size="small">
             <el-icon><MoreFilled /></el-icon><span>更多</span>
           </el-button>
@@ -242,7 +284,7 @@ async function handleToggle(resource) {
           <span class="group-count">{{ groups[key].length }}</span>
         </div>
 
-        <p v-if="key === 'component-module'" class="group-note">
+        <p v-if="String(key).startsWith('component-')" class="group-note">
           每个组件包提供 <code>weekReport.bundle.patch</code>，由 profile 组合后加载；保存后自动热加载。
         </p>
 
@@ -273,6 +315,61 @@ async function handleToggle(resource) {
         </div>
       </section>
     </template>
+
+    <Teleport to="body">
+      <div v-if="installOpen" class="install-overlay" @click.self="closeInstallDialog">
+        <section class="install-dialog" role="dialog" aria-modal="true" aria-label="安装外部组件">
+          <header class="install-dialog-head">
+            <div>
+              <span class="ext-eyebrow dark">INSTALL</span>
+              <h3>安装外部组件</h3>
+            </div>
+            <button type="button" class="install-close" aria-label="关闭" @click="closeInstallDialog">×</button>
+          </header>
+          <div class="install-search">
+            <el-icon :size="17"><Search /></el-icon>
+            <input
+              ref="installInputRef"
+              v-model="installQuery"
+              placeholder="搜索 npm 包，或粘贴本地组件项目路径"
+              spellcheck="false"
+              @input="scheduleSearch"
+              @keyup.enter="installResults.length ? handleInstall(installResults[0].spec || installResults[0].name) : handleInstall()"
+            />
+            <span v-if="searching" class="install-spinner"><el-icon class="is-loading"><Loading /></el-icon></span>
+          </div>
+          <div class="install-results">
+            <div v-if="!installQuery.trim()" class="install-hint">
+              输入包名搜索 npm，或直接输入本地项目路径安装。
+            </div>
+            <button
+              v-for="item in installResults"
+              :key="item.name"
+              type="button"
+              class="install-result"
+              :disabled="installing"
+              @click="handleInstall(item.spec || item.name)"
+            >
+              <span class="install-package-icon"><el-icon><Box /></el-icon></span>
+              <span class="install-result-copy">
+                <strong>{{ item.name }}<small v-if="item.version">@{{ item.version }}</small></strong>
+                <span>{{ item.description || item.spec }}</span>
+              </span>
+              <el-icon class="install-arrow"><ArrowRight /></el-icon>
+            </button>
+            <div v-if="installQuery.trim() && !installResults.length && !searching" class="install-hint">
+              没有搜索结果，可以直接安装当前输入。
+            </div>
+          </div>
+          <footer class="install-dialog-foot">
+            <span>安装后自动加入 profile bundles，并热加载组件。</span>
+            <el-button type="primary" :loading="installing" @click="handleInstall()">
+              <el-icon><Download /></el-icon><span>安装</span>
+            </el-button>
+          </footer>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -387,17 +484,218 @@ async function handleToggle(resource) {
   color: var(--el-text-color-placeholder);
 }
 
-.install-form {
+.install-trigger {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-left: auto;
   flex: 1;
   max-width: 480px;
+  padding: 9px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-placeholder);
+  font-family: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
 }
 
-.install-form :deep(.el-input) {
+.install-trigger:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-bg-color);
+}
+
+.install-trigger kbd {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 5px;
+  background: var(--el-bg-color);
+  font-family: var(--wr-mono);
+  font-size: 9px;
+  color: var(--el-text-color-placeholder);
+}
+
+.install-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.install-dialog {
+  width: min(680px, 100%);
+  max-height: min(76vh, 760px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 20px;
+  background: var(--el-bg-color);
+  box-shadow: 0 30px 80px -30px rgba(15, 23, 42, 0.55);
+}
+
+.install-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 22px 12px;
+}
+
+.ext-eyebrow.dark {
+  color: var(--el-color-primary);
+}
+
+.install-dialog-head h3 {
+  margin: 6px 0 0;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--el-text-color-primary);
+}
+
+.install-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.install-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 22px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--el-color-primary-light-5);
+  border-radius: 14px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.install-search input {
   flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--el-text-color-primary);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.install-search input::placeholder {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+}
+
+.install-results {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+  padding: 0 14px 10px;
+}
+
+.install-hint {
+  padding: 28px 14px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+}
+
+.install-result {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.install-result:hover {
+  border-color: var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
+
+.install-result:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.install-package-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--el-fill-color-light);
+  color: var(--el-color-primary);
+}
+
+.install-result-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.install-result-copy strong {
+  font-size: 12px;
+  color: var(--el-text-color-primary);
+}
+
+.install-result-copy small {
+  margin-left: 5px;
+  font-family: var(--wr-mono);
+  font-size: 9px;
+  color: var(--el-text-color-placeholder);
+}
+
+.install-result-copy > span {
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.install-arrow {
+  color: var(--el-text-color-placeholder);
+}
+
+.install-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 22px 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.install-dialog-foot span {
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
 }
 
 .ext-toolbar {
