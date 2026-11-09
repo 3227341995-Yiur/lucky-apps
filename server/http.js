@@ -192,17 +192,20 @@ export async function createHttpServer({
         return res.end(data)
       }
 
+      const isDocsPath = pathname === '/docs' || pathname.startsWith('/docs/')
       let file = safeJoin(distDir, pathname === '/' ? 'index.html' : pathname.slice(1))
       let info = file ? await stat(file).catch(() => null) : null
       if (!info?.isFile()) {
-        file = join(distDir, 'index.html')
+        file = isDocsPath
+          ? join(distDir, 'docs', 'index.html')
+          : join(distDir, 'index.html')
         info = await stat(file).catch(() => null)
       }
       if (!info?.isFile()) {
         res.writeHead(404)
         return res.end('Not found')
       }
-      if (file.endsWith('index.html')) {
+      if (file === join(distDir, 'index.html')) {
         const html = await loadIndex()
         res.writeHead(200, { 'content-type': MIME['.html'], 'cache-control': 'no-store' })
         return res.end(html)

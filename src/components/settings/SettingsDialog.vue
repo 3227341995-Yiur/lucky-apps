@@ -193,26 +193,27 @@ async function handleCopyResources() {
 
         <!-- 加载动画 -->
         <div v-else-if="activeTab === 'loading'" class="panel loading-panel">
-          <div class="loading-grid">
-            <label class="loading-field">
-              <span>加载文字</span>
+          <div class="loading-card">
+            <h4>文字</h4>
+            <div class="loading-row">
+              <span class="loading-label">加载文字</span>
               <el-input
                 v-model="loadingConfig.text"
                 maxlength="40"
                 show-word-limit
                 @input="persistLoading()"
               />
-            </label>
-            <label class="loading-field">
-              <span>副标题</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">副标题</span>
               <el-input
                 v-model="loadingConfig.subtitle"
                 maxlength="60"
                 @input="persistLoading()"
               />
-            </label>
-            <label class="loading-field">
-              <span>字体</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">字体</span>
               <el-select v-model="loadingConfig.font" @change="persistLoading()">
                 <el-option
                   v-for="font in LOADING_FONT_OPTIONS"
@@ -221,9 +222,9 @@ async function handleCopyResources() {
                   :value="font.value"
                 />
               </el-select>
-            </label>
-            <label class="loading-field">
-              <span>字号</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">字号</span>
               <el-input-number
                 v-model="loadingConfig.fontSize"
                 :min="28"
@@ -231,68 +232,75 @@ async function handleCopyResources() {
                 controls-position="right"
                 @change="persistLoading()"
               />
-            </label>
-            <label class="loading-field">
-              <span>文字颜色</span>
-              <el-color-picker v-model="loadingConfig.color" @change="persistLoading()" />
-            </label>
-            <label class="loading-field">
-              <span>背景颜色</span>
-              <el-color-picker v-model="loadingConfig.background" @change="persistLoading()" />
-            </label>
-            <label class="loading-field">
-              <span>绘制方式</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">文字颜色</span>
+              <div class="loading-inline">
+                <el-color-picker v-model="loadingConfig.color" @change="persistLoading()" />
+                <code>{{ loadingConfig.color }}</code>
+              </div>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">背景颜色</span>
+              <div class="loading-inline">
+                <el-color-picker v-model="loadingConfig.background" @change="persistLoading()" />
+                <code>{{ loadingConfig.background || '跟随主题' }}</code>
+              </div>
+            </div>
+          </div>
+
+          <div class="loading-card">
+            <h4>绘制与收尾</h4>
+            <div class="loading-row">
+              <span class="loading-label">绘制方式</span>
               <el-select v-model="loadingConfig.drawStyle" @change="persistLoading()">
                 <el-option v-for="item in loadingStyles" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
-            </label>
-            <label class="loading-field">
-              <span>收尾效果</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">收尾效果</span>
               <el-select v-model="loadingConfig.effect" @change="persistLoading()">
                 <el-option v-for="item in loadingEffects" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
-            </label>
-            <label class="loading-field">
-              <span>粒子形状</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">播放速度</span>
+              <div class="loading-slider">
+                <el-slider v-model="loadingConfig.speed" :min="0.4" :max="2.5" :step="0.1" @change="persistLoading()" />
+                <strong>{{ Number(loadingConfig.speed).toFixed(1) }}×</strong>
+              </div>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">笔尖</span>
+              <el-switch v-model="loadingConfig.showPen" @change="persistLoading()" />
+            </div>
+          </div>
+
+          <div class="loading-card">
+            <h4>粒子</h4>
+            <div class="loading-row">
+              <span class="loading-label">粒子形状</span>
               <el-select v-model="loadingConfig.particleShape" @change="persistLoading()">
                 <el-option v-for="item in loadingShapes" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
-            </label>
-            <label class="loading-field">
-              <span>粒子数量 / 字</span>
-              <el-slider
-                v-model="loadingConfig.particleCount"
-                :min="0"
-                :max="40"
-                :step="1"
-                show-input
-                @change="persistLoading()"
-              />
-            </label>
-            <label class="loading-field">
-              <span>速度</span>
-              <el-slider
-                v-model="loadingConfig.speed"
-                :min="0.4"
-                :max="2.5"
-                :step="0.1"
-                show-input
-                @change="persistLoading()"
-              />
-            </label>
-            <label class="loading-field switching">
-              <span>显示笔尖</span>
-              <el-switch v-model="loadingConfig.showPen" @change="persistLoading()" />
-            </label>
-            <label class="loading-field loading-colors">
-              <span>粒子颜色（逗号分隔）</span>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">数量 / 字</span>
+              <div class="loading-slider">
+                <el-slider v-model="loadingConfig.particleCount" :min="0" :max="40" :step="1" @change="persistLoading()" />
+                <strong>{{ loadingConfig.particleCount }}</strong>
+              </div>
+            </div>
+            <div class="loading-row">
+              <span class="loading-label">颜色</span>
               <el-input
                 v-model="loadingConfig.particleColors"
                 placeholder="#3574f0,#67c23a"
                 @input="persistLoading()"
               />
-            </label>
+            </div>
           </div>
+
           <div class="loading-actions">
             <el-button type="primary" @click="previewLoading">
               <el-icon><VideoPlay /></el-icon><span>预览动画</span>
@@ -698,58 +706,90 @@ async function handleCopyResources() {
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
-.loading-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 18px;
-}
-
-.loading-field {
+.loading-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
+}
+
+.loading-card {
+  padding: 16px 18px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+}
+
+.loading-card h4 {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+}
+
+.loading-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.loading-row + .loading-row {
+  margin-top: 10px;
+}
+
+.loading-label {
   font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.loading-row :deep(.el-input),
+.loading-row :deep(.el-select),
+.loading-row :deep(.el-input-number) {
+  width: 100%;
+}
+
+.loading-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.loading-inline code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--wr-mono);
+  font-size: 11px;
   color: var(--el-text-color-secondary);
 }
 
-.loading-field > span {
-  color: var(--el-text-color-regular);
-}
-
-.loading-field :deep(.el-select),
-.loading-field :deep(.el-input-number),
-.loading-field :deep(.el-color-picker) {
-  width: 100%;
-}
-
-.loading-field :deep(.el-color-picker__trigger) {
-  width: 100%;
-}
-
-.loading-field.switching {
-  flex-direction: row;
+.loading-slider {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
-.loading-colors {
-  grid-column: 1 / -1;
+.loading-slider :deep(.el-slider) {
+  flex: 1;
+  min-width: 0;
+}
+
+.loading-slider strong {
+  flex: none;
+  width: 42px;
+  text-align: right;
+  font-family: var(--wr-mono);
+  font-size: 11px;
+  color: var(--el-text-color-primary);
 }
 
 .loading-actions {
   display: flex;
   gap: 8px;
-  margin-top: 18px;
-}
-
-.loading-panel .hint {
-  margin-top: 12px;
-}
-
-@media (max-width: 720px) {
-  .loading-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 </style>

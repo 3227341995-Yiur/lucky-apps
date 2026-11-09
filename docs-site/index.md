@@ -15,7 +15,7 @@ hero:
 
 features:
   - title: 外部组件
-    details: 每个组件是独立 Cordis 包，自己构建，通过 cordis.yml profile 运行时注册。
+    details: 每个组件是独立 Cordis 包，自己构建，由 Node 服务的 profile bundles / patch 运行时挂载。
   - title: 插件脚本
     details: 在 resources/js 放普通脚本，通过 window.weekReport 访问周报、事件、命令和 UI。
   - title: 列扩展

@@ -26,7 +26,7 @@ export const DEFAULT_LOADING_CONFIG = {
   background: '',
   drawStyle: 'draw',
   effect: 'explode',
-  particleCount: 36,
+  particleCount: 24,
   particleShape: 'mixed',
   particleColors: '#3574f0,#36a3ff,#67c23a,#e6a23c,#f56c6c,#8b5cf6',
   showPen: true,
@@ -136,29 +136,6 @@ function ensureStyles() {
     .startup-particle.is-square { border-radius: 2px; }
     .startup-particle.is-star {
       clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 94%, 50% 72%, 21% 94%, 32% 57%, 2% 35%, 39% 35%);
-    }
-
-    .startup-flash {
-      position: fixed;
-      width: 40vmin;
-      height: 40vmin;
-      margin: -20vmin 0 0 -20vmin;
-      border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--startup-ink, #3574f0) 34%, transparent) 0%, transparent 68%);
-      pointer-events: none;
-      opacity: 0;
-      z-index: 100001;
-    }
-
-    .startup-ray {
-      position: fixed;
-      height: 2px;
-      transform-origin: 0 50%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, currentColor, transparent);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 100001;
     }
 
     .startup-shockwave {
@@ -347,7 +324,7 @@ export function startStartupLoader(options = {}) {
         particle.style.left = `${centerX}px`
         particle.style.top = `${centerY}px`
         particle.style.background = colors[(letterIndex + i) % colors.length]
-        const size = utils.random(6, 16)
+        const size = utils.random(4, 11)
         particle.style.width = `${size}px`
         particle.style.height = `${size}px`
         particle.style.color = particle.style.background
@@ -372,84 +349,18 @@ export function startStartupLoader(options = {}) {
     }
 
     if (config.effect !== 'spark') {
-      const flash = document.createElement('span')
-      flash.className = 'startup-flash'
-      flash.style.left = `${center.x}px`
-      flash.style.top = `${center.y}px`
-      layer.appendChild(flash)
-      animate(flash, {
-        scale: [0.2, 2.4],
-        opacity: [0.8, 0],
-        duration: 620 * speed,
+      const wave = document.createElement('span')
+      wave.className = 'startup-shockwave'
+      wave.style.left = `${center.x}px`
+      wave.style.top = `${center.y}px`
+      wave.style.borderColor = config.color
+      layer.appendChild(wave)
+      animate(wave, {
+        scale: [0.35, 10],
+        opacity: [0.35, 0],
+        duration: 700 * speed,
         ease: 'outQuad'
       })
-
-      // 中心补一层粒子，避免只按字符分布时中间空
-      const burst = []
-      for (let i = 0; i < 70; i += 1) {
-        const particle = document.createElement('span')
-        const shape = pickShape(config, i + 1)
-        particle.className = `startup-particle is-${shape}`
-        particle.style.left = `${center.x + utils.random(-18, 18)}px`
-        particle.style.top = `${center.y + utils.random(-26, 26)}px`
-        particle.style.background = colors[i % colors.length]
-        const size = utils.random(3.5, 10)
-        particle.style.width = `${size}px`
-        particle.style.height = `${size}px`
-        particle.style.color = particle.style.background
-        layer.appendChild(particle)
-        burst.push(particle)
-      }
-      animate(burst, {
-        x: () => utils.random(-320, 320),
-        y: () => (config.effect === 'dissolve' ? utils.random(-260, -80) : utils.random(-250, 250)),
-        scale: [1, 0],
-        rotate: () => utils.random(-300, 300),
-        opacity: [1, 0],
-        duration: () => utils.random(950, 1750) * speed,
-        delay: stagger(2 * speed),
-        ease: 'outExpo'
-      })
-
-      const rays = []
-      for (let i = 0; i < 36; i += 1) {
-        const ray = document.createElement('span')
-        ray.className = 'startup-ray'
-        const length = utils.random(44, 130)
-        ray.style.left = `${center.x}px`
-        ray.style.top = `${center.y}px`
-        ray.style.width = `${length}px`
-        ray.style.color = colors[i % colors.length]
-        ray.style.background = `linear-gradient(90deg, ${colors[i % colors.length]}, transparent)`
-        const angle = (360 / 36) * i + utils.random(-4, 4)
-        ray.style.transform = `rotate(${angle}deg)`
-        layer.appendChild(ray)
-        rays.push({ ray, angle, length })
-      }
-      animate(rays.map(item => item.ray), {
-        scaleX: [0.15, 1],
-        opacity: [0.85, 0],
-        rotate: (_, index) => rays[index].angle,
-        duration: () => utils.random(650, 1100) * speed,
-        delay: stagger(2 * speed),
-        ease: 'outExpo'
-      })
-
-      for (let ring = 0; ring < 2; ring += 1) {
-        const wave = document.createElement('span')
-        wave.className = 'startup-shockwave'
-        wave.style.left = `${center.x}px`
-        wave.style.top = `${center.y}px`
-        wave.style.borderColor = config.color
-        layer.appendChild(wave)
-        animate(wave, {
-          scale: [0.35, ring ? 8 : 6],
-          opacity: [ring ? 0.2 : 0.35, 0],
-          duration: (ring ? 820 : 620) * speed,
-          delay: ring * 140 * speed,
-          ease: 'outQuad'
-        })
-      }
     }
 
     animate(particles, {
@@ -463,10 +374,10 @@ export function startStartupLoader(options = {}) {
       rotate: () => utils.random(-360, 360),
       opacity: [1, 0],
       duration: () => utils.random(
-        config.effect === 'spark' ? 650 : 1300,
-        config.effect === 'spark' ? 1100 : 2200
+        config.effect === 'spark' ? 550 : 900,
+        config.effect === 'spark' ? 950 : 1650
       ) * speed,
-      delay: stagger(3 * speed),
+      delay: stagger(4 * speed),
       ease: 'outExpo'
     })
 
@@ -475,7 +386,7 @@ export function startStartupLoader(options = {}) {
     animate(overlay, {
       opacity: [1, 0],
       duration: 520 * speed,
-      delay: (config.effect === 'spark' ? 350 : 1100) * speed,
+      delay: (config.effect === 'spark' ? 260 : 680) * speed,
       ease: 'outQuad',
       onComplete: () => {
         overlay.remove()
