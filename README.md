@@ -1,6 +1,6 @@
 # 周报管理系统
 
-基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 + SQLite** 的桌面周报工具。
+基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的桌面周报工具。
 
 ## 功能
 
@@ -20,11 +20,11 @@
 
 ```sh
 pnpm install
-pnpm dev          # 浏览器开发（数据库能力需在 Tauri 中运行）
+pnpm dev          # 浏览器开发（需同时启动 Node 服务）
 pnpm tauri:dev    # 桌面应用开发
-pnpm tauri:build  # 打包
+pnpm tauri:build  # 构建前端/服务并打包
 pnpm test         # 纯逻辑自检（Node test runner）
-pnpm build        # 前端生产构建
+pnpm build:server # 构建 Cordis Node 服务
 ```
 
 环境要求：**Node ≥ 24**，包管理器 **pnpm 12+**（`packageManager` 已固定为 `pnpm@12.16.1`）。
@@ -53,22 +53,29 @@ src/
 ├─ utils/              日期、防抖、事件、ID、导出渲染
 └─ assets/css/         设计令牌与全局样式（亮/暗）
 extensions/   独立外部组件包（workspace，各自 Vite 构建）
-src-tauri/resources/
-├─ css/                运行时样式扩展
-├─ js/                 运行时插件脚本（search.js / registerHelper.js 等）
-├─ node_modules/        vue / element-plus / 图标 + 各内置组件包
-└─ cordis.yml          内置组件包 profile（只写包名）
+server/              Cordis Node 服务（真实 @cordisjs/plugin-loader）
+├─ index.js          启动、组合 profile、监听配置
+├─ profile.js        bundle / patch 组合
+└─ http.js           静态前端 + /api/db RPC + /api/boot
+profile/             随应用携带的 Cordis profile
+├─ package.json      weekReport.profile.bundles
+├─ cordis.yml        空根节点
+├─ cordis.patch.yml  用户 patch 层
+└─ node_modules/     vue / element-plus / 图标 + 各 bundle 包
+resources/           运行时样式 / 插件脚本（服务端按清单下发）
 ```
 
 ## 扩展开发
 
 外部组件是标准 Vue 项目，放在 `extensions/<name>/`，各自构建到
-`src-tauri/resources/node_modules/<name>/`。宿主启动时读取
-`resources/cordis.yml` 和 `AppData/plugins/cordis.yml`，按 profile 里的包名从
-`node_modules` 解析 `package.json` 入口，动态 import 后由 Cordis 挂载，**不参与插件打包**。
-内置组件包和系统依赖都按 node_modules 结构放在 `resources/node_modules`；外部包安装到 `AppData/plugins/node_modules`，profile 写包名即可注册；保存后自动热加载。
-运行时脚本与样式放入 `src-tauri/resources/js|css/`，按文件名排序加载。
-组件包构建为 IIFE，`vue` / `element-plus` / 图标由宿主 `window` 提供，和宿主共用同一份实例。
+`profile/node_modules/<name>/`。每个包声明
+`weekReport.bundle.patch`，由 profile 的 `weekReport.profile.bundles` 按顺序组合：
+空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
+Node 服务用真实 Cordis loader 按行里的包名从 profile 的 `node_modules` 解析并挂载；
+Tauri 窗口只打开服务地址。系统依赖 `vue` / `element-plus` / 图标和各 bundle 都在
+`profile/node_modules`；首次启动会复制到 `%APPDATA%/com.lu.dev/profile`，用户可直接改 profile。
+浏览器侧 client bundle 构建为 IIFE，Vue / Element Plus / 图标使用宿主 `window` 上的同一份实例。
+运行时脚本与样式放入 `resources/js|css/`，由服务端 `/api/boot` 清单下发。
 
 完整 API、事件、组件契约见 [docs/plugin-api.md](docs/plugin-api.md)；
 画布设计器说明见 [docs/report-designer.md](docs/report-designer.md)。

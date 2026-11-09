@@ -18,7 +18,7 @@ function cssInjectedByJs(name) {
         css += await readFile(path.join(outDir, file), 'utf8')
         await rm(path.join(outDir, file), { force: true })
       }
-      const jsPath = path.join(outDir, 'index.js')
+      const jsPath = path.join(outDir, 'client.js')
       let js = await readFile(jsPath, 'utf8')
       js += `\n;(() => {
   if (document.querySelector('style[data-extension="${name}"]')) return
@@ -44,13 +44,44 @@ function writePackageManifest(name) {
         version: '1.0.0',
         private: true,
         type: 'module',
-        main: 'lib/index.js',
-        module: 'lib/index.js',
-        exports: { '.': './lib/index.js' }
+        main: 'lib/node.js',
+        module: 'lib/node.js',
+        exports: {
+          '.': './lib/node.js',
+          './client': './lib/client.js'
+        },
+        weekReport: {
+          bundle: { patch: './cordis.patch.yml' },
+          client: { entry: './lib/client.js' }
+        }
       }
       await writeFile(
         path.join(path.dirname(outDir), 'package.json'),
         `${JSON.stringify(manifest, null, 2)}\n`
+      )
+      await writeFile(
+        path.join(path.dirname(outDir), 'cordis.patch.yml'),
+        `- insert:\n    - id: ${name}\n      name: ${name}\n`
+      )
+      await writeFile(
+        path.join(outDir, 'node.js'),
+        `import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+export const name = ${JSON.stringify(name)}
+export const inject = ['clientModules']
+
+export function apply(ctx) {
+  ctx.clientModules.register({
+    id: ${JSON.stringify(name)},
+    package: ${JSON.stringify(name)},
+    file: join(dirname(fileURLToPath(import.meta.url)), 'client.js'),
+    url: '/client/${name}/index.js'
+  })
+}
+
+export default { name, inject, apply }
+`
       )
     }
   }
@@ -66,14 +97,14 @@ export function createExtensionConfig({ name, entry = 'src/index.js', root = pro
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
     },
     build: {
-      outDir: path.resolve(root, '../../src-tauri/resources/node_modules', name, 'lib'),
+      outDir: path.resolve(root, '../../profile/node_modules', name, 'lib'),
       emptyOutDir: true,
       cssCodeSplit: false,
       lib: {
         entry: path.resolve(root, entry),
         formats: ['iife'],
         name: '__wrPlugin',
-        fileName: () => 'index.js'
+        fileName: () => 'client.js'
       },
       rollupOptions: {
         // 浏览器没有 Node 解析器：Vue / Element Plus 由宿主环境提供，

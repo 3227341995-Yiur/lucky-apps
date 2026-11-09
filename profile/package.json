@@ -1,0 +1,28 @@
+{
+  "name": "week-report-profile",
+  "private": true,
+  "dependencies": {
+    "week-report-base": "1.0.0",
+    "kpi-card": "1.0.0",
+    "progress-board": "1.0.0",
+    "timeline-card": "1.0.0",
+    "rating-cell": "1.0.0",
+    "progress-cell": "1.0.0",
+    "user-cell": "1.0.0",
+    "money-cell": "1.0.0"
+  },
+  "weekReport": {
+    "profile": {
+      "bundles": [
+        "week-report-base",
+        "kpi-card",
+        "progress-board",
+        "timeline-card",
+        "rating-cell",
+        "progress-cell",
+        "user-cell",
+        "money-cell"
+      ]
+    }
+  }
+}

@@ -69,33 +69,39 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 ## 包与 profile
 
 每个插件是独立包，自己执行 `vite build`，产物按 node_modules 结构输出到
-`src-tauri/resources/node_modules/<name>/`（含 `package.json` 和 `lib/index.js`）。
-宿主只负责运行时加载，不参与插件打包。
+`profile/node_modules/<name>/`（含 `package.json`、`cordis.patch.yml`、`lib/node.js`
+和浏览器 `lib/client.js`）。宿主只负责运行时加载，不参与插件打包。
 
-内置包由 `src-tauri/resources/cordis.yml` 声明，条目只写包名：
-
-```yaml
-- id: kpi-card
-  name: 'kpi-card'
-```
-
-外部包安装到用户插件目录（设置 → 扩展 → 复制插件目录），profile 同样只写包名：
+profile 结构：
 
 ```text
-<AppData>/plugins/
-├─ cordis.yml
-└─ node_modules/@acme/my-widget/
-   ├─ package.json   # exports / module / main 指向构建产物
-   └─ lib/index.js
+profile/
+├─ package.json        weekReport.profile.bundles
+├─ cordis.yml          []（空根节点）
+├─ cordis.patch.yml    用户 patch 层
+└─ node_modules/
+   ├─ vue/
+   ├─ element-plus/
+   ├─ @element-plus/icons-vue/
+   ├─ week-report-base/
+   └─ kpi-card/ ...
 ```
+
+组合顺序和 DSH 一致：空根 → 各 bundle 的 `weekReport.bundle.patch` →
+profile 的 `cordis.patch.yml`。patch 支持 `insert` 新行和按 `id` 覆盖行，
+`config` 整行替换，不做深合并。
+
+组件包的 patch：
 
 ```yaml
-- id: my-widget
-  name: '@acme/my-widget'
+- insert:
+    - id: kpi-card
+      name: kpi-card
 ```
 
-宿主从对应的 `node_modules` 读取 `package.json` 的 `exports["."]` / `module` / `main`
-解析入口，和 Node 的包解析一致。保存后文件监听会热加载。
+用户 profile 在 `%APPDATA%\com.lu.dev\plugins`，结构相同；把包放进
+`plugins/node_modules` 并加入 `plugins/package.json` 的
+`weekReport.profile.bundles` 即可，不需要重新打包应用。
 
 ::: tip 内置组件包
 仓库自带 `kpi-card`、`progress-board`、`timeline-card` 三个画布包，以及

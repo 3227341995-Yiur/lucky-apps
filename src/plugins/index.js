@@ -27,13 +27,6 @@ async function installGlobalModules() {
   window.Vue = await import('vue')
   window.ElementPlus = await import('element-plus')
   window.ElementPlusIconsVue = await import('@element-plus/icons-vue')
-  window.TauriApi = await import('@tauri-apps/api')
-  window.TauriCore = await import('@tauri-apps/api/core')
-  window.TauriPath = await import('@tauri-apps/api/path')
-  window.TauriEvent = await import('@tauri-apps/api/event')
-  window.TauriWindow = await import('@tauri-apps/api/window')
-  window.TauriFs = await import('@tauri-apps/plugin-fs')
-  window.TauriSql = await import('@tauri-apps/plugin-sql')
   window.Handlebars = await import('handlebars')
   window.VditorModule = await import('vditor')
 }

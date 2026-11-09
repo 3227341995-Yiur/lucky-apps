@@ -15,11 +15,11 @@
 1. 安装内置能力并暴露 `window.weekReport`。
 2. 按文件名顺序注入 `resources/css/*.css`。
 3. 按文件名顺序加载 `resources/js/*.js`。
-4. 读取 `cordis.yml` profile，按包名/模块路径注册外部组件。
+4. Node 服务用真实 Cordis Loader 组合 `profile`（首次启动复制到 `%APPDATA%/com.lu.dev/profile`）：bundle patches → 用户 patch，按包名从 `node_modules` 挂载。
 5. 挂载 Vue 应用；插件脚本执行时 API 已就绪。
 
 ::: tip 热加载
-外部组件包由项目自己构建，宿主在启动时通过 Cordis profile 注册；内置包随应用打包，外部包可放入 AppData/plugins。
+外部组件包由项目自己构建，宿主在启动时通过 Cordis profile 注册；内置 profile 随应用打包，用户 profile 在 %APPDATA%/com.lu.dev/profile。
 :::
 
 ## API 版本

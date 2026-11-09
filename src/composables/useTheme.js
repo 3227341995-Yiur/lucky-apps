@@ -44,14 +44,6 @@ function applyTheme() {
   root.dataset.theme = resolved
   root.style.colorScheme = resolved
 
-  // 同步 Tauri 原生窗口主题（标题栏等）。
-  // 跟随系统时必须传 null，不能把 WebView 的主题写死成当前解析结果，
-  // 否则下次启动 prefers-color-scheme 会被窗口主题反向影响，系统亮色也会变 dark。
-  import('@tauri-apps/api/window')
-    .then(({ getCurrentWindow }) => (
-      getCurrentWindow().setTheme(themeMode.value === 'system' ? null : resolved)
-    ))
-    .catch(() => {})
 
   if (themeMode.value === 'system') scheduleSystemSync()
 

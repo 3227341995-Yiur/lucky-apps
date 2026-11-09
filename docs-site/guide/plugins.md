@@ -25,7 +25,7 @@ api.commands.register('my-plugin.refresh', async payload => {
 
 ## 可用全局对象
 
-`window.weekReport`、`window.Vue`、`window.ElementPlus`、`window.ElementPlusIconsVue`、`window.TauriApi`、`window.TauriFs`、`window.TauriPath`、`window.Handlebars`。
+`window.weekReport`、`window.Vue`、`window.ElementPlus`、`window.ElementPlusIconsVue`、`window.Handlebars`。
 
 ## 事件
 

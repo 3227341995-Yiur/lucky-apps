@@ -1,14 +1,12 @@
 /**
- * 数据访问层（SQLite / Tauri）
+ * 数据访问层（SQLite / Cordis Node 服务）
  *
  * 约定：
  * - reports 使用 deleted_at 软删除，回收站之外的所有查询都必须过滤 deleted_at IS NULL
  * - 任何写操作递增 dataVersion，插件搜索缓存据此失效
  * - config 存 JSON 字符串；meta 存系统设置与迁移标记
  */
-import Database from '@tauri-apps/plugin-sql'
-
-const DB_NAME = 'sqlite:week_report.db'
+import { dbSelect, dbExecute } from '@/services/rpc'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS reports (
@@ -45,9 +43,11 @@ CREATE TABLE IF NOT EXISTS templates (
 );
 `
 
-console.log('[DB] Loading database:', DB_NAME)
-export const database = await Database.load(DB_NAME)
-console.log('[DB] Database loaded successfully')
+export const database = {
+  select: dbSelect,
+  execute: dbExecute
+}
+
 await initDatabase()
 
 export async function initDatabase() {

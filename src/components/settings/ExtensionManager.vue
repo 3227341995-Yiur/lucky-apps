@@ -123,6 +123,9 @@ async function handleToggle(resource) {
         <span class="ext-count" :class="{ danger: errorCount > 0 }">
           <strong>{{ errorCount }}</strong> 项加载失败
         </span>
+        <span class="ext-count">
+          profile：<strong>{{ extensionState.profile?.bundles?.length || 0 }}</strong> 个 bundle
+        </span>
         <span class="ext-count" :class="{ danger: extensionState.watcher === 'error' }">
           文件监听：{{ extensionState.watcher === 'active' ? '已启用' : extensionState.watcher === 'error' ? '不可用' : '未启动' }}
         </span>
@@ -147,8 +150,9 @@ async function handleToggle(resource) {
     </div>
 
     <p class="ext-note">
-      内置组件包随应用打包；外部包安装到用户插件目录的 node_modules，并在
-      <code>plugins/cordis.yml</code> 写包名即可被 Cordis 注册。启用 / 禁用需要重新加载应用生效。
+      profile 由 <code>package.json</code> 的 <code>weekReport.profile.bundles</code> 组合：
+      先叠加各 bundle 的 <code>cordis.patch.yml</code>，再叠加 profile 自己的
+      <code>cordis.patch.yml</code>。外部包安装到用户 profile 的 node_modules 并加入 bundles 即可。
     </p>
 
     <div v-if="extensionState.loading || rescanning" class="ext-state">
@@ -159,7 +163,7 @@ async function handleToggle(resource) {
     <div v-else-if="extensionState.resources.length === 0" class="wr-empty-state">
       <el-icon :size="28"><FolderOpened /></el-icon>
       <h3>暂无扩展资源</h3>
-      <p>样式表与插件脚本放入资源目录的 css / js；外部组件包安装到用户插件目录的 node_modules。</p>
+      <p>样式表与插件脚本放入资源目录的 css / js；组件包通过 profile 的 bundles 组合。</p>
       <el-button size="small" @click="handleCopyPluginsPath">复制插件目录路径</el-button>
     </div>
 
@@ -174,7 +178,7 @@ async function handleToggle(resource) {
         </div>
 
         <p v-if="key === 'component-module'" class="group-note">
-          组件包默认导出 Cordis 插件，通过 <code>ctx.weekReport</code> 注册组件与列插槽；保存后自动热加载。
+          每个组件包提供 <code>weekReport.bundle.patch</code>，由 profile 组合后加载；保存后自动热加载。
         </p>
 
         <div class="ext-list">

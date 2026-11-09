@@ -4,11 +4,11 @@
 
 - API 版本：`2`
 - 入口：`window.weekReport`
-- 装配顺序：`main.js` → 安装内置能力 → 加载 `resources/css` → 加载 `resources/js` 插件脚本 → 读取 `resources/cordis.yml` 与 `AppData/plugins/cordis.yml`，运行时 import 组件包 → 挂载 Vue 应用。插件脚本执行时 API 已就绪。
+- 装配顺序：Tauri 启动 `server/dist/index.mjs` → 真实 Cordis Loader 组合 profile（空根 → bundles 的 `cordis.patch.yml` → profile `cordis.patch.yml`）→ Node 服务挂载数据库 / client-modules / 组件包 → WebView 打开服务地址并加载 `/api/boot` 清单。
 
 > 外部 Vue 组件是独立构建的 Cordis 包，不经过宿主 Vite，也不在运行时编译 SFC。
-> 内置包由 `src-tauri/resources/cordis.yml` 声明；外部包安装到
-> `AppData/plugins/node_modules`，在 `AppData/plugins/cordis.yml` 写包名即可注册。
+> 内置 profile 在 `profile`，外部 profile 在 `%APPDATA%/com.lu.dev/profile`；
+> 两者都用 `package.json` 的 `weekReport.profile.bundles` 和 `cordis.patch.yml` 组合。
 > 保存后自动热加载；也可在设置 → 扩展手动热加载。
 
 ---
@@ -138,12 +138,14 @@ export default {
 构建与注册：
 
 ```bash
-pnpm extensions:build   # 输出到 src-tauri/resources/node_modules/<name>/
+pnpm extensions:build   # 输出到 profile/node_modules/<name>/
 ```
 
-内置包在 `src-tauri/resources/cordis.yml` 只写 `name`；外部包安装到
-`AppData/plugins/node_modules/<包名>`，在 `AppData/plugins/cordis.yml` 同样只写 `name`
-（宿主读取 package.json 的 `exports` / `module` / `main`）。保存后自动热加载；
+内置 profile 在 `profile`：`package.json` 的
+`weekReport.profile.bundles` 列出各 bundle，每个 bundle 用
+`weekReport.bundle.patch` 提供 `cordis.patch.yml`；宿主按
+空根 → bundle patches → profile `cordis.patch.yml` 的顺序组合。
+用户 profile 在 `%APPDATA%/com.lu.dev/profile`，结构相同。保存后自动热加载；
 设置 → 扩展中可以启停，启停状态保存在数据库，重新加载应用后生效。
 
 ### 运行时注册组件
@@ -169,13 +171,12 @@ weekReport.components.has('rating')
 
 ## 5. 运行时插件脚本与样式
 
-- 脚本：`src-tauri/resources/js/*.js`，按文件名排序串行加载。
-- 样式：`src-tauri/resources/css/*.css`，按文件名排序注入。
+- 脚本：`resources/js/*.js`，按文件名排序串行加载。
+- 样式：`resources/css/*.css`，按文件名排序注入。
 - 脚本为普通 `<script>`（非模块），可直接使用：
   - `window.weekReport`
   - `window.Vue`
   - `window.ElementPlus` / `window.ElementPlusIconsVue`
-  - `window.TauriApi` / `window.TauriFs` / `window.TauriPath`
   - `window.Handlebars`
 
 依赖顺序示例：`marked.min.js` 字母序在 `registerHelper.js` 之前，因此 `registerHelper.js` 可以使用 `window.marked`。有强顺序需求时使用数字前缀（`01-xxx.js`）。
@@ -238,4 +239,4 @@ weekReport.extensions.errors
 
 ## 10. 安全说明
 
-运行时插件脚本拥有页面全部权限，且可以访问本地数据库。只加载可信来源的资源；安装第三方插件前先审查 `resources/js` 与 `AppData/plugins` 中的包。
+运行时插件脚本拥有页面全部权限，且可以访问本地数据库。只加载可信来源的资源；安装第三方插件前先审查 `resources/js` 与 `%APPDATA%/com.lu.dev/profile` 中的包。

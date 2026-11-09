@@ -15,13 +15,13 @@ import { getSetting, setSetting } from '@/services/database'
 const GROUP_LABELS = {
   style: '样式表',
   script: '插件脚本',
-  'component-module': '外部组件包 (.js)'
+  'component-module': '组件包（profile）'
 }
 
 const GROUP_HINTS = {
   style: '运行时注入的 CSS 文件',
   script: '按文件名排序加载的插件脚本',
-  'component-module': 'Cordis 组件包，运行时注册组件与列插槽'
+  'component-module': '由 profile bundles 组合，运行时注册组件与列插槽'
 }
 
 async function readDisabled() {

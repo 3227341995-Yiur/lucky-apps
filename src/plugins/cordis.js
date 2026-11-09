@@ -30,9 +30,9 @@ export async function mountCordisPlugin(name, setup) {
 /**
  * 挂载外部组件包导出的 Cordis 插件对象
  */
-export async function mountCordisPluginObject(name, plugin) {
+export async function mountCordisPluginObject(name, plugin, config) {
   await unmountCordisPlugin(name)
-  const fiber = cordis.plugin(plugin)
+  const fiber = config === undefined ? cordis.plugin(plugin) : cordis.plugin(plugin, config)
   fibers.set(name, fiber)
   await fiber
   return fiber

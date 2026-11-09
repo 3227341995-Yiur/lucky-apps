@@ -13,8 +13,8 @@ export function renderReport(report, templateString) {
   if (!templateString) return ''
 
   try {
-    // 去掉模板开头的注释行（# xxx Template）
-    const cleanTemplate = templateString.replace(/^#.*\n/, '')
+    // 只去掉旧式模板注释行（# Markdown Template），保留正文的 # 标题
+    const cleanTemplate = templateString.replace(/^#\s*(?:HTML|Markdown)\s+Template[^\n]*\n/i, '')
     const compiler = Handlebars.compile(cleanTemplate)
     return compiler(report)
   } catch (e) {

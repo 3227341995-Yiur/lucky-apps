@@ -1,8 +1,8 @@
 # 外部组件插件包
 
 每个目录都是独立 workspace 包，自己用 Vite 构建成单文件 IIFE，按 node_modules 结构输出到
-`src-tauri/resources/node_modules/<name>/`（含 `package.json` 和 `lib/index.js`），
-由宿主运行时 import 并通过 Cordis 挂载。宿主不参与插件打包。
+`profile/node_modules/<name>/`（含 `package.json`、`cordis.patch.yml`
+和 `lib/index.js`），由 profile 组合后交给 Cordis 挂载。宿主不参与插件打包。
 
 ```text
 extensions/
@@ -25,20 +25,20 @@ pnpm extensions:build
 
 ## profile
 
-内置包由 `src-tauri/resources/cordis.yml` 声明，只写包名：
+每个包声明 `weekReport.bundle.patch`，构建时生成自己的 `cordis.patch.yml`：
 
 ```yaml
-- id: kpi-card
-  name: 'kpi-card'
+- insert:
+    - id: kpi-card
+      name: kpi-card
 ```
 
-外部包安装到 `AppData/plugins/node_modules/<包名>`，在
-`AppData/plugins/cordis.yml` 同样只写包名，宿主按 Node 语义读取 package.json 入口：
+内置 profile 在 `profile`，`package.json` 的
+`weekReport.profile.bundles` 列出各 bundle；组合顺序为空根 → bundle patches →
+profile 的 `cordis.patch.yml`。
 
-```yaml
-- id: my-widget
-  name: '@acme/my-widget'
-```
+外部包安装到 `%APPDATA%/com.lu.dev/profile/node_modules/<包名>`，并在
+`%APPDATA%/com.lu.dev/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
 
 ## 入口
 

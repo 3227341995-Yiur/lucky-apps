@@ -5,27 +5,19 @@
   "identifier": "com.lu.dev",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
+    "devUrl": "http://127.0.0.1:34115",
+    "beforeDevCommand": "pnpm build && node scripts/build-server.mjs",
+    "beforeBuildCommand": "pnpm build && node scripts/build-server.mjs"
   },
   "app": {
-    "windows": [
-      {
-        "title": "周报管理系统",
-        "width": 1400,
-        "height": 800,
-        "resizable": true,
-        "fullscreen": false,
-        "devtools": true,
-        "dragDropEnabled": false
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["**"]
+        "scope": [
+          "**"
+        ]
       }
     }
   },
@@ -44,9 +36,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "resources/**/*"
-    ],
+    "resources": {
+      "../dist": "dist",
+      "../server/dist/index.mjs": "server/dist/index.mjs",
+      "../profile": "profile",
+      "../resources": "resources"
+    },
     "windows": {
       "wix": {
         "language": "zh-CN"

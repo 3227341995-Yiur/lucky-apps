@@ -25,25 +25,24 @@ export function formatDateRange(dateRange) {
  * @returns {Promise<string>} 渲染后的内容
  */
 export async function renderReportContent(report, format = 'html') {
-  // 自由画布报告优先使用布局渲染 HTML，保证复制/导出与画布一致
+  // 复制/导出优先使用模板设计器里的默认模板；只有没有模板时才回退到画布 HTML
+  const template = await getDefaultTemplate(format)
+  if (template?.template) {
+    const reportData = {
+      title: report.title,
+      dateRange: formatDateRange(report.dateRange),
+      sections: report.sections || []
+    }
+    return format === 'markdown'
+      ? renderMarkdown(reportData, template.template)
+      : renderHtml(reportData, template.template)
+  }
+
   if (format === 'html' && report?.layout && Array.isArray(report.layout.elements)) {
     return renderLayoutHtml(report, report.layout, report.sections || [])
   }
 
-  const template = await getDefaultTemplate(format)
-  if (!template || !template.template) {
-    throw new Error('未找到模板配置')
-  }
-
-  const reportData = {
-    title: report.title,
-    dateRange: formatDateRange(report.dateRange),
-    sections: report.sections || []
-  }
-
-  return format === 'markdown'
-    ? renderMarkdown(reportData, template.template)
-    : renderHtml(reportData, template.template)
+  throw new Error(`未找到${format === 'markdown' ? ' Markdown ' : ' HTML '}默认模板`)
 }
 
 /**
