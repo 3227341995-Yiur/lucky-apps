@@ -25,6 +25,36 @@ const props = defineProps({
   }
 })
 
+
+function evaluateExpression(element, fallback) {
+  let code = String(element?.expression || '').trim()
+  if (!code) return fallback
+  const wrapped = /^\{\{([\s\S]*)\}\}$/.exec(code)
+  if (wrapped) code = wrapped[1].trim()
+  const dateText = typeof props.dateRange === 'string' ? props.dateRange : ''
+  const report = {
+    title: props.title,
+    dateRange: dateText,
+    sections: []
+  }
+  try {
+    let result
+    try {
+      result = new Function('report', 'moment', `"use strict"; return (${code});`)(report, window.moment)
+    } catch {
+      result = new Function('report', 'moment', `"use strict";
+${code}`)(report, window.moment)
+    }
+    return result === undefined || result === null ? '' : String(result)
+  } catch (error) {
+    console.warn('[designer] 内容表达式执行失败:', code, error)
+    return fallback
+  }
+}
+
+const displayTitle = computed(() => evaluateExpression(props.element, props.title))
+const displayDate = computed(() => evaluateExpression(props.element, props.dateRange))
+
 const style = computed(() => props.element.style || {})
 
 const boxStyle = computed(() => ({
@@ -76,11 +106,11 @@ const sampleRows = computed(() => {
 <template>
   <div class="widget-view" :class="`is-${element.type}`">
     <template v-if="element.type === 'title'">
-      <div class="wv-text" :style="{ ...textStyle, ...boxStyle }">{{ title }}</div>
+      <div class="wv-text" :style="{ ...textStyle, ...boxStyle }">{{ displayTitle }}</div>
     </template>
 
     <template v-else-if="element.type === 'date'">
-      <div class="wv-text" :style="{ ...textStyle, ...boxStyle }">{{ dateRange }}</div>
+      <div class="wv-text" :style="{ ...textStyle, ...boxStyle }">{{ displayDate }}</div>
     </template>
 
     <template v-else-if="element.type === 'text'">

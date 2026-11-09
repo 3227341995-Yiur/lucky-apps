@@ -1,0 +1,14 @@
+{
+  "name": "@week-report/cli",
+  "version": "1.0.0",
+  "description": "Week Report Cordis profile plugin CLI",
+  "type": "module",
+  "bin": {
+    "week-report": "bin.js"
+  },
+  "main": "src/index.js",
+  "exports": { ".": "./src/index.js" },
+  "files": ["bin.js", "src", "README.md"],
+  "private": false,
+  "license": "MIT"
+}

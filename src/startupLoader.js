@@ -27,7 +27,7 @@ export const DEFAULT_LOADING_CONFIG = {
   background: '',
   effect: 'explode',
   particleCount: 8,
-  particleShape: 'mixed',
+  particleShape: 'circle',
   particleColors: DEFAULT_PALETTE,
   showPen: true,
   speed: 1
@@ -162,8 +162,8 @@ function particleColors(config) {
 }
 
 function pickShape(config, index) {
-  if (config.particleShape !== 'mixed') return config.particleShape
-  return index % 3 === 0 ? 'square' : 'circle'
+  if (config.particleShape === 'mixed') return 'circle'
+  return config.particleShape
 }
 
 /**
@@ -334,7 +334,23 @@ export function startStartupLoader(options = {}) {
   function finish() {
     if (finishRequested) return
     finishRequested = true
-    if (introDone) explode()
+    // 资源加载完成就快进到当前进度之后，不写死完整播放时长。
+    if (introDone || timeline.progress >= 1) {
+      explode()
+      return
+    }
+    timeline.pause()
+    const fast = { p: timeline.progress }
+    animate(fast, {
+      p: 1,
+      duration: 260,
+      ease: 'linear',
+      onUpdate: () => { timeline.progress = fast.p },
+      onComplete: () => {
+        introDone = true
+        explode()
+      }
+    })
   }
 
   if (options.preview) {

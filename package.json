@@ -19,7 +19,12 @@
     "test": "node --test \"tests/**/*.test.js\"",
     "extensions:build": "pnpm -r --filter \"./extensions/*\" build",
     "build:server": "node scripts/build-server.mjs",
-    "profile:build": "pnpm extensions:build && node scripts/build-profile.mjs"
+    "profile:build": "pnpm extensions:build && node scripts/build-profile.mjs",
+    "plugin": "node packages/cli/bin.js",
+    "week-report": "node packages/cli/bin.js",
+    "plugin:add": "node packages/cli/bin.js plugin add",
+    "plugin:remove": "node packages/cli/bin.js plugin remove",
+    "plugin:list": "node packages/cli/bin.js plugin list"
   },
   "dependencies": {
     "@codemirror/lang-html": "^6.4.11",
