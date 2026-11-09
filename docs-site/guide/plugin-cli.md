@@ -12,6 +12,10 @@ pnpm week-report plugin add ../my-widget --user
 # 查看 / 移除
 pnpm week-report plugin list --user
 pnpm week-report plugin remove my-widget --user
+
+# 从 GitHub / Git 仓库安装
+pnpm week-report plugin add github:owner/repo
+pnpm week-report plugin add https://github.com/owner/repo
 ```
 
 也可以直接使用 CLI bin：
@@ -30,6 +34,7 @@ week-report plugin add <包名|本地目录> [--profile <dir>|--user]
 
 它不会复制 `node_modules`，也不会手写一份固定配置。组件包可以自己决定构建产物在哪，只要 `package.json` 的
 `weekReport.client.entry` 指向它；发布到 npm 后直接写包名即可。
+设置面板里的搜索安装框同样支持 npm、GitHub 仓库 URL、`github:owner/repo` 和本地目录。
 
 ## 包要求
 

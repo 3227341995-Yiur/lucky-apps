@@ -9,7 +9,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
-const profileDir = join(root, 'server', 'profile')
+const profileDir = join(root, 'src-tauri', 'target', 'profile')
 const vendorDir = join(profileDir, 'vendor')
 
 async function packageDirs(parent) {
@@ -53,19 +53,30 @@ for (const dir of candidates) {
   packages.push({
     name: manifest.name,
     version: manifest.version,
-    file: `file:./vendor/${manifest.name}-${manifest.version}.tgz`
+    file: `file:./vendor/${manifest.name}-${manifest.version}.tgz`,
+    hasBundle: Boolean(manifest.weekReport?.bundle?.patch)
   })
 }
 
-const profileManifestPath = join(profileDir, 'package.json')
-const profileManifest = JSON.parse(await readFile(profileManifestPath, 'utf8'))
-profileManifest.dependencies = {
-  vue: '^3.5.44',
-  'element-plus': '^2.14.7',
-  '@element-plus/icons-vue': '^2.3.2',
-  ...Object.fromEntries(packages.map(item => [item.name, item.file]))
+await mkdir(profileDir, { recursive: true })
+const bundleNames = packages
+  .filter(item => item.hasBundle)
+  .map(item => item.name)
+  .sort((a, b) => (a === 'week-report-base' ? -1 : b === 'week-report-base' ? 1 : a.localeCompare(b)))
+const profileManifest = {
+  name: 'week-report-profile',
+  private: true,
+  dependencies: {
+    vue: '^3.5.44',
+    'element-plus': '^2.14.7',
+    '@element-plus/icons-vue': '^2.3.2',
+    ...Object.fromEntries(packages.map(item => [item.name, item.file]))
+  },
+  weekReport: { profile: { bundles: bundleNames } }
 }
-await writeFile(profileManifestPath, `${JSON.stringify(profileManifest, null, 2)}\n`)
+await writeFile(join(profileDir, 'package.json'), `${JSON.stringify(profileManifest, null, 2)}\n`)
+await writeFile(join(profileDir, 'cordis.yml'), '[]\n')
+await writeFile(join(profileDir, 'cordis.patch.yml'), '[]\n')
 await writeFile(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
 
 console.log('[profile] pnpm install')

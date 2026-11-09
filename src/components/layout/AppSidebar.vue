@@ -13,7 +13,10 @@ const props = defineProps({
   activePluginPage: { type: String, default: null }
 })
 
-const emit = defineEmits(['create', 'settings', 'templates', 'import-export', 'open-plugin-page'])
+const emit = defineEmits([
+  'create', 'settings', 'templates', 'import-export', 'open-plugin-page',
+  'open-welcome', 'open-reports'
+])
 
 const reports = useReports()
 const { state } = reports
@@ -103,12 +106,11 @@ function handleScroll({ scrollTop }) {
 }
 
 function openReports() {
-  reports.setView('reports')
+  emit('open-reports')
 }
 
 function openWelcome() {
-  reports.clearCurrent()
-  reports.setView('reports')
+  emit('open-welcome')
 }
 </script>
 
@@ -133,7 +135,7 @@ function openWelcome() {
             class="rail-item"
             title="工作台"
             aria-label="工作台"
-            :class="{ active: state.view === 'reports' && !state.currentId }"
+            :class="{ active: !activePluginPage && state.view === 'reports' && !state.currentId }"
             @click="openWelcome"
           >
             <el-icon :size="18"><HomeFilled /></el-icon>
@@ -145,7 +147,7 @@ function openWelcome() {
             class="rail-item"
             title="周报"
             aria-label="周报"
-            :class="{ active: state.view === 'reports' && !!state.currentId }"
+            :class="{ active: !activePluginPage && state.view === 'reports' && !!state.currentId }"
             @click="openReports"
           >
             <el-icon :size="18"><Document /></el-icon>

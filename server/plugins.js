@@ -23,13 +23,17 @@ export function installProfilePlugin(profileDir, spec) {
   if (!spec || !String(spec).trim()) throw new Error('请输入包名或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   writeFileSync(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
+  const before = readJson(join(profileDir, 'package.json')).dependencies || {}
   execFileSync('pnpm', ['add', spec, '--node-linker=hoisted'], {
     cwd: profileDir,
     stdio: 'inherit',
     shell: process.platform === 'win32'
   })
 
-  let name = specName(spec)
+  const after = readJson(join(profileDir, 'package.json')).dependencies || {}
+  const changed = Object.keys(after).filter(key => before[key] !== after[key])
+  let name = changed.find(key => existsSync(join(profileDir, 'node_modules', key, 'package.json')))
+    || specName(spec)
   const installedPath = join(profileDir, 'node_modules', name, 'package.json')
   if (!existsSync(installedPath)) throw new Error(`安装后找不到包: ${name}`)
   const installed = readJson(installedPath)

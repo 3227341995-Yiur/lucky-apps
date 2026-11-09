@@ -377,7 +377,8 @@ async function init() {
       openSettings: () => callUiHook('openSettings'),
       openImportExport: () => callUiHook('openImportExport'),
       openDesigner: () => callUiHook('openDesigner'),
-      openTemplates: () => callUiHook('openTemplates')
+      openTemplates: () => callUiHook('openTemplates'),
+      navigate: id => callUiHook('navigate', id)
     })
 
     state.initialized = true

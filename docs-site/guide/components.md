@@ -71,12 +71,12 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 每个插件是独立包，自己执行 `vite build`，产物在包内 `lib/`：
 `lib/node.js`（Node half）和 `lib/client.js`（浏览器 bundle），包根目录带
 `cordis.patch.yml`。`pnpm profile:build` 会把包 `pnpm pack` 成 tarball，
-再由 `pnpm install` 安装到 `server/profile/node_modules`（真实 pnpm profile，不是手工复制）。
+再由 `pnpm install` 安装到 `src-tauri/target/profile/node_modules`（真实 pnpm profile，不是手工复制）。
 
 profile 结构：
 
 ```text
-server/profile/
+src-tauri/target/profile/
 ├─ package.json        weekReport.profile.bundles + 依赖
 ├─ cordis.yml          []（空根节点）
 ├─ cordis.patch.yml    用户 patch 层

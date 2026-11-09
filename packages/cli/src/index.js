@@ -39,12 +39,12 @@ function parseArgs(argv) {
 function repoProfileDir() {
   let dir = process.cwd()
   for (let i = 0; i < 6; i += 1) {
-    if (existsSync(join(dir, 'server', 'profile', 'package.json'))) return join(dir, 'server', 'profile')
+    if (existsSync(join(dir, 'src-tauri', 'target', 'profile', 'package.json'))) return join(dir, 'src-tauri', 'target', 'profile')
     const parent = resolve(dir, '..')
     if (parent === dir) break
     dir = parent
   }
-  return join(packageRoot, '..', '..', 'server', 'profile')
+  return join(packageRoot, '..', '..', 'src-tauri', 'target', 'profile')
 }
 
 function profileDirOf(options) {
@@ -121,9 +121,13 @@ export async function run(argv) {
     if (!spec) throw new Error('缺少包名或目录')
     if (!existsSync(profileDir)) throw new Error(`profile 不存在: ${profileDir}`)
     writeFileSync(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
+    const before = readProfile(profileDir).dependencies || {}
     pnpm(['add', spec, '--node-linker=hoisted'], profileDir)
 
-    let name = specName(spec)
+    const after = readProfile(profileDir).dependencies || {}
+    const changed = Object.keys(after).filter(key => before[key] !== after[key])
+    let name = changed.find(key => existsSync(join(profileDir, 'node_modules', key, 'package.json')))
+      || specName(spec)
     const installed = readInstalledManifest(profileDir, name)
     if (installed?.name) name = installed.name
     if (!installed) throw new Error(`安装后找不到包: ${name}`)

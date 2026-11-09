@@ -123,6 +123,10 @@ function scheduleSearch() {
     return
   }
   searchTimer = setTimeout(async () => {
+    if (/^(https?:\/\/|git\+|git@|github:)/i.test(query)) {
+      installResults.value = [{ name: 'GitHub / Git 仓库', version: '', description: query, spec: query }]
+      return
+    }
     if (/[\\/]|^\.|^[A-Za-z]:/.test(query)) {
       installResults.value = [{ name: '本地组件目录', version: '', description: query, spec: query }]
       return

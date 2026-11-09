@@ -1,4 +1,0 @@
-# week-report profile root — 空入口列表。
-# 实际配置树由 package.json 的 weekReport.profile.bundles 中各 bundle 的
-# cordis.patch.yml、本目录的 cordis.patch.yml 依次叠加而成。
-[]

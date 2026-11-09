@@ -266,7 +266,9 @@ export const pluginApi = {
   },
   navigation: {
     register: registerNavItem,
-    list: listNavItems
+    list: listNavItems,
+    /** 统一跳转：welcome / reports / 外部 nav id */
+    open: id => callUi('navigate', id)
   },
   settings: {
     register: registerSettingsSection,
@@ -290,9 +292,7 @@ export const pluginApi = {
     openSettings: () => callUi('openSettings'),
     openImportExport: () => callUi('openImportExport'),
     openDesigner: () => callUi('openDesigner'),
-    openTemplates: () => callUi('openTemplates'),
-    openReports: () => callUi('openReports'),
-    openWelcome: () => callUi('openWelcome')
+    openTemplates: () => callUi('openTemplates')
   },
   branding: {
     get: () => ({ ...branding }),

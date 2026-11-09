@@ -123,7 +123,7 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
     .env("WR_APP_ROOT", &root)
     .env("WR_DIST_DIR", root.join("dist"))
     .env("WR_RESOURCES_DIR", root.join("resources"))
-    .env("WR_BUNDLED_PROFILE_DIR", if cfg!(debug_assertions) { root.join("server").join("profile") } else { root.join("profile") })
+    .env("WR_BUNDLED_PROFILE_DIR", if cfg!(debug_assertions) { root.join("src-tauri").join("target").join("profile") } else { root.join("profile") })
     .env("WR_DB_PATH", &db_path)
     .env("WR_PARENT_PID", std::process::id().to_string())
     .env("WR_APP_EXE", std::env::current_exe().unwrap_or_default())

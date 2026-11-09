@@ -10,7 +10,7 @@ import ReportStructureDesigner from '@/components/designer/ReportStructureDesign
 import TemplateDesigner from '@/components/TemplateDesigner/index.vue'
 import { useReports } from '@/composables/useReports'
 import { pluginApi } from '@/plugins/api'
-import { getNavItemComponent } from '@/plugins/registry'
+import { getNavItemComponent, listNavItems } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
 
 const reports = useReports()
@@ -38,6 +38,32 @@ function closeDialogs() {
 function openPluginPage(item) {
   closeDialogs()
   activePluginPage.value = item.id
+}
+
+function openWelcomePage() {
+  activePluginPage.value = null
+  reports.clearCurrent()
+  reports.setView('reports')
+}
+
+function openReportsPage() {
+  activePluginPage.value = null
+  reports.setView('reports')
+}
+
+function navigateTo(id) {
+  if (!id || id === 'reports') {
+    openReportsPage()
+    return true
+  }
+  if (id === 'welcome') {
+    openWelcomePage()
+    return true
+  }
+  const item = listNavItems().find(entry => entry.id === id)
+  if (!item) return false
+  openPluginPage(item)
+  return true
 }
 
 function openSettings() {
@@ -127,8 +153,7 @@ onMounted(async () => {
     openImportExport: () => openImportExport('export'),
     openDesigner: () => openDesigner('edit'),
     openTemplates,
-    openReports: () => { activePluginPage.value = null; reports.setView('reports') },
-    openWelcome: () => { activePluginPage.value = null; reports.clearCurrent(); reports.setView('reports') }
+    navigate: navigateTo
   })
   await reports.init()
 })
@@ -169,6 +194,8 @@ watch(
       @import-export="openImportExport('export')"
       :active-plugin-page="activePluginPage"
       @open-plugin-page="openPluginPage"
+      @open-welcome="openWelcomePage"
+      @open-reports="openReportsPage"
     />
 
     <main class="wr-main">

@@ -105,7 +105,7 @@ async function handleEmpty() {
     <div class="wr-page-inner trash-inner">
       <header class="trash-header">
         <div class="header-main">
-          <el-button class="back-button" text @click="api.ui.openReports()">
+          <el-button class="back-button" text @click="api.navigation.open('reports')">
             <el-icon><ArrowLeft /></el-icon>
             <span>返回周报</span>
           </el-button>
@@ -140,7 +140,7 @@ async function handleEmpty() {
           <span class="empty-icon"><el-icon :size="26"><Delete /></el-icon></span>
           <h3>回收站是空的</h3>
           <p>删除的周报会出现在这里，可以随时恢复。</p>
-          <el-button type="primary" plain @click="api.ui.openReports()">返回周报</el-button>
+          <el-button type="primary" plain @click="api.navigation.open('reports')">返回周报</el-button>
         </div>
 
         <div v-else class="trash-list">

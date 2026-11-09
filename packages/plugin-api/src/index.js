@@ -70,6 +70,9 @@ export const navigation = {
   },
   list() {
     return requireHost().navigation.list()
+  },
+  open(id) {
+    return requireHost().navigation.open(id)
   }
 }
 
@@ -112,12 +115,6 @@ export const ui = {
   },
   openTemplates() {
     return requireHost().ui.openTemplates()
-  },
-  openReports() {
-    return requireHost().ui.openReports()
-  },
-  openWelcome() {
-    return requireHost().ui.openWelcome()
   }
 }
 

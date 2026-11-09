@@ -5,7 +5,7 @@
 - `weekReport.client.entry`：浏览器组件 bundle
 - `main` / `exports`：可选的 Cordis Node 插件入口
 
-这里的示例用 Vite 构建到包内 `lib/`，但不是宿主限制。`pnpm profile:build` 只负责把包安装到 `server/profile/node_modules`。
+这里的示例用 Vite 构建到包内 `lib/`，但不是宿主限制。`pnpm profile:build` 只负责把包安装到 `src-tauri/target/profile/node_modules`。
 
 ```text
 extensions/
@@ -41,7 +41,7 @@ pnpm extensions:build
 profile 的 `cordis.patch.yml`。
 
 外部包用 `pnpm --dir <profile> add <包名>` 安装到用户 profile 的 node_modules，
-并在 `server/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
+并在 `src-tauri/target/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
 
 ## 入口
 
