@@ -206,7 +206,15 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
   const installed = await readJson(join(targetDir, 'package.json'))
   const bundledVersion = String(bundled?.weekReport?.profile?.version || '')
   const installedVersion = String(installed?.weekReport?.profile?.version || '')
-  if (!bundled || !installed || !bundledVersion || bundledVersion === installedVersion) return false
+  if (!bundled || !installed || !bundledVersion) return false
+  // 优先比较构建指纹：同一应用版本内插件包更新也要重新播种；老 profile 回退版本号比较。
+  const bundledBuild = String(bundled?.weekReport?.profile?.build || '')
+  const installedBuild = String(installed?.weekReport?.profile?.build || '')
+  // bundled 有指纹时要求精确匹配：用户 profile 没有指纹（老版本）也必须重播
+  const upToDate = bundledBuild
+    ? bundledBuild === installedBuild
+    : bundledVersion === installedVersion
+  if (upToDate) return false
 
   await cp(join(sourceDir, 'vendor'), join(targetDir, 'vendor'), {
     recursive: true,

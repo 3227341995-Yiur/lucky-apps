@@ -74,6 +74,8 @@ const profileManifest = {
   weekReport: {
     profile: {
       version: appManifest.version,
+      // 同一版本内插件包也会变化：构建指纹不同就重新播种 bundled profile
+      build: `${Date.now().toString(36)}-${process.pid.toString(36)}`,
       bundles: bundleNames,
     },
   },
