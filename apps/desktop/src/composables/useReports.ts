@@ -395,8 +395,8 @@ let uiHooks = {}
 function registerUiHooks(hooks) {
   uiHooks = { ...uiHooks, ...hooks }
 }
-function callUiHook(name) {
-  return uiHooks[name]?.()
+function callUiHook(name, ...args) {
+  return uiHooks[name]?.(...args)
 }
 
 const counts = computed(() => ({

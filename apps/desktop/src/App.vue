@@ -49,6 +49,20 @@ function openReportsPage() {
 function navigateTo(id) {
   if (!id) return false
   const alias = id === 'welcome' ? 'home' : id
+  // 程序化返回“周报”（如回收站按钮）：有打开的周报回编辑器，否则打开最近一份
+  if (alias === 'reports') {
+    closeDialogs()
+    if (state.currentReport) {
+      activePluginPage.value = 'reports'
+      return true
+    }
+    const latest = state.reports?.[0]
+    if (latest) {
+      reports.selectReport(latest.id)
+      return true
+    }
+    return navigateTo('home')
+  }
   const item = listNavItems().find(entry => entry.id === alias)
   if (!item) return false
   openPluginPage(item)
