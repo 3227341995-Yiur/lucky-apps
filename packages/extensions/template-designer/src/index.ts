@@ -3,6 +3,7 @@ import TemplateDesignerPage from './TemplateDesignerPage.vue'
 
 export default definePlugin({
   name: 'template-designer',
+  inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'template-designer',

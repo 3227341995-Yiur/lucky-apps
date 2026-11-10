@@ -3,6 +3,7 @@ import DesignerPage from './DesignerPage.vue'
 
 export default definePlugin({
   name: 'structure-designer',
+  inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'structure-designer',

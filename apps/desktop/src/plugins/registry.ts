@@ -116,6 +116,30 @@ export function registerSidebarPanel(item = {}) {
   return entry
 }
 
+const railActionCatalog = shallowRef([])
+
+export function registerRailAction(item = {}) {
+  if (!item.id || typeof item.onClick !== 'function') {
+    throw new Error('[registry] rail 动作需要 id 与 onClick')
+  }
+  const entry = {
+    id: item.id,
+    order: Number(item.order) || 100,
+    icon: item.icon || 'Plus',
+    title: item.title || '',
+    onClick: item.onClick,
+  }
+  const index = railActionCatalog.value.findIndex(existing => existing.id === entry.id)
+  railActionCatalog.value = index === -1
+    ? [...railActionCatalog.value, entry]
+    : railActionCatalog.value.map(existing => (existing.id === entry.id ? entry : existing))
+  return entry
+}
+
+export function listRailActions() {
+  return [...railActionCatalog.value].sort((a, b) => a.order - b.order)
+}
+
 export function listSidebarPanels() {
   return [...sidebarPanelCatalog.value].sort((a, b) => a.order - b.order)
 }

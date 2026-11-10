@@ -1,4 +1,4 @@
-# Lucky Apps v2.0.10
+# Lucky Apps v3.0.0
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的桌面周报工具。
 

@@ -3,6 +3,7 @@ import HomePage from './HomePage.vue'
 
 export default definePlugin({
   name: 'home',
+  inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'home',

@@ -15,6 +15,8 @@ import {
   hasComponent,
   registerSidebarPanel,
   listSidebarPanels,
+  registerRailAction,
+  listRailActions,
 } from '@/plugins/registry'
 
 export const name = 'registry'
@@ -31,6 +33,8 @@ export function apply(ctx) {
   ctx.provide('sidebar', {
     registerPanel: registerSidebarPanel,
     list: listSidebarPanels,
+    registerRailAction,
+    listRailActions,
   })
   ctx.provide('components', {
     register: (name, component, meta) => registerComponent(name, component, { ...meta, scope: 'column', source: 'plugin' }),

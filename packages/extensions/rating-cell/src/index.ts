@@ -4,6 +4,7 @@ import { definePlugin } from 'plugin-api'
 
 export default definePlugin({
   name: 'rating-cell',
+  inject: ['components'],
   apply(ctx) {
     ctx.components.registerColumn('RatingCell', RatingCell, {
       value: 'rating-cell',

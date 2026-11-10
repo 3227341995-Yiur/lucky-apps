@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { listNavItems, listSidebarPanels } from '@/plugins/registry'
+import { listNavItems, listSidebarPanels, listRailActions } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
@@ -15,6 +15,8 @@ const emit = defineEmits(['settings', 'open-plugin-page'])
 const pluginNavItems = computed(() => listNavItems())
 // 周报插件等通过 ctx.sidebar.registerPanel 提供左侧面板（新建入口 + 周报列表）
 const sidebarPanels = computed(() => listSidebarPanels())
+// 周报插件注册的“新建周报”等 rail 图标动作
+const railActions = computed(() => listRailActions())
 </script>
 
 <template>
@@ -24,6 +26,24 @@ const sidebarPanels = computed(() => listSidebarPanels())
         <img v-if="branding.icon" :src="branding.icon" alt="" />
         <span v-else>LA</span>
       </div>
+
+      <el-tooltip
+        v-for="action in railActions"
+        :key="action.id"
+        :content="action.title"
+        placement="right"
+        :show-after="500"
+      >
+        <button
+          type="button"
+          class="rail-create"
+          :title="action.title"
+          :aria-label="action.title"
+          @click="action.onClick()"
+        >
+          <el-icon :size="16"><component :is="action.icon" /></el-icon>
+        </button>
+      </el-tooltip>
 
       <div class="rail-items">
         <el-tooltip

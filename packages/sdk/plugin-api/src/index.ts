@@ -83,6 +83,12 @@ export const sidebar = {
   list() {
     return requireHost().sidebar.list()
   },
+  registerRailAction(item) {
+    return requireHost().sidebar.registerRailAction(item)
+  },
+  listRailActions() {
+    return requireHost().sidebar.listRailActions()
+  },
 }
 
 export const settings = {

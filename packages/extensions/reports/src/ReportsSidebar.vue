@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useWeekReport } from 'plugin-api'
 import { getIsoWeek } from './utils-date'
+import { createWeekReport } from './createReport'
 
 defineOptions({ name: 'ReportsSidebar' })
 
@@ -72,25 +73,6 @@ async function load() {
   }
 }
 
-async function createReport() {
-  try {
-    const now = new Date()
-    const day = now.getDay() || 7
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - (day - 1))
-    const friday = new Date(monday)
-    friday.setDate(monday.getDate() + 4)
-    const format = date => date.toISOString().slice(0, 10)
-    const report = await api.reports.create({
-      title: `周报 ${format(monday).slice(5)} ~ ${format(friday).slice(5)}`,
-      dateRange: [format(monday), format(friday)],
-    })
-    await api.ui.selectReport(report.id)
-  } catch (error) {
-    ElMessage.error(`新建周报失败：${error?.message || error}`)
-  }
-}
-
 function selectReport(report) {
   api.ui.selectReport(report.id)
 }
@@ -129,11 +111,6 @@ onBeforeUnmount(() => off?.())
         <span class="panel-count">{{ reports.length }}</span>
       </div>
       <div class="panel-actions">
-        <el-tooltip content="新建周报（Ctrl N）" placement="bottom" :show-after="500">
-          <button type="button" title="新建周报" aria-label="新建周报" @click="createReport">
-            <el-icon :size="14"><Plus /></el-icon>
-          </button>
-        </el-tooltip>
         <el-tooltip content="模板设计" placement="bottom" :show-after="500">
           <button type="button" title="模板设计" aria-label="模板设计" @click="api.navigation.open('template-designer')">
             <el-icon :size="14"><DocumentCopy /></el-icon>
@@ -198,7 +175,7 @@ onBeforeUnmount(() => off?.())
         <div v-else-if="reports.length === 0 && !keywords" class="panel-empty">
           <el-icon :size="20"><DocumentAdd /></el-icon>
           <p>还没有周报</p>
-          <button type="button" @click="createReport">新建第一份</button>
+          <button type="button" @click="createWeekReport()">新建第一份</button>
         </div>
       </div>
     </el-scrollbar>

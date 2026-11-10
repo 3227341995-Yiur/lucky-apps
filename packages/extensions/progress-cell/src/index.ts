@@ -4,6 +4,7 @@ import { definePlugin } from 'plugin-api'
 
 export default definePlugin({
   name: 'progress-cell',
+  inject: ['components'],
   apply(ctx) {
     ctx.components.registerColumn('ProgressCell', ProgressCell, {
       value: 'progress-cell',

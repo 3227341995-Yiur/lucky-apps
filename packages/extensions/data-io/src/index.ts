@@ -3,6 +3,7 @@ import ImportExportPage from './ImportExportPage.vue'
 
 export default definePlugin({
   name: 'data-io',
+  inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'data-io',

@@ -2,9 +2,11 @@ import { definePlugin } from 'plugin-api'
 import ReportsPage from './ReportsPage.vue'
 import ReportsSidebar from './ReportsSidebar.vue'
 import ReportsSettings from './ReportsSettings.vue'
+import { createWeekReport } from './createReport'
 
 export default definePlugin({
   name: 'reports',
+  inject: ['navigation', 'settings', 'sidebar'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'reports',
@@ -12,6 +14,13 @@ export default definePlugin({
       icon: 'Document',
       order: 10,
       component: ReportsPage,
+    })
+    ctx.sidebar.registerRailAction({
+      id: 'reports-create',
+      order: 10,
+      icon: 'Plus',
+      title: '新建周报（Ctrl N）',
+      onClick: () => createWeekReport(),
     })
     ctx.sidebar.registerPanel({
       id: 'reports',

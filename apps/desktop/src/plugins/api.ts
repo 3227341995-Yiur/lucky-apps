@@ -55,6 +55,8 @@ import {
   listSettingsSections,
   registerSidebarPanel,
   listSidebarPanels,
+  registerRailAction,
+  listRailActions,
   registerComponent,
   registerColumnSlot,
   listComponents,
@@ -288,6 +290,8 @@ export const pluginApi = {
   sidebar: {
     registerPanel: registerSidebarPanel,
     list: listSidebarPanels,
+    registerRailAction,
+    listRailActions,
   },
   /** Cordis 扩展生命周期（插件脚本可注册自己的插件） */
   cordis,

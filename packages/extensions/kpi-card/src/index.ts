@@ -3,6 +3,7 @@ import { definePlugin } from 'plugin-api'
 
 export default definePlugin({
   name: 'kpi-card',
+  inject: ['components'],
   apply(ctx) {
     ctx.components.registerCanvas('KpiCard', KpiCard, {
       value: 'kpi-card',

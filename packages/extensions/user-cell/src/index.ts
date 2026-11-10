@@ -4,6 +4,7 @@ import { definePlugin } from 'plugin-api'
 
 export default definePlugin({
   name: 'user-cell',
+  inject: ['components'],
   apply(ctx) {
     ctx.components.registerColumn('UserCell', UserCell, {
       value: 'user-cell',

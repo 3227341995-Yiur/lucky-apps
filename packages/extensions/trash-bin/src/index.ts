@@ -4,6 +4,7 @@ import TrashPage from './TrashPage.vue'
 
 export default definePlugin({
   name: 'trash-bin',
+  inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'trash-bin',

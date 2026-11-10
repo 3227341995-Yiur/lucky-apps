@@ -49,6 +49,14 @@ export const navigation: {
 export const sidebar: {
   registerPanel(item: { id: string; component: unknown; order?: number }): unknown
   list(): unknown[]
+  registerRailAction(item: {
+    id: string
+    icon?: string
+    title?: string
+    order?: number
+    onClick: () => void | Promise<void>
+  }): unknown
+  listRailActions(): unknown[]
 }
 
 export const settings: {
