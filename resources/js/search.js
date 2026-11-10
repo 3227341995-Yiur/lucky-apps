@@ -1,5 +1,5 @@
 // 双击Shift全局搜索（系统插件）
-// 依赖系统插件API window.weekReport（src/plugins/api.js 暴露）：
+// 依赖系统插件API window.weekReport（src/packages/extensions/api.js 暴露）：
 //   weekReport.reports.search()   全量周报（含sections，内存缓存）
 //   weekReport.ui.selectReport()  选中并打开周报
 //   weekReport.ui.toast()         轻提示

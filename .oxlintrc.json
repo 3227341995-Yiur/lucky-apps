@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript"],
+  "plugins": [
+    "typescript"
+  ],
   "categories": {
     "correctness": "off"
   },
@@ -24,7 +26,13 @@
   ],
   "overrides": [
     {
-      "files": ["apps/**/*.{ts,vue}", "packages/**/*.{ts,vue}", "plugins/**/*.{ts,vue}", "scripts/**/*.ts", "tests/**/*.ts"],
+      "files": [
+        "apps/**/*.{ts,vue}",
+        "packages/**/*.{ts,vue}",
+        "packages/extensions/**/*.{ts,vue}",
+        "scripts/**/*.ts",
+        "tests/**/*.ts"
+      ],
       "rules": {
         "no-var": "error",
         "prefer-const": "error",
@@ -44,16 +52,49 @@
       }
     },
     {
-      "files": ["apps/**/*.{ts,vue}", "packages/**/*.{ts,vue}", "plugins/**/*.{ts,vue}", "scripts/**/*.ts", "tests/**/*.ts"],
+      "files": [
+        "apps/**/*.{ts,vue}",
+        "packages/**/*.{ts,vue}",
+        "packages/extensions/**/*.{ts,vue}",
+        "scripts/**/*.ts",
+        "tests/**/*.ts"
+      ],
       "rules": {
-        "@stylistic/indent": ["error", 2],
-        "@stylistic/semi": ["error", "never"],
-        "@stylistic/quotes": ["error", "single", { "avoidEscape": true }],
-        "@stylistic/comma-dangle": ["error", "always-multiline"],
-        "@stylistic/eol-last": ["error", "always"],
+        "@stylistic/indent": [
+          "error",
+          2
+        ],
+        "@stylistic/semi": [
+          "error",
+          "never"
+        ],
+        "@stylistic/quotes": [
+          "error",
+          "single",
+          {
+            "avoidEscape": true
+          }
+        ],
+        "@stylistic/comma-dangle": [
+          "error",
+          "always-multiline"
+        ],
+        "@stylistic/eol-last": [
+          "error",
+          "always"
+        ],
         "@stylistic/no-trailing-spaces": "error",
-        "@stylistic/object-curly-spacing": ["error", "always"],
-        "@stylistic/arrow-parens": ["error", "as-needed", { "requireForBlockBody": true }],
+        "@stylistic/object-curly-spacing": [
+          "error",
+          "always"
+        ],
+        "@stylistic/arrow-parens": [
+          "error",
+          "as-needed",
+          {
+            "requireForBlockBody": true
+          }
+        ],
         "@stylistic/max-len": [
           "error",
           {
@@ -64,7 +105,30 @@
           }
         ]
       },
-      "jsPlugins": ["@stylistic/eslint-plugin"]
+      "jsPlugins": [
+        "@stylistic/eslint-plugin"
+      ]
+    },
+    {
+      "files": [
+        "apps/**/*.{ts,vue}",
+        "packages/**/*.{ts,vue}",
+        "scripts/**/*.ts",
+        "tests/**/*.ts"
+      ],
+      "rules": {
+        "sonarjs/duplicates-in-character-class": "error",
+        "sonarjs/no-all-duplicated-branches": "error",
+        "sonarjs/no-duplicate-in-composite": "error",
+        "sonarjs/no-duplicate-test-title": "error",
+        "sonarjs/no-identical-conditions": "error",
+        "sonarjs/no-identical-expressions": "error",
+        "sonarjs/no-identical-functions": "error",
+        "sonarjs/no-duplicated-branches": "error"
+      },
+      "jsPlugins": [
+        "eslint-plugin-sonarjs"
+      ]
     }
   ]
 }

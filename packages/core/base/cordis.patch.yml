@@ -1,5 +1,5 @@
 # 宿主核心行：浏览器 client module 注册表。
-# 周报数据库由 plugins/reports 的 Node half（reports-database）自己提供。
+# 周报数据库由 packages/extensions/reports 的 Node half（reports-database）自己提供。
 - insert:
     - id: client-modules
       name: 'client-modules'

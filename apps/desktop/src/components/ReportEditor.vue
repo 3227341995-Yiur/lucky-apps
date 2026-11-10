@@ -108,10 +108,12 @@ watch(() => state.currentReport, (report) => {
     columns: Array.isArray(section.columns) ? section.columns : [],
     items: Array.isArray(section.items) ? section.items : [],
   }))
-  if (!report.layout || !Array.isArray(report.layout.elements) || !report.layout.elements.length) {
-    report.layout = extractLayout(createDefaultLayout(report.sections))
-  } else if (isAutoLayout(report.layout, report.sections)) {
+  const staleLayout = !report.layout
+    || !Array.isArray(report.layout.elements)
+    || !report.layout.elements.length
     // 旧版自动排版的区块间距已过期：按当前默认版面重新排版，保持内容与自由画布元素不变
+    || isAutoLayout(report.layout, report.sections)
+  if (staleLayout) {
     report.layout = extractLayout(createDefaultLayout(report.sections))
   }
 }, { immediate: true })

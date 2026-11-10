@@ -220,14 +220,14 @@ export async function createHttpServer({
           const body = await readJsonBody(req)
           return sendJson(res, 200, setAutostart(Boolean(body.enabled)))
         }
-        if (pathname === '/api/plugins/search' && req.method === 'GET') {
+        if (pathname === '/api/packages/extensions/search' && req.method === 'GET') {
           try {
             return sendJson(res, 200, await searchRegistry(url.searchParams.get('q') || ''))
           } catch (error) {
             return sendJson(res, 502, { error: error.message })
           }
         }
-        if (pathname === '/api/plugins/install' && req.method === 'POST') {
+        if (pathname === '/api/packages/extensions/install' && req.method === 'POST') {
           const body = await readJsonBody(req)
           res.writeHead(200, {
             'content-type': 'application/x-ndjson; charset=utf-8',
@@ -244,7 +244,7 @@ export async function createHttpServer({
           res.end()
           return
         }
-        if (pathname === '/api/plugins/remove' && req.method === 'POST') {
+        if (pathname === '/api/packages/extensions/remove' && req.method === 'POST') {
           const body = await readJsonBody(req)
           const name = String(body.name || '').trim()
           const bundled = await getBundledDeps()

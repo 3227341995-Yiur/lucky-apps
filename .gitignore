@@ -11,7 +11,7 @@ node_modules
 # 内置插件包按 node_modules 结构随应用资源提交
 !src-tauri/resources/node_modules/
 !src-tauri/resources/node_modules/**
-plugins/*/lib/
+packages/extensions/*/lib/
 .DS_Store
 dist
 apps/desktop/.tmp-extensions
@@ -41,3 +41,5 @@ public/docs
 # 核心包从 TS 编译出的发布入口
 packages/core/*/index.js
 packages/core/*/lib/*.js
+packages/core/*/*.mjs
+packages/core/*/lib/*.mjs

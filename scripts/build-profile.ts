@@ -32,7 +32,7 @@ await rm(vendorDir, { recursive: true, force: true })
 await mkdir(vendorDir, { recursive: true })
 
 const candidates = [
-  ...(await packageDirs(join(root, 'plugins'))),
+  ...(await packageDirs(join(root, 'packages', 'extensions'))),
   ...(await packageDirs(join(root, 'packages', 'core'))),
 ].filter(dir => !dir.endsWith('plugin-api'))
 

@@ -4,6 +4,7 @@
  */
 import database from './plugins/database'
 import theme from './plugins/theme'
+import registry from './plugins/registry'
 import api from './plugins/api'
 import reports from './plugins/reports'
 import extensions from './plugins/extensions'
@@ -12,6 +13,7 @@ import app from './plugins/app'
 export default [
   database,
   theme,
+  registry,
   api,
   reports,
   extensions,

@@ -1,5 +1,5 @@
 // Handlebars 自定义 helper 注册（系统插件）
-// 依赖（由扩展加载器保证顺序，见 src/plugins/loader.js）：
+// 依赖（由扩展加载器保证顺序，见 src/packages/extensions/loader.js）：
 //   window.Handlebars - main.js initGlobalModules 挂载
 //   window.marked     - resources/js/marked.min.js（字母序在本文件之前加载）
 (function() {

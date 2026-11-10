@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../apps/desktop/dist",
     "devUrl": "http://127.0.0.1:34115",
-    "beforeDevCommand": "pnpm plugins:build && pnpm build && node scripts/build-server.ts && node scripts/build-core.ts && node scripts/build-profile.ts",
-    "beforeBuildCommand": "pnpm plugins:build && pnpm build && node scripts/build-server.ts && node scripts/build-core.ts && node scripts/build-profile.ts"
+    "beforeDevCommand": "pnpm plugins:build && pnpm build && node scripts/build-server.ts && pnpm packages:build && node scripts/build-profile.ts",
+    "beforeBuildCommand": "pnpm plugins:build && pnpm build && node scripts/build-server.ts && pnpm packages:build && node scripts/build-profile.ts"
   },
   "app": {
     "withGlobalTauri": true,

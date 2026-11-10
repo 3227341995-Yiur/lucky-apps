@@ -35,14 +35,17 @@ pnpm build:server # 构建 Cordis Node 服务
 ```
 apps/
 ├─ desktop/           桌面端（Vue 3 前端，Vite 构建）
-│  └─ src/
-├─ server/            Cordis Node 服务（esbuild 打包为单文件）
-packages/        共享包（plugin-api / cli / core）
-plugins/         内置插件包（workspace，各自 Vite 构建）
-src-tauri/       Tauri 壳（窗口、托盘、exe 品牌）
-docs-site/       开发文档（VitePress）
-scripts/         server / profile 构建脚本
-resources/       运行时样式 / 插件脚本（服务端按清单下发）
+├─ server/            Cordis Node 服务（TypeScript，esbuild 打包）
+packages/
+├─ core/              base / client-modules（tsdown 编译）
+├─ sdk/               plugin-api（外部组件 API）
+├─ tooling/           cli
+└─ extensions/        内置插件包（home / reports / data-io / template-designer /
+                      structure-designer / trash-bin / 画布与列组件）
+src-tauri/            Tauri 壳（窗口、托盘、exe 品牌）
+docs-site/            开发文档（VitePress）
+scripts/              server / profile 构建脚本
+resources/            运行时样式 / 插件脚本（服务端按清单下发）
 ```
 
 <details>
@@ -64,7 +67,7 @@ src/
 │  └─ ReportEditor.vue / WelcomePage.vue
 ├─ composables/        useReports / useTheme / useExtensions
 ├─ config/             默认周报结构、自由画布布局模型、EP 组件元数据
-├─ plugins/            扩展加载、注册中心、对外 API
+├─ packages/extensions/            扩展加载、注册中心、对外 API
 ├─ cordis/             Cordis 根 Context 与启动插件
 ├─ services/           数据库、模板、配置、导入导出
 ├─ utils/              日期、防抖、事件、ID、导出渲染
@@ -78,7 +81,7 @@ src/
 
 ## 扩展开发
 
-外部组件是标准 **Vue 3 + TypeScript** 项目，放在 `plugins/<name>/`，各自构建到包内
+外部组件是标准 **Vue 3 + TypeScript** 项目，放在 `packages/extensions/<name>/`，各自构建到包内
 `lib/client.js` 和 `lib/node.js`，包自带 `cordis.patch.yml`。`pnpm profile:build` 会用
 `pnpm pack` 打包成 profile 依赖，再由 `pnpm install` 生成
 `src-tauri/target/profile/node_modules`。绘制 profile 时按 DSH 语义组合：
@@ -104,7 +107,7 @@ Tauri 窗口只打开服务地址。浏览器依赖 `vue` / `element-plus` / 图
 
 ## 数据
 
-- SQLite 数据库 `lucky_apps.db`：由周报插件（`plugins/reports` 的 Node half `reports-database`）自己提供，
+- SQLite 数据库 `lucky_apps.db`：由周报插件（`packages/extensions/reports` 的 Node half `reports-database`）自己提供，
   宿主壳不持有周报数据层；卸载周报插件即不再挂载数据库
 - 周报软删除（`deleted_at`），回收站独立视图
 - 报表保存自由画布 `layout`；默认画布保存在 `config` 表

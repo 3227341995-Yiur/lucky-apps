@@ -161,12 +161,12 @@ export async function reloadExtensionComponents() {
 
 /** npm 搜索组件包（设置面板使用） */
 export async function searchPlugins(query) {
-  return apiGet(`/api/plugins/search?q=${encodeURIComponent(query)}`)
+  return apiGet(`/api/packages/extensions/search?q=${encodeURIComponent(query)}`)
 }
 
 /** 通过服务端安装外部组件包，流式接收 pnpm 进度与错误（设置面板使用） */
 export async function installPlugin(spec, onEvent = () => {}) {
-  const response = await apiStream('/api/plugins/install', { spec })
+  const response = await apiStream('/api/packages/extensions/install', { spec })
   if (!response.ok) {
     let detail = ''
     try { detail = (await response.json()).error || '' } catch {}
@@ -209,7 +209,7 @@ export async function installPlugin(spec, onEvent = () => {}) {
 
 /** 卸载外部组件包（设置面板使用） */
 export async function uninstallPlugin(name) {
-  const result = await apiPost('/api/plugins/remove', { name })
+  const result = await apiPost('/api/packages/extensions/remove', { name })
   await reloadExtensionComponents()
   return result
 }
