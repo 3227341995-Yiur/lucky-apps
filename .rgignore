@@ -1,0 +1,6 @@
+# 构建产物与依赖不参与全文检索
+/node_modules/
+/apps/desktop/dist/
+/src-tauri/target/
+/packages/extensions/*/lib/
+/packages/core/*/lib/

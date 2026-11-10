@@ -1,0 +1,10 @@
+# 仓库文本统一 LF（与 .editorconfig 配套），Windows 命令脚本保持 CRLF。
+* text=auto eol=lf
+*.cmd text eol=crlf
+
+*.ico binary
+*.png binary
+*.jpg binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
