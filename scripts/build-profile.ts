@@ -77,6 +77,8 @@ const profileManifest = {
       // 同一版本内插件包也会变化：构建指纹不同就重新播种 bundled profile
       build: `${Date.now().toString(36)}-${process.pid.toString(36)}`,
       bundles: bundleNames,
+      // 随包分发的受管包清单：升级时据此清理已移除的内置插件
+      managed: packages.map(item => item.name),
     },
   },
 }

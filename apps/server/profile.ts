@@ -233,9 +233,45 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
       await rm(join(targetDir, 'node_modules', name), { recursive: true, force: true })
     }
   }
+  const merged = mergeProfileManifest(bundled, installed)
+  // 曾随包分发、本次已移除的内置包：从依赖/bundles 中删掉并清理目录；
+  // 用户自己安装的第三方插件（不在 managed 清单里）保持不动。
+  const prevManaged = Array.isArray(installed?.weekReport?.profile?.managed)
+    ? installed.weekReport.profile.managed
+    : []
+  const nextManaged = new Set(
+    Array.isArray(bundled?.weekReport?.profile?.managed) ? bundled.weekReport.profile.managed : [],
+  )
+  // 旧 profile 没有 managed 清单：按历史内置包名做一次性迁移清理。
+  const LEGACY_BUNDLED = new Set([
+    'data-io',
+    'template-designer',
+    'structure-designer',
+    'week-report-base',
+    'week-report-client-modules',
+    'week-report-database',
+    'lucky-apps-base',
+    'lucky-apps-client-modules',
+    'lucky-apps-database',
+  ])
+  const removed = prevManaged.length
+    ? prevManaged.filter(name => !nextManaged.has(name))
+    : Object.keys(installed?.dependencies || {}).filter(
+      name => LEGACY_BUNDLED.has(name) && !nextManaged.has(name),
+    )
+  for (const name of removed) {
+    delete merged.dependencies?.[name]
+    await rm(join(targetDir, 'node_modules', name), { recursive: true, force: true })
+  }
+  if (removed.length) {
+    merged.weekReport.profile.bundles = (merged.weekReport.profile.bundles || []).filter(
+      name => !removed.includes(name),
+    )
+  }
   await writeFile(
     join(targetDir, 'package.json'),
-    `${JSON.stringify(mergeProfileManifest(bundled, installed), null, 2)}\n`,
+    `${JSON.stringify(merged, null, 2)}
+`,
   )
   return true
 }
