@@ -173,15 +173,16 @@ const BASE_TABS = [
 ]
 
 const tabs = computed(() => {
-  const about = BASE_TABS.filter(tab => tab.key === 'about')
-  const base = BASE_TABS.filter(tab => tab.key !== 'about')
+  // 开发文档 / 关于固定在最下面（关于最后），外部插件设置面板排在它们之前
+  const tailKeys = ['docs', 'about']
+  const tail = BASE_TABS.filter(tab => tailKeys.includes(tab.key))
+  const base = BASE_TABS.filter(tab => !tailKeys.includes(tab.key))
   const external = listSettingsSections().map(item => ({
     ...item,
     key: item.id,
     desc: '外部插件注册的设置面板',
   }))
-  // “关于”固定在最下面，外部插件设置面板排在它前面
-  return [...base, ...external, ...about]
+  return [...base, ...external, ...tail]
 })
 
 const themeOptions = [
