@@ -33,7 +33,7 @@ export default definePlugin({
 | `components.list` / `listColumns` / `listCanvas` / `has` | 查询已注册组件 |
 | `navigation.register` | 注册左侧栏入口和自定义页面 |
 | `settings.register` | 注册设置中心面板 |
-| `branding.get` / `set` / `onChange` | 读取或修改程序名称、图标 |
+| `branding.get` / `set` / `onChange` | 读取或修改程序名称、图标（只影响界面；窗口标题与 exe 图标走设置中心「程序名称与图标」，保存后同步窗口/托盘/exe 文件图标） |
 | `events.on` / `once` / `off` | 订阅宿主事件 |
 | `ui.toast` / `selectReport` / `openSettings` / `openImportExport` / `openDesigner` / `openTemplates` | 调用宿主界面 |
 | `commands.register` / `run` / `list` | 注册/执行命令 |
@@ -61,6 +61,20 @@ export default definePlugin({
 ```
 
 设置面板同理使用 `settings.register({ id, label, icon, component })`。
+
+导航项支持 `icon`（Element Plus 图标名）、`iconSvg`（HTML 字符串）或
+`iconComponent`（Vue 组件）。组件图标可以自己处理状态和徽标，例如回收站入口：
+
+```js
+import TrashNavIcon from './TrashNavIcon.vue'
+
+navigation.register({
+  id: 'trash-bin',
+  label: '回收站',
+  iconComponent: TrashNavIcon,
+  component: TrashPage
+})
+```
 
 ## 包结构
 

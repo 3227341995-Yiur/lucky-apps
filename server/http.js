@@ -6,7 +6,7 @@ import { createServer } from 'node:http'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { installProfilePlugin, searchRegistry } from './plugins.js'
+import { installProfilePluginStream, uninstallProfilePlugin, searchRegistry } from './plugins.js'
 import { getAutostart, setAutostart } from './system.js'
 
 const MIME = {
@@ -64,27 +64,42 @@ export async function createHttpServer({
   distDir,
   resourcesDir,
   profileDir,
+  bundledProfileDir,
   getProfile = () => ({ bundles: [], rows: [] }),
+  getProfileError = () => '',
   reload,
+  waitForReload = () => Promise.resolve(),
+  ready = () => Promise.resolve(),
   port = 0,
   host = '127.0.0.1'
 }) {
   const token = randomBytes(16).toString('hex')
-  let indexHtml = ''
+  let bundledDeps = null
 
+  const getBundledDeps = async () => {
+    if (bundledDeps) return bundledDeps
+    try {
+      const manifest = JSON.parse(await readFile(join(bundledProfileDir || profileDir, 'package.json'), 'utf8'))
+      bundledDeps = new Set(Object.keys(manifest.dependencies || {}))
+    } catch {
+      bundledDeps = new Set()
+    }
+    return bundledDeps
+  }
+
+  // 每次读取 index.html，避免前端重新构建后服务还缓存着旧的资源哈希。
   const loadIndex = async () => {
-    if (indexHtml) return indexHtml
     const raw = await readFile(join(distDir, 'index.html'), 'utf8')
-    indexHtml = raw.replace(
+    return raw.replace(
       '</head>',
       `<script>window.__WR_TOKEN__=${JSON.stringify(token)}</script></head>`
     )
-    return indexHtml
   }
 
   const bootPayload = async () => {
     const profile = getProfile()
     const modules = ctx.clientModules?.list?.() || []
+    const bundled = await getBundledDeps()
     const styles = await listFiles(join(resourcesDir, 'css'), '.css')
     const scripts = await listFiles(join(resourcesDir, 'js'), '.js')
     const resources = [
@@ -118,6 +133,7 @@ export async function createHttpServer({
         file: module.file,
         url: module.url,
         enabled: true,
+        removable: !bundled.has(module.package),
         status: module.status || 'loaded',
         error: module.error || ''
       }))
@@ -128,6 +144,7 @@ export async function createHttpServer({
       resources,
       profile: {
         dir: profileDir,
+        error: getProfileError() || '',
         bundles: profile.bundles || [],
         rows: (profile.rows || []).map(row => ({ id: row.id, name: row.name }))
       },
@@ -146,6 +163,14 @@ export async function createHttpServer({
       if (pathname.startsWith('/api/')) {
         if (req.headers['x-wr-token'] !== token) {
           return sendJson(res, 403, { error: 'forbidden' })
+        }
+        if (pathname !== '/api/health') {
+          try { await ready() } catch {}
+        }
+        // reload 会先 dispose database / clientModules；等待它完成再访问，
+        // 避免插件热加载瞬间出现 ctx.database 为 undefined。
+        if (pathname === '/api/boot' || pathname.startsWith('/api/db/')) {
+          try { await waitForReload() } catch {}
         }
         if (pathname === '/api/boot' && req.method === 'GET') {
           return sendJson(res, 200, await bootPayload())
@@ -181,8 +206,27 @@ export async function createHttpServer({
         }
         if (pathname === '/api/plugins/install' && req.method === 'POST') {
           const body = await readJsonBody(req)
-          const result = installProfilePlugin(profileDir, String(body.spec || ''))
-          if (typeof reload === 'function') await reload()
+          res.writeHead(200, {
+            'content-type': 'application/x-ndjson; charset=utf-8',
+            'cache-control': 'no-store'
+          })
+          const emit = event => {
+            if (!res.writableEnded) res.write(`${JSON.stringify(event)}\n`)
+          }
+          try {
+            await installProfilePluginStream(profileDir, String(body.spec || ''), emit)
+          } catch (error) {
+            emit({ type: 'error', error: error.message })
+          }
+          res.end()
+          return
+        }
+        if (pathname === '/api/plugins/remove' && req.method === 'POST') {
+          const body = await readJsonBody(req)
+          const name = String(body.name || '').trim()
+          const bundled = await getBundledDeps()
+          if (bundled.has(name)) return sendJson(res, 400, { error: '内置插件不能卸载' })
+          const result = uninstallProfilePlugin(profileDir, name)
           return sendJson(res, 200, result)
         }
         if (pathname === '/api/health') {
@@ -219,6 +263,11 @@ export async function createHttpServer({
       let file = safeJoin(distDir, pathname === '/' ? 'index.html' : pathname.slice(1))
       let info = file ? await stat(file).catch(() => null) : null
       if (!info?.isFile()) {
+        // 缺失的 js/css 等静态资源不能回退成 index.html，否则浏览器拿到 HTML 当脚本。
+        if (extname(pathname)) {
+          res.writeHead(404)
+          return res.end('Not found')
+        }
         file = isDocsPath
           ? join(distDir, 'docs', 'index.html')
           : join(distDir, 'index.html')
@@ -246,10 +295,27 @@ export async function createHttpServer({
     }
   })
 
-  await new Promise((resolvePromise, reject) => {
-    server.once('error', reject)
-    server.listen(port, host, resolvePromise)
+  const listen = (listenPort) => new Promise((resolvePromise, reject) => {
+    const onError = error => {
+      server.removeListener('listening', onListening)
+      reject(error)
+    }
+    const onListening = () => {
+      server.removeListener('error', onError)
+      resolvePromise()
+    }
+    server.once('error', onError)
+    server.once('listening', onListening)
+    server.listen(listenPort, host)
   })
+
+  try {
+    await listen(port)
+  } catch (error) {
+    if (error.code !== 'EADDRINUSE' || port === 0) throw error
+    console.warn(`[http] port ${port} 已被占用，改用随机端口`)
+    await listen(0)
+  }
 
   const actualPort = server.address().port
   return {

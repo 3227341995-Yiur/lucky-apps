@@ -32,119 +32,171 @@ export async function startServer(options = {}) {
   const dbPath = options.dbPath || process.env.WR_DB_PATH || join(appDataRoot(), 'com.lu.week-report', 'week_report.db')
   const port = Number(options.port ?? process.env.WR_PORT ?? 0)
 
-  await mkdir(dirname(profileDir), { recursive: true })
-  const seeded = await seedProfile(bundledProfileDir, profileDir)
-  if (seeded) console.log('[server] profile seeded:', profileDir)
-
   process.env.WR_DB_PATH = dbPath
 
-  // 壳进程被强制结束时回收后台服务，避免孤儿 Node 进程占用 SQLite。
+  // 与壳进程绑定生命周期：父进程结束时 stdin 管道关闭，立即退出；
+  // PID 轮询作为兜底，避免留下孤儿 Node 占用 SQLite / 端口。
   const parentPid = Number(process.env.WR_PARENT_PID || 0)
   if (parentPid) {
+    const quit = () => process.exit(0)
+    process.stdin.resume()
+    process.stdin.on('end', quit)
+    process.stdin.on('close', quit)
+    process.stdin.on('error', quit)
     setInterval(() => {
-      try { process.kill(parentPid, 0) } catch { process.exit(0) }
+      try { process.kill(parentPid, 0) } catch { quit() }
     }, 2000)
   }
 
-  const profile = await composeProfile(profileDir)
-
   const ctx = new Context()
-  await ctx.plugin(Loader, { baseUrl: pathToFileURL(`${profileDir}/`).href })
+  let currentProfile = { bundles: [], rows: [] }
+  let resolveReady = () => {}
+  const readyPromise = new Promise(resolve => { resolveReady = resolve })
+  let reloadImpl = async () => currentProfile
 
-  let currentProfile = profile
-  const mountRows = async rows => {
-    for (const row of rows) {
-      if (!row?.name) continue
-      await ctx.loader.create({
-        name: row.name,
-        config: row.config,
-        disabled: Boolean(row.disabled)
-      })
-    }
-    await ctx.loader.await()
+  // 安装插件时 pnpm 写 profile 会触发文件监听；把重载串行化，避免
+  // watcher 和手动“热加载”同时操作 Cordis loader。
+  let reloadQueue = Promise.resolve()
+  let reloadBarrier = Promise.resolve()
+  const requestReload = () => {
+    const run = reloadQueue.then(() => reloadImpl())
+    reloadBarrier = run.catch(() => {})
+    reloadQueue = reloadBarrier
+    return run
   }
-  await mountRows(profile.rows)
+  let setupError = null
 
-  // 包可以在 package.json 里自己声明 weekReport.client.entry，无需强制 index.js 或 Node half。
-  const registerClientEntries = async () => {
-    const manifestPath = join(profileDir, 'package.json')
-    let manifest = {}
-    try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')) } catch {}
-    for (const dep of Object.keys(manifest.dependencies || {})) {
-      const pkgDir = join(profileDir, 'node_modules', dep)
-      const pkgPath = join(pkgDir, 'package.json')
-      if (!existsSync(pkgPath)) continue
-      let pkg = {}
-      try { pkg = JSON.parse(await readFile(pkgPath, 'utf8')) } catch { continue }
-      const entry = pkg.weekReport?.client?.entry
-      if (!entry) continue
-      const id = pkg.name || dep
-      if (ctx.clientModules.get(id)) continue
-      const file = resolve(pkgDir, String(entry).replace(/^\.\//, ''))
-      if (!existsSync(file)) continue
-      ctx.clientModules.register({
-        id,
-        package: id,
-        file,
-        url: `/client/${encodeURIComponent(id)}/index.js`
-      })
-    }
-  }
-  const annotateClientKinds = async () => {
-    for (const module of ctx.clientModules.list()) {
-      const pkgPath = join(profileDir, 'node_modules', module.package, 'package.json')
-      if (!existsSync(pkgPath)) continue
-      try {
-        const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
-        module.kind = pkg.weekReport?.kind || 'component'
-      } catch {}
-    }
-  }
-  await registerClientEntries()
-  await annotateClientKinds()
-
-  const reload = async () => {
-    for (const entry of [...ctx.loader.entries()]) {
-      try { ctx.loader.remove(entry.id) } catch {}
-    }
-    currentProfile = await composeProfile(profileDir)
-    await mountRows(currentProfile.rows)
-    await registerClientEntries()
-    await annotateClientKinds()
-    return currentProfile
-  }
-
+  // 先启动 HTTP 并打印 ready，让 Tauri 立即创建窗口；profile 升级/插件挂载
+  // 再异步完成，API 请求在 readyPromise 上等待。这样插件再慢也不会没有窗口。
   const http = await createHttpServer({
     ctx,
     distDir,
     resourcesDir,
     profileDir,
+    bundledProfileDir,
     getProfile: () => currentProfile,
-    reload,
+    getProfileError: () => setupError?.message || '',
+    reload: requestReload,
+    waitForReload: () => reloadBarrier,
+    ready: () => readyPromise,
     port
   })
+  console.log(`[server] ready ${http.url} (profile: ${profileDir})`)
+
+  let watcher = null
+  let reloadTimer = null
+
+  const startup = async () => {
+    await mkdir(dirname(profileDir), { recursive: true })
+    const profileState = await seedProfile(bundledProfileDir, profileDir)
+    if (profileState) console.log(`[server] profile ${profileState}:`, profileDir)
+
+    currentProfile = await composeProfile(profileDir)
+    await ctx.plugin(Loader, { baseUrl: pathToFileURL(`${profileDir}/`).href })
+
+    const mountRows = async rows => {
+      for (const row of rows) {
+        if (!row?.name) continue
+        await ctx.loader.create({
+          name: row.name,
+          config: row.config,
+          disabled: Boolean(row.disabled)
+        })
+      }
+      await ctx.loader.await()
+    }
+    await mountRows(currentProfile.rows)
+
+    // 包可以在 package.json 里自己声明 weekReport.client.entry，无需强制 index.js 或 Node half。
+    const registerClientEntries = async () => {
+      const manifestPath = join(profileDir, 'package.json')
+      let manifest = {}
+      try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')) } catch {}
+      for (const dep of Object.keys(manifest.dependencies || {})) {
+        const pkgDir = join(profileDir, 'node_modules', dep)
+        const pkgPath = join(pkgDir, 'package.json')
+        if (!existsSync(pkgPath)) continue
+        let pkg = {}
+        try { pkg = JSON.parse(await readFile(pkgPath, 'utf8')) } catch { continue }
+        const entry = pkg.weekReport?.client?.entry
+        if (!entry) continue
+        const id = pkg.name || dep
+        if (ctx.clientModules.get(id)) continue
+        const file = resolve(pkgDir, String(entry).replace(/^\.\//, ''))
+        if (!existsSync(file)) continue
+        ctx.clientModules.register({
+          id,
+          package: id,
+          file,
+          url: `/client/${encodeURIComponent(id)}/index.js`
+        })
+      }
+    }
+    const annotateClientKinds = async () => {
+      for (const module of ctx.clientModules.list()) {
+        const pkgPath = join(profileDir, 'node_modules', module.package, 'package.json')
+        if (!existsSync(pkgPath)) continue
+        try {
+          const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
+          module.kind = pkg.weekReport?.kind || 'component'
+        } catch {}
+      }
+    }
+    await registerClientEntries()
+    await annotateClientKinds()
+
+    reloadImpl = async () => {
+      for (const entry of [...ctx.loader.entries()]) {
+        try { ctx.loader.remove(entry.id) } catch {}
+      }
+      currentProfile = await composeProfile(profileDir)
+      await mountRows(currentProfile.rows)
+      await registerClientEntries()
+      await annotateClientKinds()
+      return currentProfile
+    }
+  }
+
+  const watchdog = setTimeout(() => {
+    console.error('[server] profile startup timeout, serving partial state')
+    resolveReady()
+  }, 30000)
+
+  try {
+    await startup()
+  } catch (error) {
+    setupError = error
+    console.error('[server] startup failed:', error)
+  } finally {
+    clearTimeout(watchdog)
+    resolveReady()
+  }
 
   // profile / node_modules 变化后重新组合并挂载；浏览器轮询 boot 清单热加载 client bundle。
-  let reloadTimer = null
-  const watcher = watch(profileDir, { recursive: true }, () => {
-    clearTimeout(reloadTimer)
-    reloadTimer = setTimeout(() => {
-      reload().then(() => console.log('[server] profile reloaded')).catch(error => console.warn('[server] profile reload failed:', error))
-    }, 400)
-  })
+  if (!setupError) {
+    watcher = watch(profileDir, { recursive: true }, () => {
+      clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(() => {
+        requestReload()
+          .then(() => console.log('[server] profile reloaded'))
+          .catch(error => console.warn('[server] profile reload failed:', error))
+      }, 600)
+    })
+  }
 
-  console.log(`[server] ready ${http.url} (profile: ${profileDir})`)
   return {
     ctx,
     http,
     url: http.url,
     token: http.token,
     profileDir,
+    ready: readyPromise,
+    setupError,
     close: async () => {
-      watcher.close()
+      watcher?.close()
       clearTimeout(reloadTimer)
       await http.close()
-      await ctx.loader.dispose?.()
+      await ctx.loader?.dispose?.()
     }
   }
 }
@@ -152,6 +204,6 @@ export async function startServer(options = {}) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   startServer().catch(error => {
     console.error('[server] failed:', error)
-    process.exitCode = 1
+    process.exit(1)
   })
 }

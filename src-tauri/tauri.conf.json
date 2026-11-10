@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "week-report",
-  "version": "2.0.0",
+  "version": "2.0.10",
   "identifier": "com.lu.week-report",
   "build": {
     "frontendDist": "../dist",
@@ -10,6 +10,7 @@
     "beforeBuildCommand": "pnpm extensions:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [],
     "security": {
       "csp": null
@@ -34,6 +35,9 @@
     "windows": {
       "wix": {
         "language": "zh-CN"
+      },
+      "nsis": {
+        "installerHooks": "./nsis/hooks.nsh"
       }
     }
   }

@@ -27,12 +27,12 @@
     "README.md"
   ],
   "weekReport": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    },
     "client": {
       "entry": "./lib/client.js"
     },
-    "kind": "column"
+    "kind": "column",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { createExtensionConfig } from '../build-preset.js'
+import { createExtensionConfig } from '../build-preset'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig(createExtensionConfig({ name: 'progress-cell', root }))
+export default defineConfig(createExtensionConfig({ name: 'user-cell', root }))

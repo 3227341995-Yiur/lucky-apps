@@ -6,10 +6,11 @@
  *   week-report plugin list [--profile <dir> | --user]
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { load as parseYaml, dump as dumpYaml } from 'js-yaml'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(here, '..')
@@ -71,6 +72,66 @@ function writeProfile(dir, manifest) {
   writeFileSync(join(dir, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
+/** profile 从别的机器复制过来时，node_modules 里记着源目录的虚拟仓库路径，pnpm 会拒绝继续安装。 */
+function prepareProfile(profileDir) {
+  writeFileSync(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
+  const modulesDir = join(profileDir, 'node_modules')
+  const metaPath = join(modulesDir, '.modules.yaml')
+  if (!existsSync(metaPath)) return
+  try {
+    const meta = JSON.parse(readFileSync(metaPath, 'utf8'))
+    const expected = resolve(modulesDir, '.pnpm').toLowerCase()
+    const actual = meta.virtualStoreDir ? resolve(meta.virtualStoreDir).toLowerCase() : ''
+    if (!actual || actual === expected) return
+    rmSync(metaPath, { force: true })
+    rmSync(join(modulesDir, '.pnpm-workspace-state-v1.json'), { force: true })
+    rmSync(join(modulesDir, '.pnpm'), { recursive: true, force: true })
+  } catch {}
+}
+
+function readProfilePatch(profileDir) {
+  const path = join(profileDir, 'cordis.patch.yml')
+  if (!existsSync(path)) return []
+  try {
+    const parsed = parseYaml(readFileSync(path, 'utf8'))
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeProfilePatch(profileDir, rows) {
+  const path = join(profileDir, 'cordis.patch.yml')
+  writeFileSync(path, rows.length ? dumpYaml(rows, { noRefs: true, lineWidth: -1 }) : '[]\n')
+}
+
+function addProfilePluginRow(profileDir, name) {
+  const rows = readProfilePatch(profileDir)
+  const exists = rows.some(row => row?.id === name || row?.name === name
+    || (Array.isArray(row?.insert) && row.insert.some(entry => entry?.id === name || entry?.name === name)))
+  if (exists) return
+  const insertRow = rows.find(row => Array.isArray(row.insert))
+  if (insertRow) insertRow.insert.push({ id: name, name })
+  else rows.push({ insert: [{ id: name, name }] })
+  writeProfilePatch(profileDir, rows)
+}
+
+function removeProfilePluginRow(profileDir, name) {
+  const rows = readProfilePatch(profileDir)
+  const next = []
+  for (const row of rows) {
+    if (row?.id === name || row?.name === name) continue
+    if (Array.isArray(row?.insert)) {
+      const insert = row.insert.filter(entry => entry?.id !== name && entry?.name !== name)
+      if (!insert.length) continue
+      next.push({ ...row, insert })
+    } else {
+      next.push(row)
+    }
+  }
+  writeProfilePatch(profileDir, next)
+}
+
 function readInstalledManifest(profileDir, name) {
   const path = join(profileDir, 'node_modules', name, 'package.json')
   if (!existsSync(path)) return null
@@ -120,7 +181,7 @@ export async function run(argv) {
   if (action === 'add') {
     if (!spec) throw new Error('缺少包名或目录')
     if (!existsSync(profileDir)) throw new Error(`profile 不存在: ${profileDir}`)
-    writeFileSync(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
+    prepareProfile(profileDir)
     const before = readProfile(profileDir).dependencies || {}
     pnpm(['add', spec, '--node-linker=hoisted'], profileDir)
 
@@ -133,6 +194,8 @@ export async function run(argv) {
     if (!installed) throw new Error(`安装后找不到包: ${name}`)
 
     const hasBundle = Boolean(installed.weekReport?.bundle?.patch)
+    const hasNode = Boolean(installed.weekReport?.node)
+    const hasClient = Boolean(installed.weekReport?.client?.entry)
     const manifest = readProfile(profileDir)
     manifest.weekReport ||= {}
     manifest.weekReport.profile ||= {}
@@ -140,19 +203,24 @@ export async function run(argv) {
     if (hasBundle && !manifest.weekReport.profile.bundles.includes(name)) {
       manifest.weekReport.profile.bundles.push(name)
     }
+    if (hasNode && !hasBundle) addProfilePluginRow(profileDir, name)
     writeProfile(profileDir, manifest)
     console.log(`[week-report] installed ${name}`)
-    if (!hasBundle) console.warn('[week-report] 包没有 weekReport.bundle.patch，只作为普通依赖安装，不会进入 profile 组合')
+    if (!hasBundle && !hasNode && !hasClient) {
+      console.warn('[week-report] 包没有 weekReport.node / client 声明，只作为普通依赖安装')
+    }
     return
   }
 
   if (action === 'remove') {
     if (!spec) throw new Error('缺少包名')
-    pnpm(['remove', spec], profileDir)
+    prepareProfile(profileDir)
+    pnpm(['remove', spec, '--node-linker=hoisted'], profileDir)
     const manifest = readProfile(profileDir)
     const bundles = manifest.weekReport?.profile?.bundles || []
     manifest.weekReport.profile.bundles = bundles.filter(name => name !== spec)
     writeProfile(profileDir, manifest)
+    removeProfilePluginRow(profileDir, spec)
     console.log(`[week-report] removed ${spec}`)
     return
   }

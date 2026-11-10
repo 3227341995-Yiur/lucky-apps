@@ -1,20 +1,25 @@
 # 外部组件插件包
 
-每个目录都是独立包，目录结构和入口文件名由包自己决定。宿主只认 `package.json`：
+每个目录都是标准的 **Vue 3 + TypeScript** bundle 包，目录结构、入口文件名、构建工具由包自己决定。宿主只认 `package.json`：
 
+- `weekReport.bundle.patch`：bundle 的 `cordis.patch.yml`
 - `weekReport.client.entry`：浏览器组件 bundle
-- `main` / `exports`：可选的 Cordis Node 插件入口
+- `weekReport.kind`：`canvas` / `column` / `feature`
+- 可选的 `main` / `exports`：Node half
 
-这里的示例用 Vite 构建到包内 `lib/`，但不是宿主限制。`pnpm profile:build` 只负责把包安装到 `src-tauri/target/profile/node_modules`。
+这和 DSH 的 bundle 形态一致：包自带 patch，profile 的 `weekReport.profile.bundles` 按顺序叠加。画布 / 列 / 功能包也走同一套 Cordis loader 行，Node half 负责把 client bundle 登记进 clientModules。
 
 ```text
 extensions/
 ├─ kpi-card/
-│  ├─ package.json       # main/exports -> src/index.js
-│  ├─ vite.config.js
+│  ├─ package.json
+│  ├─ cordis.patch.yml
+│  ├─ tsconfig.json
+│  ├─ vite.config.ts
 │  └─ src/
-│     ├─ index.js        # 默认导出 Cordis 插件
-│     └─ KpiCard.vue
+│     ├─ index.ts
+│     ├─ env.d.ts
+│     └─ KpiCard.vue   <script setup lang="ts">
 └─ ...
 ```
 
@@ -24,31 +29,25 @@ extensions/
 pnpm extensions:build
 ```
 
-共用 `extensions/build-preset.js`。产物是 IIFE，`vue` / `element-plus` / 图标从宿主 `window` 取，共用同一份实例。
+共用 `extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。产物是 IIFE，`vue` / `element-plus` / 图标从宿主 `window` 取，共用同一份实例。
 
 ## profile
 
-每个包声明 `weekReport.bundle.patch`，构建时生成自己的 `cordis.patch.yml`：
+内置 profile 的 `weekReport.profile.bundles` 按顺序列出：
 
-```yaml
-- insert:
-    - id: kpi-card
-      name: kpi-card
+```text
+week-report-base → kpi-card → ... → trash-bin → 外部功能插件
 ```
 
-内置 profile 在 `profile`，`package.json` 的
-`weekReport.profile.bundles` 列出各 bundle；组合顺序为空根 → bundle patches →
-profile 的 `cordis.patch.yml`。
-
-外部包用 `pnpm --dir <profile> add <包名>` 安装到用户 profile 的 node_modules，
-并在 `src-tauri/target/profile/package.json` 的 `weekReport.profile.bundles` 里加上包名即可。
+组合顺序与 DSH 一致：空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
 
 ## 入口
 
-`src/index.js` 默认导出 Cordis 插件：
+`src/index.ts` 默认导出 Cordis 插件：
 
-```js
+```ts
 import { definePlugin, components } from '@week-report/plugin-api'
+import KpiCard from './KpiCard.vue'
 
 export default definePlugin({
   name: 'kpi-card',

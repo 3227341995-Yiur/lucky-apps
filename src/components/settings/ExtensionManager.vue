@@ -2,7 +2,7 @@
 import { nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
-import { installPlugin, searchPlugins } from '@/plugins/loader'
+import { installPlugin, searchPlugins, uninstallPlugin } from '@/plugins/loader'
 
 defineOptions({ name: 'ExtensionManager' })
 
@@ -51,7 +51,13 @@ const installResults = ref([])
 const installInputRef = ref(null)
 const searching = ref(false)
 const installing = ref(false)
+const removingName = ref('')
+const installStage = ref('')
+const installPercent = ref(0)
+const installLogs = ref([])
+const installError = ref('')
 let searchTimer = null
+let installCloseTimer = null
 
 function statusOf(resource) {
   return STATUS_META[resource.status] || STATUS_META.pending
@@ -107,12 +113,32 @@ function openInstallDialog() {
   installOpen.value = true
   installQuery.value = ''
   installResults.value = []
+  installStage.value = ''
+  installPercent.value = 0
+  installLogs.value = []
+  installError.value = ''
   nextTick(() => installInputRef.value?.focus())
 }
 
 function closeInstallDialog() {
   if (installing.value) return
+  clearTimeout(installCloseTimer)
   installOpen.value = false
+}
+
+function handleInstallEvent(event) {
+  if (event.type === 'stage') {
+    installStage.value = event.message || installStage.value
+    if (typeof event.progress === 'number') installPercent.value = event.progress
+    return
+  }
+  if (event.type === 'log') {
+    installLogs.value = [...installLogs.value, event.line].slice(-300)
+    return
+  }
+  if (event.type === 'error') {
+    installError.value = event.error || '安装失败'
+  }
 }
 
 function scheduleSearch() {
@@ -143,24 +169,60 @@ function scheduleSearch() {
 }
 
 async function handleInstall(specArg) {
-  const spec = String(specArg ?? installSpec.value ?? installQuery.value).trim()
+  const spec = String(specArg || installSpec.value || installQuery.value).trim()
   if (!spec) {
     ElMessage.warning('请输入 npm 包名或本地组件目录')
     return
   }
+  installSpec.value = spec
   installing.value = true
+  installError.value = ''
+  installLogs.value = []
+  installPercent.value = 0
+  installStage.value = '准备安装…'
+  clearTimeout(installCloseTimer)
   try {
-    const result = await installPlugin(spec)
-    installSpec.value = ''
+    const result = await installPlugin(spec, handleInstallEvent)
+    installStage.value = '安装完成'
+    installPercent.value = 100
     await rescan()
-    installOpen.value = false
-    installQuery.value = ''
-    installResults.value = []
+    installSpec.value = ''
     ElMessage.success(`已安装 ${result?.name || spec}${result?.hasBundle ? '，已加入 profile' : '（普通依赖）'}`)
+    installCloseTimer = setTimeout(() => {
+      installOpen.value = false
+      installQuery.value = ''
+      installResults.value = []
+    }, 1200)
   } catch (error) {
-    ElMessage.error(`安装失败：${error?.message || error}`)
+    const message = error?.message || String(error)
+    installError.value = message
+    installStage.value = '安装失败'
+    installLogs.value = [...installLogs.value, message].slice(-300)
+    ElMessage.error(`安装失败：${message}`)
   } finally {
     installing.value = false
+  }
+}
+
+async function handleUninstall(resource) {
+  const name = resource.package || resource.name
+  try {
+    await ElMessageBox.confirm(
+      `卸载「${name}」？会从 profile 移除该插件包，并重新加载应用。`,
+      '卸载插件',
+      { type: 'warning', confirmButtonText: '卸载', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  removingName.value = name
+  try {
+    await uninstallPlugin(name)
+    ElMessage.success(`已卸载 ${name}`)
+    reloadApp()
+  } catch (error) {
+    ElMessage.error(`卸载失败：${error?.message || error}`)
+    removingName.value = ''
   }
 }
 
@@ -266,6 +328,14 @@ async function handleToggle(resource) {
       <code>cordis.patch.yml</code>。
     </p>
 
+    <div v-if="extensionState.errors.length" class="ext-errors">
+      <div class="ext-errors-head">
+        <el-icon><WarningFilled /></el-icon>
+        <span>Cordis 插件错误</span>
+      </div>
+      <p v-for="message in extensionState.errors" :key="message">{{ message }}</p>
+    </div>
+
     <div v-if="extensionState.loading || rescanning" class="ext-state">
       <el-icon class="is-loading" :size="20"><Loading /></el-icon>
       <span>正在加载扩展资源…</span>
@@ -310,11 +380,21 @@ async function handleToggle(resource) {
                 {{ resource.error || '资源加载失败' }}
               </p>
             </div>
-            <el-switch
-              :model-value="resource.enabled"
-              :aria-label="`启用 ${resource.name}`"
-              @change="handleToggle(resource)"
-            />
+            <div class="ext-item-actions">
+              <el-button
+                v-if="isComponentGroup(key) && resource.removable"
+                size="small"
+                text
+                type="danger"
+                :loading="removingName === (resource.package || resource.name)"
+                @click="handleUninstall(resource)"
+              >卸载</el-button>
+              <el-switch
+                :model-value="resource.enabled"
+                :aria-label="`启用 ${resource.name}`"
+                @change="handleToggle(resource)"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -337,12 +417,31 @@ async function handleToggle(resource) {
               v-model="installQuery"
               placeholder="搜索 npm 包，或粘贴本地组件项目路径"
               spellcheck="false"
+              :disabled="installing"
               @input="scheduleSearch"
               @keyup.enter="installResults.length ? handleInstall(installResults[0].spec || installResults[0].name) : handleInstall()"
             />
             <span v-if="searching" class="install-spinner"><el-icon class="is-loading"><Loading /></el-icon></span>
           </div>
-          <div class="install-results">
+
+          <div v-if="installing || installPercent > 0" class="install-progress">
+            <div class="install-progress-head">
+              <span>{{ installStage || '正在安装…' }}</span>
+              <strong>{{ installPercent }}%</strong>
+            </div>
+            <el-progress :percentage="installPercent" :show-text="false" :stroke-width="7" />
+            <el-alert
+              v-if="installError"
+              class="install-error"
+              type="error"
+              :title="installError"
+              :closable="false"
+              show-icon
+            />
+            <pre v-if="installLogs.length" class="install-log">{{ installLogs.join('\n') }}</pre>
+          </div>
+
+          <div v-else class="install-results">
             <div v-if="!installQuery.trim()" class="install-hint">
               输入包名搜索 npm，或直接输入本地项目路径安装。
             </div>
@@ -351,7 +450,6 @@ async function handleToggle(resource) {
               :key="item.name"
               type="button"
               class="install-result"
-              :disabled="installing"
               @click="handleInstall(item.spec || item.name)"
             >
               <span class="install-package-icon"><el-icon><Box /></el-icon></span>
@@ -366,9 +464,14 @@ async function handleToggle(resource) {
             </div>
           </div>
           <footer class="install-dialog-foot">
-            <span>安装后自动加入 profile bundles，并热加载组件。</span>
-            <el-button type="primary" :loading="installing" @click="handleInstall()">
-              <el-icon><Download /></el-icon><span>安装</span>
+            <span>{{ installError ? '安装失败，检查上面的日志后可以重试。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+            <el-button
+              type="primary"
+              :loading="installing"
+              :disabled="installPercent === 100 && !installError"
+              @click="handleInstall()"
+            >
+              <el-icon><Download /></el-icon><span>{{ installError ? '重试' : '安装' }}</span>
             </el-button>
           </footer>
         </section>
@@ -495,29 +598,34 @@ async function handleToggle(resource) {
   margin-left: auto;
   flex: 1;
   max-width: 480px;
-  padding: 9px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
-  background: var(--el-fill-color-lighter);
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: var(--el-bg-color);
   color: var(--el-text-color-placeholder);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 12.5px;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.16s ease, background-color 0.16s ease;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .install-trigger:hover {
-  border-color: var(--el-color-primary-light-5);
-  background: var(--el-bg-color);
+  border-color: var(--el-border-color-dark);
+}
+
+.install-trigger:focus-visible {
+  outline: none;
+  border-color: var(--el-color-primary);
 }
 
 .install-trigger kbd {
   margin-left: auto;
-  padding: 2px 6px;
+  padding: 1px 6px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 5px;
-  background: var(--el-bg-color);
+  background: var(--el-fill-color-lighter);
   font-family: var(--wr-mono);
   font-size: 9px;
   color: var(--el-text-color-placeholder);
@@ -604,6 +712,72 @@ async function handleToggle(resource) {
 .install-search input::placeholder {
   color: var(--el-text-color-placeholder);
   font-size: 12px;
+}
+
+.ext-errors {
+  padding: 12px 14px;
+  border: 1px solid var(--el-color-danger-light-7);
+  border-radius: 12px;
+  background: var(--el-color-danger-light-9);
+}
+
+.ext-errors-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--el-color-danger);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.ext-errors p {
+  margin: 6px 0 0;
+  color: var(--el-color-danger);
+  font-family: var(--wr-mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.install-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px 4px;
+}
+
+.install-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.install-progress-head strong {
+  color: var(--el-text-color-primary);
+  font-family: var(--wr-mono);
+  font-size: 11px;
+}
+
+.install-error {
+  margin-top: 2px;
+}
+
+.install-log {
+  max-height: 180px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 9px;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-family: var(--wr-mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .install-results {
@@ -889,6 +1063,13 @@ async function handleToggle(resource) {
   line-height: 1.5;
   color: var(--el-color-danger);
   overflow-wrap: anywhere;
+}
+
+.ext-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
 }
 
 .ext-item :deep(.el-switch) {

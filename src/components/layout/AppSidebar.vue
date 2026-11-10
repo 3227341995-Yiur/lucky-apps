@@ -168,7 +168,8 @@ function openWelcome() {
             :class="{ active: activePluginPage === item.id }"
             @click="emit('open-plugin-page', item)"
           >
-            <span v-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
+            <component :is="item.iconComponent" v-if="item.iconComponent" />
+            <span v-else-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
             <el-icon v-else :size="18"><component :is="item.icon || 'Grid'" /></el-icon>
           </button>
         </el-tooltip>
@@ -387,22 +388,6 @@ function openWelcome() {
   width: 2px;
   border-radius: 2px;
   background: var(--el-color-primary);
-}
-
-.rail-badge {
-  position: absolute;
-  top: 3px;
-  right: 2px;
-  min-width: 13px;
-  height: 13px;
-  padding: 0 3px;
-  border-radius: 7px;
-  background: var(--el-color-danger);
-  color: #fff;
-  font-family: var(--wr-mono);
-  font-size: 8px;
-  line-height: 13px;
-  text-align: center;
 }
 
 .rail-bottom {

@@ -7,8 +7,17 @@
     "week-report": "bin.js"
   },
   "main": "src/index.js",
-  "exports": { ".": "./src/index.js" },
-  "files": ["bin.js", "src", "README.md"],
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin.js",
+    "src",
+    "README.md"
+  ],
   "private": false,
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^5.5.0"
+  }
 }

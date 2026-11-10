@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useWeekReport } from '@week-report/plugin-api'
@@ -105,10 +105,6 @@ async function handleEmpty() {
     <div class="wr-page-inner trash-inner">
       <header class="trash-header">
         <div class="header-main">
-          <el-button class="back-button" text @click="api.navigation.open('reports')">
-            <el-icon><ArrowLeft /></el-icon>
-            <span>返回周报</span>
-          </el-button>
           <div class="wr-eyebrow">Trash</div>
           <div class="title-row">
             <h1 class="wr-page-title">回收站</h1>
@@ -118,6 +114,10 @@ async function handleEmpty() {
         </div>
 
         <div class="header-actions">
+          <el-button text @click="api.navigation.open('reports')">
+            <el-icon><ArrowLeft /></el-icon>
+            <span>返回周报</span>
+          </el-button>
           <el-button
             type="danger"
             plain
@@ -129,11 +129,6 @@ async function handleEmpty() {
           </el-button>
         </div>
       </header>
-
-      <div class="trash-toolbar">
-        <span class="trash-toolbar-title">已删除周报</span>
-        <span class="trash-toolbar-hint">按删除时间倒序排列</span>
-      </div>
 
       <div v-loading="trashLoading" element-loading-text="加载中…" class="trash-body">
         <div v-if="!trashLoading && isEmpty" class="trash-empty-state">
@@ -186,7 +181,7 @@ async function handleEmpty() {
 }
 
 .trash-inner {
-  max-width: 980px;
+  max-width: 1080px;
 }
 
 .trash-header {
@@ -206,8 +201,12 @@ async function handleEmpty() {
 
 .back-button {
   margin-left: -8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: var(--el-text-color-secondary);
+}
+
+.trash-view :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 .back-button:hover {
@@ -217,14 +216,14 @@ async function handleEmpty() {
 .title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -232,8 +231,8 @@ async function handleEmpty() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 0 2px 8px;
+  gap: 8px;
+  padding: 0 2px 6px;
 }
 
 .trash-toolbar-title {
@@ -258,9 +257,9 @@ async function handleEmpty() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 64px 24px;
+  padding: 48px 24px;
   border: 1px dashed var(--el-border-color);
-  border-radius: 10px;
+  border-radius: 16px;
   background: var(--el-fill-color-lighter);
   text-align: center;
 }
@@ -298,26 +297,29 @@ async function handleEmpty() {
 .trash-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
+  gap: 12px;
+  padding: 10px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--el-bg-color);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, var(--el-color-primary-light-9), transparent 40%),
+    var(--el-bg-color);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .trash-card:hover {
-  border-color: var(--el-border-color);
-  box-shadow: var(--el-box-shadow-lighter);
+  border-color: var(--el-color-primary-light-7);
+  box-shadow: 0 12px 26px -20px rgba(15, 23, 42, 0.4);
+  transform: translateY(-1px);
 }
 
 .trash-week {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 38px;
+  width: 40px;
+  height: 36px;
   flex: none;
-  border-radius: 7px;
+  border-radius: 10px;
   background: var(--el-fill-color-lighter);
   color: var(--el-text-color-secondary);
   font-family: var(--wr-mono);
@@ -349,9 +351,9 @@ async function handleEmpty() {
 .row-meta {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 11.5px;
   color: var(--el-text-color-secondary);
 }
@@ -365,7 +367,7 @@ async function handleEmpty() {
 .row-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-shrink: 0;
 }
 

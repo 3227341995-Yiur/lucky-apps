@@ -87,7 +87,7 @@ function formatNumber(value) {
 
 <template>
   <el-scrollbar class="wr-page welcome-page">
-    <div class="welcome-inner wr-fade-in">
+    <div class="wr-page-inner welcome-inner wr-fade-in">
       <header class="welcome-head">
         <div class="welcome-eyebrow">
           <span class="week-index">{{ now.getFullYear() }} · W{{ String(weekNumber).padStart(2, '0') }}</span>
@@ -236,10 +236,9 @@ function formatNumber(value) {
   overflow: hidden;
 }
 
+/* 只对齐容器外边距：wr-page-inner 的 24px 28px 48px + 1080px，样式保持原样 */
 .welcome-inner {
-  max-width: 1060px;
-  margin: 0 auto;
-  padding: 34px 36px 48px;
+  max-width: 1080px;
 }
 
 .welcome-head {
@@ -735,10 +734,6 @@ function formatNumber(value) {
 }
 
 @media (max-width: 920px) {
-  .welcome-inner {
-    padding: 24px 20px 36px;
-  }
-
   .welcome-headline {
     align-items: flex-start;
     flex-direction: column;

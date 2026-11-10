@@ -7,6 +7,7 @@ import { apiGet, apiPost } from '@/services/rpc'
 import { useReports } from '@/composables/useReports'
 import { useExtensions } from '@/composables/useExtensions'
 import { resetReportConfig } from '@/services/reportConfigService'
+import { buildIconPayload } from '@/utils/appIcon'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
 import { getSettingsSectionComponent, listSettingsSections } from '@/plugins/registry'
@@ -125,9 +126,23 @@ async function toggleAutostart(value) {
   }
 }
 
-function saveBranding() {
+async function saveBranding() {
   setBranding({ name: branding.name, icon: branding.icon })
-  ElMessage.success('程序名称与图标已保存')
+  try {
+    const invoke = window.__TAURI__?.core?.invoke
+    if (!invoke) {
+      ElMessage.success('程序名称与图标已保存（当前环境不是桌面应用，仅更新界面）')
+      return
+    }
+    let icon = null
+    if (branding.icon) {
+      icon = await buildIconPayload(branding.icon)
+    }
+    const message = await invoke('apply_branding', { name: branding.name, icon })
+    ElMessage.success(message || '程序名称与图标已更新')
+  } catch (error) {
+    ElMessage.warning(`界面已保存，但更新程序图标失败：${error?.message || error}`)
+  }
 }
 
 function persistLoading(patch = {}) {
@@ -290,7 +305,7 @@ async function handleCopyResources() {
               </span>
               <div>
                 <strong>程序名称与图标</strong>
-                <p>也可以由外部插件通过 weekReport.branding.set 修改。</p>
+                <p>修改窗口标题、窗口/托盘图标与 exe 文件图标；也可由插件通过 weekReport.branding.set 修改界面部分。</p>
               </div>
             </div>
             <div class="brand-fields">
@@ -300,9 +315,10 @@ async function handleCopyResources() {
               </label>
               <label class="loading-field">
                 <span>程序图标 URL</span>
-                <el-input v-model="branding.icon" placeholder="https://… 或 data:image/…" />
+                <el-input v-model="branding.icon" placeholder="https://… 或 data:image/…（建议方形）" />
               </label>
             </div>
+            <p class="hint">会同步修改窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标（exe 需重启后生效）。</p>
             <el-button type="primary" plain @click="saveBranding">保存品牌</el-button>
           </div>
 

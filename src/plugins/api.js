@@ -60,7 +60,7 @@ import {
   extensionState
 } from '@/plugins/registry'
 
-const VERSION = '2.0.0'
+const VERSION = '2.0.10'
 const API_VERSION = 2
 
 // ============================================================

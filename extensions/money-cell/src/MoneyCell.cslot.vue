@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ElInputNumber } from 'element-plus'
 
 const column = defineModel()

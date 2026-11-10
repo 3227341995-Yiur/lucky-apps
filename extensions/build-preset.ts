@@ -1,11 +1,14 @@
 /**
- * 外部组件包构建预设：每个包自己执行 vite build，按 node_modules 结构输出到宿主 resources。
+ * 外部 Vue 组件包的 Vite 预设：只构建浏览器 half。
+ * 组件包是标准 Vue + TypeScript 项目，不再生成 cordis.patch.yml / Node half；
+ * 宿主从安装依赖的 package.json weekReport.client.entry 自动加载。
  */
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 import { readFile, writeFile, rm } from 'node:fs/promises'
+import type { Plugin } from 'vite'
 
-function cssInjectedByJs(name) {
+function cssInjectedByJs(name: string): Plugin {
   return {
     name: 'week-report-css-injected-by-js',
     apply: 'build',
@@ -32,21 +35,13 @@ function cssInjectedByJs(name) {
   }
 }
 
-function writeNodeHalf(name) {
+function writeNodeHalf(name: string): Plugin {
   return {
-    name: 'week-report-package-files',
+    name: 'week-report-package-node-half',
     apply: 'build',
     async writeBundle(options) {
       const outDir = options.dir
       if (!outDir) return
-      const root = path.dirname(outDir)
-      await writeFile(
-        path.join(root, 'cordis.patch.yml'),
-        `- insert:
-    - id: ${name}
-      name: ${name}
-`
-      )
       await writeFile(
         path.join(outDir, 'node.js'),
         `import { dirname, join } from 'node:path'
@@ -71,7 +66,11 @@ export default { name, inject, apply }
   }
 }
 
-export function createExtensionConfig({ name, entry = 'src/index.js', root = process.cwd() }) {
+export function createExtensionConfig({ name, entry = 'src/index.ts', root = process.cwd() }: {
+  name: string
+  entry?: string
+  root?: string
+}) {
   return {
     plugins: [vue(), cssInjectedByJs(name), writeNodeHalf(name)],
     define: {
@@ -86,13 +85,11 @@ export function createExtensionConfig({ name, entry = 'src/index.js', root = pro
       cssCodeSplit: false,
       lib: {
         entry: path.resolve(root, entry),
-        formats: ['iife'],
+        formats: ['iife'] as const,
         name: '__wrPlugin',
         fileName: () => 'client.js'
       },
       rollupOptions: {
-        // 浏览器没有 Node 解析器：Vue / Element Plus 由宿主环境提供，
-        // 插件包只引用 window 上的同一份实例，不重复打包
         external: ['vue', 'element-plus', '@element-plus/icons-vue'],
         output: {
           globals: {

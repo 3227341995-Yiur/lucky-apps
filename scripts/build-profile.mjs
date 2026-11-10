@@ -63,16 +63,20 @@ const bundleNames = packages
   .filter(item => item.hasBundle)
   .map(item => item.name)
   .sort((a, b) => (a === 'week-report-base' ? -1 : b === 'week-report-base' ? 1 : a.localeCompare(b)))
+const appManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+// Vue / Element Plus / 图标只用于浏览器端，已由主程序的 Vite 构建内联到 dist；
+// profile 里的 Node 插件不需要它们。之前重复携带整棵 EP 依赖树（1.1 万个文件、89MB），
+// 导致安装/卸载极慢。
 const profileManifest = {
   name: 'week-report-profile',
   private: true,
-  dependencies: {
-    vue: '^3.5.44',
-    'element-plus': '^2.14.7',
-    '@element-plus/icons-vue': '^2.3.2',
-    ...Object.fromEntries(packages.map(item => [item.name, item.file]))
-  },
-  weekReport: { profile: { bundles: bundleNames } }
+  dependencies: Object.fromEntries(packages.map(item => [item.name, item.file])),
+  weekReport: {
+    profile: {
+      version: appManifest.version,
+      bundles: bundleNames
+    }
+  }
 }
 await writeFile(join(profileDir, 'package.json'), `${JSON.stringify(profileManifest, null, 2)}\n`)
 await writeFile(join(profileDir, 'cordis.yml'), '[]\n')

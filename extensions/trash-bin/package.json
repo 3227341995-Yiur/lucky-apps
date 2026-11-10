@@ -27,12 +27,12 @@
     "@week-report/plugin-api": "workspace:*"
   },
   "weekReport": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    },
     "client": {
       "entry": "./lib/client.js"
     },
-    "kind": "feature"
+    "kind": "feature",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }

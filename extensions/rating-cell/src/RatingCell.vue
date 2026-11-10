@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ElRate } from 'element-plus'
 
 const props = defineProps({

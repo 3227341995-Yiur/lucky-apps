@@ -39,6 +39,8 @@ export const navigation: {
     component: unknown
     icon?: string
     iconSvg?: string
+    /** 自定义图标组件，可自行渲染徽标等动态内容 */
+    iconComponent?: unknown
     order?: number
   }): unknown
   list(): unknown[]

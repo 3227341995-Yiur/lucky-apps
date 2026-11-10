@@ -18,6 +18,15 @@ use tauri::{
 struct ServerProcess(Mutex<Option<Child>>);
 struct TrayProcess(Mutex<Option<TrayIcon>>);
 
+impl Drop for ServerProcess {
+  fn drop(&mut self) {
+    if let Some(mut child) = self.0.lock().unwrap().take() {
+      let _ = child.kill();
+      let _ = child.wait();
+    }
+  }
+}
+
 fn strip_verbatim(path: PathBuf) -> PathBuf {
   let text = path.to_string_lossy();
   if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
@@ -90,6 +99,231 @@ fn migrate_legacy_data(app_data: &Path) -> std::io::Result<()> {
   Ok(())
 }
 
+fn server_url_from_line(line: &str) -> Option<String> {
+  if !line.contains("[server] ready") {
+    return None;
+  }
+  let index = line.find("http://")?;
+  Some(line[index..].split_whitespace().next()?.to_string())
+}
+
+// ============================================================
+// 程序品牌：窗口标题、窗口/托盘图标、exe 文件图标
+// ============================================================
+#[derive(serde::Serialize, serde::Deserialize, Default)]
+struct SavedBranding {
+  name: String,
+  width: u32,
+  height: u32,
+}
+
+#[derive(serde::Deserialize)]
+struct BrandingIcon {
+  rgba: Vec<u8>,
+  width: u32,
+  height: u32,
+  ico: Vec<u8>,
+}
+
+fn branding_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+  let dir = strip_verbatim(app.path().app_data_dir().map_err(|e| e.to_string())?);
+  std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+  Ok(dir)
+}
+
+fn tray_handle(app: &tauri::AppHandle) -> Option<tauri::tray::TrayIcon> {
+  app.try_state::<TrayProcess>()?.0.lock().unwrap().clone()
+}
+
+fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, tray: &tauri::tray::TrayIcon) {
+  let Ok(dir) = branding_dir(app) else { return };
+  let Some(saved) = std::fs::read_to_string(dir.join("branding.json"))
+    .ok()
+    .and_then(|text| serde_json::from_str::<SavedBranding>(&text).ok())
+  else {
+    return;
+  };
+  if let Ok(rgba) = std::fs::read(dir.join("branding-icon.bin")) {
+    if saved.width > 0 && saved.height > 0 {
+      let image = tauri::image::Image::new_owned(rgba, saved.width, saved.height);
+      let _ = window.set_icon(image.clone());
+      let _ = tray.set_icon(Some(image));
+    }
+  }
+  if !saved.name.is_empty() {
+    let _ = window.set_title(&saved.name);
+    let _ = tray.set_tooltip(Some(saved.name.clone()));
+  }
+}
+
+#[tauri::command]
+async fn apply_branding(
+  app: tauri::AppHandle,
+  window: tauri::WebviewWindow,
+  name: Option<String>,
+  icon: Option<BrandingIcon>,
+) -> Result<String, String> {
+  let dir = branding_dir(&app)?;
+  let mut saved = std::fs::read_to_string(dir.join("branding.json"))
+    .ok()
+    .and_then(|text| serde_json::from_str::<SavedBranding>(&text).ok())
+    .unwrap_or_default();
+
+  if let Some(name) = name.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
+    saved.name = name.to_string();
+  }
+  if let Some(icon) = &icon {
+    let image = tauri::image::Image::new_owned(icon.rgba.clone(), icon.width, icon.height);
+    window.set_icon(image.clone()).map_err(|e| e.to_string())?;
+    if let Some(tray) = tray_handle(&app) {
+      let _ = tray.set_icon(Some(image));
+    }
+    std::fs::write(dir.join("branding-icon.bin"), &icon.rgba).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("branding-icon.ico"), &icon.ico).map_err(|e| e.to_string())?;
+    saved.width = icon.width;
+    saved.height = icon.height;
+  }
+  if !saved.name.is_empty() {
+    let _ = window.set_title(&saved.name);
+    if let Some(tray) = tray_handle(&app) {
+      let _ = tray.set_tooltip(Some(saved.name.clone()));
+    }
+  }
+
+  let mut message = String::from("程序名称与图标已更新");
+  #[cfg(windows)]
+  if let Some(icon) = icon.filter(|icon| !icon.ico.is_empty()) {
+    if cfg!(debug_assertions) {
+      message.push_str("（开发模式不修改 exe 文件图标）");
+    } else {
+      let outcome = tauri::async_runtime::spawn_blocking(move || patch_exe_icon(&icon.ico))
+        .await
+        .map_err(|e| e.to_string())?;
+      match outcome {
+        Ok(()) => message.push_str("，exe 文件图标已写入（重启应用后生效）"),
+        Err(error) => {
+          eprintln!("[shell] exe 文件图标更新失败: {error}");
+          message.push_str(&format!("（exe 文件图标未修改：{error}）"));
+        }
+      }
+    }
+  }
+
+  let json = serde_json::to_string_pretty(&saved).map_err(|e| e.to_string())?;
+  std::fs::write(dir.join("branding.json"), format!("{json}\n")).map_err(|e| e.to_string())?;
+  Ok(message)
+}
+
+/// 把新图标写进 exe 文件资源。运行中的 exe 不能直接改写，
+/// 经典做法：复制一份 → 在副本上 UpdateResource → 把原文件改名让位 → 副本顶上。
+#[cfg(windows)]
+fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
+  {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::System::LibraryLoader::{
+      BeginUpdateResourceW, EndUpdateResourceW, UpdateResourceW,
+    };
+    use windows_sys::Win32::UI::Shell::{SHChangeNotify, SHCNF_IDLIST, SHCNE_ASSOCCHANGED};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{RT_GROUP_ICON, RT_ICON};
+
+    // 解析 .ico：ICONDIR + 若干 ICONDIRENTRY
+    if ico.len() < 6 || u16::from_le_bytes([ico[4], ico[5]]) == 0 {
+      return Err("ico 文件格式无效".into());
+    }
+    let count = u16::from_le_bytes([ico[4], ico[5]]) as usize;
+    let mut images: Vec<(usize, usize)> = Vec::with_capacity(count); // (offset, len)
+    for index in 0..count {
+      let head = 6 + index * 16;
+      if head + 16 > ico.len() {
+        return Err("ico 目录越界".into());
+      }
+      let len = u32::from_le_bytes([ico[head + 8], ico[head + 9], ico[head + 10], ico[head + 11]]) as usize;
+      let offset = u32::from_le_bytes([ico[head + 12], ico[head + 13], ico[head + 14], ico[head + 15]]) as usize;
+      if offset + len > ico.len() {
+        return Err("ico 数据越界".into());
+      }
+      images.push((offset, len));
+    }
+    // RT_GROUP_ICON：同 ICONDIR 头 + 每项 14 字节（末尾 offset 换成资源 ID）
+    let mut group = Vec::with_capacity(6 + count * 14);
+    group.extend_from_slice(&ico[..6]);
+    for index in 0..count {
+      let head = 6 + index * 16;
+      group.extend_from_slice(&ico[head..head + 12]);
+      group.extend_from_slice(&((index + 1) as u16).to_le_bytes());
+    }
+
+    let exe = std::env::current_exe().map_err(|e| format!("无法定位当前程序: {e}"))?;
+    // 双保险：若本次启动已经改过名（正在跑 .old 副本），直接提示重启
+    let stem = exe.file_stem().and_then(|s| s.to_str()).unwrap_or_default();
+    if stem.ends_with(".old") {
+      return Err("本次启动已更新过 exe 图标，重启应用后可再次修改".into());
+    }
+    let staging = exe.with_extension("staging.exe");
+    let previous = exe.with_extension("old.exe");
+    let _ = std::fs::remove_file(&staging);
+    std::fs::copy(&exe, &staging).map_err(|e| format!("复制程序文件失败: {e}"))?;
+
+    let wide: Vec<u16> = staging.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let handle = unsafe { BeginUpdateResourceW(wide.as_ptr(), 0) };
+    if handle.is_null() {
+      let _ = std::fs::remove_file(&staging);
+      return Err("无法打开程序资源（可能被占用或无权限）".into());
+    }
+    let mut ok = true;
+    for (index, (offset, len)) in images.iter().enumerate() {
+      let data = &ico[*offset..*offset + *len];
+      let result = unsafe {
+        UpdateResourceW(
+          handle,
+          RT_ICON as _,
+          (index + 1) as usize as _,
+          0x0409,
+          data.as_ptr() as *const core::ffi::c_void,
+          data.len() as u32,
+        )
+      };
+      if result == 0 {
+        ok = false;
+        break;
+      }
+    }
+    if ok {
+      let result = unsafe {
+        UpdateResourceW(
+          handle,
+          RT_GROUP_ICON as _,
+          1 as usize as _,
+          0x0409,
+          group.as_ptr() as *const core::ffi::c_void,
+          group.len() as u32,
+        )
+      };
+      ok = result != 0;
+    }
+    let committed = unsafe { EndUpdateResourceW(handle, if ok { 0 } else { 1 }) } != 0;
+    if !ok || !committed {
+      let _ = std::fs::remove_file(&staging);
+      return Err("写入图标资源失败".into());
+    }
+
+    if previous.exists() && std::fs::remove_file(&previous).is_err() {
+      let _ = std::fs::remove_file(&staging);
+      return Err("旧的备份文件被占用，请重启应用后再修改".into());
+    }
+    std::fs::rename(&exe, &previous).map_err(|e| format!("原程序改名失败: {e}"))?;
+    if let Err(error) = std::fs::rename(&staging, &exe) {
+      // 尽力恢复原名
+      let _ = std::fs::rename(&previous, &exe);
+      return Err(format!("新程序就位失败: {error}"));
+    }
+    unsafe {
+      SHChangeNotify(SHCNE_ASSOCCHANGED as i32, SHCNF_IDLIST, std::ptr::null(), std::ptr::null());
+    }
+    Ok(())
+  }
+}
+
 fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let root = project_root(app);
   let server_script = root.join("server").join("dist").join("index.mjs");
@@ -128,6 +362,8 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
     .env("WR_PARENT_PID", std::process::id().to_string())
     .env("WR_APP_EXE", std::env::current_exe().unwrap_or_default())
     .env("WR_PORT", "34115")
+    // 父进程退出/崩溃时管道关闭，Node 服务随之退出。
+    .stdin(Stdio::piped())
     .stdout(Stdio::piped())
     .stderr(Stdio::inherit())
     .spawn()
@@ -141,12 +377,9 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let mut url = String::new();
   let mut line = String::new();
   while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
-    if let Some(index) = line.find("http://") {
-      url = line[index..]
-        .split_whitespace()
-        .next()
-        .unwrap_or_default()
-        .to_string();
+    // 插件也可能往 stdout 打印自己的 http:// 地址；只认宿主 ready 行。
+    if let Some(found) = server_url_from_line(&line) {
+      url = found;
       break;
     }
     line.clear();
@@ -170,6 +403,13 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let app = tauri::Builder::default()
+    .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+      if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+      }
+    }))
     .plugin(tauri_plugin_log::Builder::default().build())
     .setup(|app| {
       let (child, url) = spawn_server(app.handle())?;
@@ -229,10 +469,13 @@ pub fn run() {
           }
         })
         .build(app)?;
-      app.manage(TrayProcess(Mutex::new(Some(tray))));
+      app.manage(TrayProcess(Mutex::new(Some(tray.clone()))));
+
+      apply_saved_branding(app.handle(), &window, &tray);
 
       Ok(())
     })
+    .invoke_handler(tauri::generate_handler![apply_branding])
     .build(tauri::generate_context!())
     .expect("error while building tauri application");
 
@@ -241,6 +484,7 @@ pub fn run() {
       if let Some(state) = app.try_state::<ServerProcess>() {
         if let Some(mut child) = state.0.lock().unwrap().take() {
           let _ = child.kill();
+          let _ = child.wait();
         }
       }
       if let Some(state) = app.try_state::<TrayProcess>() {
@@ -248,4 +492,18 @@ pub fn run() {
       }
     }
   });
+}
+
+#[cfg(test)]
+mod tests {
+  use super::server_url_from_line;
+
+  #[test]
+  fn ignores_plugin_urls_and_reads_server_ready() {
+    assert_eq!(server_url_from_line("[some-plugin] local service http://127.0.0.1:38471"), None);
+    assert_eq!(
+      server_url_from_line("[server] ready http://127.0.0.1:34115 (profile: C:/x)").as_deref(),
+      Some("http://127.0.0.1:34115")
+    );
+  }
 }

@@ -4,7 +4,7 @@
  * profile / bundle / patch 组合和真实 Cordis loader 都在 Node 服务里完成；
  * 浏览器只读取 /api/boot 清单，注入样式/脚本并加载 client bundle。
  */
-import { apiGet, apiPost } from '@/services/rpc'
+import { apiGet, apiPost, apiStream } from '@/services/rpc'
 import {
   setExtensionResources,
   updateExtensionResource,
@@ -58,6 +58,10 @@ function applyBoot(payload) {
   }
   extensionState.profile = bootState.profile || { bundles: [], rows: 0 }
   setExtensionResources(bootState.resources)
+  const profileError = String(bootState.profile?.error || '')
+  if (profileError && !extensionState.errors.some(message => message.includes(profileError))) {
+    addExtensionError(`Cordis 插件加载失败：${profileError}`)
+  }
 }
 
 /** 扫描服务端 boot 清单，供管理界面展示 */
@@ -160,9 +164,52 @@ export async function searchPlugins(query) {
   return apiGet(`/api/plugins/search?q=${encodeURIComponent(query)}`)
 }
 
-/** 通过服务端安装外部组件包（设置面板使用） */
-export async function installPlugin(spec) {
-  const result = await apiPost('/api/plugins/install', { spec })
+/** 通过服务端安装外部组件包，流式接收 pnpm 进度与错误（设置面板使用） */
+export async function installPlugin(spec, onEvent = () => {}) {
+  const response = await apiStream('/api/plugins/install', { spec })
+  if (!response.ok) {
+    let detail = ''
+    try { detail = (await response.json()).error || '' } catch {}
+    throw new Error(detail || `安装请求失败 (${response.status})`)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let result = null
+  let streamError = ''
+
+  const consume = chunk => {
+    buffer += chunk
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      if (!line.trim()) continue
+      let event
+      try { event = JSON.parse(line) } catch { continue }
+      if (event.type === 'error') streamError = event.error || '安装失败'
+      else if (event.type === 'done') result = event.result
+      onEvent(event)
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    consume(decoder.decode(value, { stream: true }))
+  }
+  consume(decoder.decode())
+  if (streamError) throw new Error(streamError)
+
+  onEvent({ type: 'stage', stage: 'reload', progress: 88, message: '重新加载插件…' })
+  await reloadExtensionComponents()
+  onEvent({ type: 'stage', stage: 'done', progress: 100, message: '安装完成' })
+  return result
+}
+
+/** 卸载外部组件包（设置面板使用） */
+export async function uninstallPlugin(name) {
+  const result = await apiPost('/api/plugins/remove', { name })
   await reloadExtensionComponents()
   return result
 }

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { ElIcon } from 'element-plus'
 import { TrendCharts, Bottom } from '@element-plus/icons-vue'

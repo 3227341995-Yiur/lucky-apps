@@ -40,3 +40,15 @@ export function apiGet(path) {
 export function apiPost(path, body = {}) {
   return request(path, { method: 'POST', body: JSON.stringify(body) })
 }
+
+/** 返回原始 Response，供 NDJSON 流式接口使用 */
+export function apiStream(path, body = {}) {
+  return fetch(path, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-wr-token': token
+    },
+    body: JSON.stringify(body)
+  })
+}

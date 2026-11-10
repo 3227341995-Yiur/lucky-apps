@@ -6,7 +6,7 @@
  *
  * 组件实例不能放进 reactive（会被 Proxy 包装），这里用普通 Map + catalog 数组。
  */
-import { reactive, ref } from 'vue'
+import { markRaw, reactive, ref } from 'vue'
 import { toKebabCase, toPascalCase } from '@/plugins/naming'
 
 export const extensionState = reactive({
@@ -107,6 +107,8 @@ export function registerNavItem(item) {
     label: item.label,
     icon: item.icon || 'Grid',
     iconSvg: item.iconSvg || '',
+    // 组件图标可以被外部插件用来渲染徽标、动态状态等
+    iconComponent: item.iconComponent ? markRaw(item.iconComponent) : null,
     order: Number(item.order) || 100
   }
   const index = navItemCatalog.value.findIndex(existing => existing.id === item.id)

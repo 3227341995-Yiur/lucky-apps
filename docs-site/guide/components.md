@@ -34,7 +34,7 @@ export default definePlugin({
 
 - 画布组件用 `components.registerCanvas`，表格列组件用 `components.registerColumn`，列属性插槽用 `components.registerColumnSlot`。
 - 侧边栏入口/页面用 `navigation.register`，和画布组件、列组件是不同扩展类型。仓库的 `trash-bin` 就是一个独立功能组件包：注册左侧回收站入口和完整页面，样式与内置版一致。
-- 设置面板入口用 `settings.register`；程序名称/图标用 `branding.set`。
+- 设置面板入口用 `settings.register`；程序名称/图标用 `branding.set`（界面部分）。桌面端的窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标由设置中心「程序名称与图标」统一写入，exe 图标重启应用后生效。
 - 包由 Cordis 或 manifest client 入口管理生命周期，热加载时先 dispose 再重新挂载。
 
 ## 组件内部直接 import
@@ -68,10 +68,13 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 
 ## 包与 profile
 
-每个插件是独立包，自己执行 `vite build`，产物在包内 `lib/`：
-`lib/node.js`（Node half）和 `lib/client.js`（浏览器 bundle），包根目录带
-`cordis.patch.yml`。`pnpm profile:build` 会把包 `pnpm pack` 成 tarball，
-再由 `pnpm install` 安装到 `src-tauri/target/profile/node_modules`（真实 pnpm profile，不是手工复制）。
+每个插件是独立的 **Vue 3 + TypeScript** bundle 包，自己执行 `vite build`，产物为
+`lib/client.js`（浏览器）和 `lib/node.js`（Cordis loader 行）。包自带 `cordis.patch.yml`，
+`package.json` 声明 `weekReport.bundle.patch`；`pnpm profile:build` 会把包 `pnpm pack`
+成 tarball，安装到 `src-tauri/target/profile/node_modules`（真实 pnpm profile，不是手工复制）。
+
+这和 DSH bundle 形态一致：画布 / 列 / 功能包都通过 Cordis loader 行挂载，
+Node half 把浏览器 bundle 登记进 clientModules。
 
 profile 结构：
 
@@ -83,28 +86,16 @@ src-tauri/target/profile/
 ├─ vendor/             pnpm pack 生成的包 tarball
 ├─ pnpm-lock.yaml      pnpm 安装锁
 └─ node_modules/       pnpm install 的真实依赖树
-   ├─ vue/
-   ├─ element-plus/
-   ├─ @element-plus/icons-vue/
    ├─ week-report-base/
-   └─ kpi-card/ ...
+   ├─ kpi-card/ ...
+   └─ 外部 Node 插件 ...
 ```
 
 组合顺序和 DSH 一致：空根 → 各 bundle 的 `weekReport.bundle.patch` →
-profile 的 `cordis.patch.yml`。patch 支持 `insert` 新行和按 `id` 覆盖行，
-`config` 整行替换，不做深合并。
+profile 的 `cordis.patch.yml`。内置 profile 的 `weekReport.profile.bundles` 列出
+`week-report-base`、画布包、列包、功能包和外部功能插件。
 
-组件包的 patch：
-
-```yaml
-- insert:
-    - id: kpi-card
-      name: kpi-card
-```
-
-用户 profile 在 `%APPDATA%\com.lu.week-report\profile`，结构相同；把包放进
-`plugins/node_modules` 并加入 `plugins/package.json` 的
-`weekReport.profile.bundles` 即可，不需要重新打包应用。
+用户 profile 在 `%APPDATA%\com.lu.week-report\profile`，安装外部组件不需要重新打包应用。
 
 ::: tip 内置组件包
 仓库自带 `kpi-card`、`progress-board`、`timeline-card` 三个画布包，以及
