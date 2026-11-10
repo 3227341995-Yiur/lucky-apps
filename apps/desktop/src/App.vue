@@ -33,6 +33,8 @@ function closeDialogs() {
 
 function openPluginPage(item) {
   closeDialogs()
+  // 原周报行为：未选中任何周报时，周报 icon 点击无功能
+  if (item.hostView === 'report-editor' && !state.currentReport) return
   activePluginPage.value = item.id
 }
 
@@ -55,7 +57,6 @@ function navigateTo(id) {
 
 function openSettings() {
   closeDialogs()
-  activePluginPage.value = null
   showSettings.value = true
 }
 
@@ -169,17 +170,11 @@ watch(
         class="plugin-page-host"
       />
       <ReportEditor
-        v-else-if="activeHostView === 'report-editor' && state.currentReport"
+        v-else-if="state.currentReport"
         :key="state.currentReport.id"
         @open-import-export="openImportExport"
         @open-design="openDesigner()"
-      />
-      <div v-else-if="activeHostView === 'report-editor'" class="report-empty">
-        <el-icon :size="26"><Document /></el-icon>
-        <h3>还没有打开周报</h3>
-        <p>从左侧栏选择一份周报，或点击左上角 + 新建本周周报。</p>
-      </div>
-    </main>
+      />    </main>
 
     <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
 
@@ -191,28 +186,3 @@ watch(
     />
   </div>
 </template>
-
-<style scoped>
-.report-empty {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--el-text-color-secondary);
-}
-
-.report-empty h3 {
-  margin: 8px 0 0;
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--el-text-color-primary);
-}
-
-.report-empty p {
-  margin: 0;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-</style>

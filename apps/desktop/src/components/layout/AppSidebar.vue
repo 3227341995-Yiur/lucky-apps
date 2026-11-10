@@ -61,12 +61,27 @@ const railActions = computed(() => listRailActions())
           :show-after="500"
         >
           <button
+            v-if="item.hostView !== 'report-editor'"
             type="button"
             class="rail-item"
             :title="item.label"
             :aria-label="item.label"
             :class="{ active: isRailActive(item) }"
             @click="emit('open-plugin-page', item)"
+          >
+            <component :is="item.iconComponent" v-if="item.iconComponent" />
+            <span v-else-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
+            <el-icon v-else :size="18"><component :is="item.icon || 'Grid'" /></el-icon>
+          </button>
+          <!-- 周报 icon 不响应点击：只有侧栏列表选中周报后才高亮（原版行为） -->
+          <button
+            v-else
+            type="button"
+            class="rail-item rail-static"
+            :title="item.label"
+            :aria-label="item.label"
+            :aria-disabled="true"
+            :class="{ active: isRailActive(item) }"
           >
             <component :is="item.iconComponent" v-if="item.iconComponent" />
             <span v-else-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
@@ -192,6 +207,20 @@ const railActions = computed(() => listRailActions())
 .rail-item:hover {
   color: var(--el-text-color-primary);
   background: var(--el-fill-color-light);
+}
+
+.rail-static {
+  cursor: default;
+}
+
+.rail-static:hover {
+  background: transparent;
+  color: var(--el-text-color-secondary);
+}
+
+.rail-static.active:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 .rail-item.active {

@@ -1,10 +1,11 @@
-<script setup lang="ts">
+<script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useWeekReport } from 'plugin-api'
 import Vditor from 'vditor'
 import { renderReport } from './utils/templateRenderer'
 import { formatDateRange } from './utils/reportExport'
+import { useTheme } from './composables/useTheme'
 import { debounce } from './utils/debounce'
+import FullscreenIcon from './FullscreenIcon.vue'
 
 defineOptions({ name: 'TemplatePreviewPane' })
 
@@ -37,18 +38,20 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  fullscreen: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'toggle-fullscreen'])
 
 const reportId = defineModel('reportId', {
   type: [Number, String],
   default: null,
 })
 
-const api = useWeekReport()
-const resolvedTheme = ref(api.theme.get().resolved)
-let offTheme = null
+const { resolvedTheme } = useTheme()
 
 const rendered = ref('')
 const renderError = ref('')
@@ -87,7 +90,7 @@ async function renderMarkdown(markdown) {
     await Vditor.preview(element, markdown, {
       mode: resolvedTheme.value === 'dark' ? 'dark' : 'light',
       theme: { current: resolvedTheme.value === 'dark' ? 'dark' : 'light' },
-      // 复用宿主已加载的文案，避免每次预览都从 CDN 拉取；没有则用默认兜底文案
+      // 复用已加载的文案，避免每次预览都从 CDN 拉取；没有则用默认兜底文案
       i18n: window.VditorI18n || {},
       icon: undefined,
     })
@@ -151,21 +154,17 @@ watch(resolvedTheme, () => {
 })
 
 onMounted(() => {
-  offTheme = api.theme.onChange((theme) => {
-    resolvedTheme.value = theme?.resolved || api.theme.get().resolved
-  })
   scheduleRender()
 })
 
 onBeforeUnmount(() => {
-  offTheme?.()
   scheduleRender.cancel()
   markdownSeq += 1
 })
 </script>
 
 <template>
-  <aside class="td-preview">
+  <aside class="td-preview" :class="{ 'is-fullscreen': fullscreen }">
     <header class="td-preview-head">
       <div class="td-preview-head-row">
         <span class="td-preview-title">
@@ -173,6 +172,11 @@ onBeforeUnmount(() => {
           <span>预览周报</span>
         </span>
         <div class="td-preview-head-actions">
+          <el-tooltip :content="fullscreen ? '退出全屏' : '全屏'" placement="bottom">
+            <button type="button" class="td-icon-btn" :aria-label="fullscreen ? '退出全屏' : '全屏'" @click="emit('toggle-fullscreen')">
+              <fullscreen-icon :exit="fullscreen" />
+            </button>
+          </el-tooltip>
           <el-tooltip content="隐藏预览" placement="bottom">
             <button type="button" class="td-icon-btn" aria-label="隐藏预览" @click="emit('close')">
               <el-icon><Right /></el-icon>
@@ -268,6 +272,17 @@ onBeforeUnmount(() => {
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
+}
+
+.td-preview.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  flex: none;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  border-left: 0;
 }
 
 .td-preview-head-actions {

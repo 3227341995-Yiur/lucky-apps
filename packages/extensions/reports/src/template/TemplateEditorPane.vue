@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue'
 import CodeEditor from './CodeEditor.vue'
 
@@ -25,6 +25,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  saving: {
+    type: Boolean,
+    default: false,
+  },
   showPreview: {
     type: Boolean,
     default: true,
@@ -35,7 +39,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['toggle-preview', 'create'])
+const emit = defineEmits(['save', 'toggle-preview', 'create'])
 
 const name = defineModel('name', { type: String, default: '' })
 const type = defineModel('type', { type: String, default: 'html' })
@@ -99,6 +103,11 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
             <span class="wr-kbd">S</span>
           </span>
 
+          <el-button type="primary" size="small" :loading="saving" @click="emit('save')">
+            <el-icon v-if="!saving"><Check /></el-icon>
+            <span>保存</span>
+          </el-button>
+
           <el-tooltip :content="showPreview ? '隐藏预览' : '显示预览'" placement="bottom">
             <el-button size="small" :plain="showPreview" @click="emit('toggle-preview')">
               <el-icon><View /></el-icon>
@@ -134,7 +143,7 @@ const lineCount = computed(() => (content.value ? content.value.split('\n').leng
     <div v-else class="td-editor-empty">
       <el-icon :size="40"><DocumentAdd /></el-icon>
       <h3>还没有可编辑的模板</h3>
-      <p>从上方新建一个模板开始设计，类型可以是 HTML、Markdown 或自定义周报类型。</p>
+      <p>从左侧新建一个模板开始设计，类型可以是 HTML、Markdown 或自定义周报类型。</p>
       <el-button type="primary" @click="emit('create', 'html')">新建 HTML 模板</el-button>
     </div>
   </section>
