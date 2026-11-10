@@ -1,5 +1,6 @@
 import { definePlugin } from 'plugin-api'
 import ReportsPage from './ReportsPage.vue'
+import ReportsSidebar from './ReportsSidebar.vue'
 import ReportsSettings from './ReportsSettings.vue'
 
 export default definePlugin({
@@ -11,6 +12,11 @@ export default definePlugin({
       icon: 'Document',
       order: 10,
       component: ReportsPage,
+    })
+    ctx.sidebar.registerPanel({
+      id: 'reports',
+      order: 10,
+      component: ReportsSidebar,
     })
     ctx.settings.register({
       id: 'reports-components',

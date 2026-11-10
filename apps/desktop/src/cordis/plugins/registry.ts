@@ -13,6 +13,8 @@ import {
   listColumnComponents,
   listCanvasComponents,
   hasComponent,
+  registerSidebarPanel,
+  listSidebarPanels,
 } from '@/plugins/registry'
 
 export const name = 'registry'
@@ -25,6 +27,10 @@ export function apply(ctx) {
   ctx.provide('settings', {
     register: registerSettingsSection,
     list: listSettingsSections,
+  })
+  ctx.provide('sidebar', {
+    registerPanel: registerSidebarPanel,
+    list: listSidebarPanels,
   })
   ctx.provide('components', {
     register: (name, component, meta) => registerComponent(name, component, { ...meta, scope: 'column', source: 'plugin' }),

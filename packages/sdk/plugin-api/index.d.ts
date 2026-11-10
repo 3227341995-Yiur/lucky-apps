@@ -46,6 +46,11 @@ export const navigation: {
   list(): unknown[]
 }
 
+export const sidebar: {
+  registerPanel(item: { id: string; component: unknown; order?: number }): unknown
+  list(): unknown[]
+}
+
 export const settings: {
   register(item: { id: string; label: string; component: unknown; icon?: string; order?: number }): unknown
   list(): unknown[]

@@ -76,6 +76,15 @@ export const navigation = {
   },
 }
 
+export const sidebar = {
+  registerPanel(item) {
+    return requireHost().sidebar.registerPanel(item)
+  },
+  list() {
+    return requireHost().sidebar.list()
+  },
+}
+
 export const settings = {
   register(item) {
     return requireHost().settings.register(item)
@@ -130,4 +139,4 @@ export const commands = {
   },
 }
 
-export default { useWeekReport, definePlugin, components, navigation, settings, branding, events, ui, commands }
+export default { useWeekReport, definePlugin, components, navigation, settings, sidebar, branding, events, ui, commands }

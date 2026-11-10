@@ -6,7 +6,7 @@
  *
  * 组件实例不能放进 reactive（会被 Proxy 包装），这里用普通 Map + catalog 数组。
  */
-import { markRaw, reactive, ref } from 'vue'
+import { markRaw, reactive, ref, shallowRef } from 'vue'
 import { toKebabCase, toPascalCase } from '@/plugins/naming'
 
 export const extensionState = reactive({
@@ -95,6 +95,29 @@ export function listCanvasComponents() {
   return componentCatalog.value.filter(item => (
     item.scope === 'canvas' && !item.name.endsWith('ColumnModifySlot')
   ))
+}
+
+// ============================================================
+// 侧栏面板：周报插件自己维护左栏（新建入口 + 周报列表）
+// ============================================================
+const sidebarPanelCatalog = shallowRef([])
+
+export function registerSidebarPanel(item = {}) {
+  if (!item.id || !item.component) throw new Error('[registry] 侧栏面板需要 id 与 component')
+  const entry = {
+    id: item.id,
+    order: Number(item.order) || 100,
+    component: item.component,
+  }
+  const index = sidebarPanelCatalog.value.findIndex(existing => existing.id === entry.id)
+  sidebarPanelCatalog.value = index === -1
+    ? [...sidebarPanelCatalog.value, entry]
+    : sidebarPanelCatalog.value.map(existing => (existing.id === entry.id ? entry : existing))
+  return entry
+}
+
+export function listSidebarPanels() {
+  return [...sidebarPanelCatalog.value].sort((a, b) => a.order - b.order)
 }
 
 export function registerNavItem(item) {

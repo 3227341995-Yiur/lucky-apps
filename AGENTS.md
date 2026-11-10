@@ -18,7 +18,9 @@ docs-site             VitePress 开发文档
 ## 规则
 
 - 全部 TypeScript；Vue SFC 用 `<script setup lang="ts">`；不新增 `.js` / `.mjs` 源码。
-- 插件只允许 import `vue` / `element-plus` / `@element-plus/icons-vue` / `plugin-api` 与包内文件；禁止宿主 `@/` 路径。
+- 插件是标准的 Vue 3 + Vite + TypeScript 包：想用什么依赖就在自己的 `package.json` 里声明，随便 import，由 Vite 正常打包。
+- `vue` / `element-plus` / `@element-plus/icons-vue` 由宿主共享实例（构建为 external），其余依赖打进插件自己的 bundle。
+- `plugin-api` 是宿主对外 SDK。唯一禁止的是引用宿主源码内部别名 `@/...`（宿主不是插件的依赖），需要宿主能力请走 `plugin-api` / `ctx` 服务。
 - 插件生命周期走 Cordis：`apply(ctx)` 内用 `ctx.navigation` / `ctx.settings` / `ctx.components`；Node half 在 `src/node-extra.ts`（构建成 JS 后随包发布）。
 - 数据库等业务数据层归插件所有（`packages/extensions/reports` 的 `reports-database`），宿主不持有。
 - 插件 `cordis.patch.yml` 必须入库；构建产物 `lib/` 不入库。

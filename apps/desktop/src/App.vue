@@ -145,14 +145,9 @@ watch(
 <template>
   <div class="wr-app">
     <AppSidebar
-      @create="handleCreate"
       @settings="openSettings"
-      @templates="openTemplates"
-      @import-export="openImportExport"
       :active-plugin-page="activePluginPage"
       @open-plugin-page="openPluginPage"
-      @open-welcome="openWelcomePage"
-      @open-reports="openReportsPage"
     />
 
     <main class="wr-main">

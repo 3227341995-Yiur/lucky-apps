@@ -1,110 +1,20 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useReports } from '@/composables/useReports'
-import { getIsoWeek } from '@/utils/date'
-import { listNavItems } from '@/plugins/registry'
+import { computed } from 'vue'
+import { listNavItems, listSidebarPanels } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 defineOptions({ name: 'AppSidebar' })
 
-const props = defineProps({
+defineProps({
   activePluginPage: { type: String, default: null },
 })
 
-const emit = defineEmits([
-  'create', 'settings', 'templates', 'import-export', 'open-plugin-page',
-  'open-welcome', 'open-reports',
-])
+const emit = defineEmits(['settings', 'open-plugin-page'])
 
-const reports = useReports()
-const { state } = reports
-const keyword = ref('')
 const pluginNavItems = computed(() => listNavItems())
-const panelScrollRef = ref(null)
-
-function reportStart(report) {
-  return Array.isArray(report.dateRange) ? report.dateRange[0] || '' : String(report.dateRange || '')
-}
-
-function weekOf(report) {
-  const start = reportStart(report)
-  return start ? `W${String(getIsoWeek(new Date(start))).padStart(2, '0')}` : '—'
-}
-
-function displayTitle(report) {
-  return String(report.title || '未命名周报')
-    .replace(/\s*[-–—]\s*\d{4}-\d{2}-\d{2}\s*~\s*\d{4}-\d{2}-\d{2}$/, '')
-}
-
-function shortRange(report) {
-  if (Array.isArray(report.dateRange) && report.dateRange.length === 2) {
-    return `${report.dateRange[0].slice(5)} – ${report.dateRange[1].slice(5)}`
-  }
-  return String(report.dateRange || '未设置日期')
-}
-
-function monthLabel(key) {
-  if (!/^\d{4}-\d{2}$/.test(key)) return '其他'
-  const [year, month] = key.split('-')
-  return `${year} 年 ${Number(month)} 月`
-}
-
-const groupedReports = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  const filtered = state.reports.filter((report) => {
-    if (!kw) return true
-    return String(report.title || '').toLowerCase().includes(kw) ||
-      shortRange(report).includes(kw) ||
-      reportStart(report).includes(kw)
-  })
-
-  const groups = new Map()
-  for (const report of filtered) {
-    const start = reportStart(report)
-    const key = start ? start.slice(0, 7) : 'other'
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key).push(report)
-  }
-
-  return [...groups.entries()].map(([key, list]) => ({
-    key,
-    label: monthLabel(key),
-    reports: list,
-  }))
-})
-
-async function handleSelect(id) {
-  await reports.selectReport(id)
-}
-
-async function handleDelete(report) {
-  try {
-    await ElMessageBox.confirm(
-      `确定把「${report.title}」移入回收站吗？`,
-      '删除确认',
-      {
-        confirmButtonText: '移入回收站',
-        cancelButtonText: '取消',
-        type: 'warning',
-      },
-    )
-    await reports.deleteReport(report.id)
-    ElMessage.success('已移入回收站')
-  } catch {
-    // 用户取消
-  }
-}
-
-function handleScroll({ scrollTop }) {
-  const wrap = panelScrollRef.value?.wrapRef
-  if (!wrap || !state.hasMore || state.loading) return
-  if (scrollTop + wrap.clientHeight >= wrap.scrollHeight - 60) {
-    reports.loadReports(true)
-  }
-}
-
+// 周报插件等通过 ctx.sidebar.registerPanel 提供左侧面板（新建入口 + 周报列表）
+const sidebarPanels = computed(() => listSidebarPanels())
 </script>
 
 <template>
@@ -114,12 +24,6 @@ function handleScroll({ scrollTop }) {
         <img v-if="branding.icon" :src="branding.icon" alt="" />
         <span v-else>LA</span>
       </div>
-
-      <el-tooltip content="新建周报（Ctrl N）" placement="right" :show-after="500">
-        <button type="button" class="rail-create" aria-label="新建周报" @click="emit('create')">
-          <el-icon :size="16"><Plus /></el-icon>
-        </button>
-      </el-tooltip>
 
       <div class="rail-items">
         <el-tooltip
@@ -154,92 +58,12 @@ function handleScroll({ scrollTop }) {
       </div>
     </nav>
 
-    <div class="nav-panel">
-      <header class="panel-head">
-        <div class="panel-title">
-          <span>周报</span>
-          <span class="panel-count">{{ state.stats.reports }}</span>
-        </div>
-        <div class="panel-actions">
-          <el-tooltip content="导出模板" placement="bottom" :show-after="500">
-            <button type="button" title="模板" @click="emit('templates')">
-              <el-icon :size="14"><DocumentCopy /></el-icon>
-            </button>
-          </el-tooltip>
-          <el-tooltip content="导入 / 导出" placement="bottom" :show-after="500">
-            <button type="button" title="导入导出" @click="emit('import-export')">
-              <el-icon :size="14"><Sort /></el-icon>
-            </button>
-          </el-tooltip>
-        </div>
-      </header>
-
-      <div class="panel-search">
-        <el-input v-model="keyword" size="small" clearable placeholder="搜索周报标题 / 日期">
-          <template #prefix><el-icon :size="11"><Search /></el-icon></template>
-        </el-input>
-      </div>
-
-      <el-scrollbar ref="panelScrollRef" class="panel-list" @scroll="handleScroll">
-        <div class="panel-list-inner">
-        <section v-for="group in groupedReports" :key="group.key" class="report-group">
-          <div class="group-label">
-            <span>{{ group.label }}</span>
-            <span>{{ group.reports.length }}</span>
-          </div>
-
-          <div
-            v-for="report in group.reports"
-            :key="report.id"
-            class="report-row"
-            :class="{ active: state.view === 'reports' && state.currentId === report.id }"
-            role="button"
-            tabindex="0"
-            @click="handleSelect(report.id)"
-            @keydown.enter.prevent="handleSelect(report.id)"
-            @keydown.space.prevent="handleSelect(report.id)"
-          >
-            <span class="report-week">{{ weekOf(report) }}</span>
-            <span class="report-copy">
-              <span class="report-title">{{ displayTitle(report) }}</span>
-              <span class="report-range">{{ shortRange(report) }}</span>
-            </span>
-            <button
-              type="button"
-              class="report-delete"
-              title="移入回收站"
-              aria-label="移入回收站"
-              @click.stop="handleDelete(report)"
-            >
-              <el-icon :size="12"><Delete /></el-icon>
-            </button>
-          </div>
-        </section>
-
-        <div v-if="keyword && groupedReports.length === 0" class="panel-empty">
-          <p>没有匹配的周报</p>
-        </div>
-
-        <div v-if="state.loading" class="panel-hint">
-          <el-icon class="is-loading" :size="12"><Loading /></el-icon>
-          <span>加载中</span>
-        </div>
-        <button v-else-if="state.hasMore" type="button" class="panel-more" @click="reports.loadReports(true)">
-          加载更多
-        </button>
-        <div v-else-if="state.reports.length === 0 && !keyword" class="panel-empty">
-          <el-icon :size="20"><DocumentAdd /></el-icon>
-          <p>还没有周报</p>
-          <button type="button" @click="emit('create')">新建第一份</button>
-        </div>
-        <div v-else-if="state.reports.length > 0 && !keyword" class="panel-hint muted">没有更多了</div>
-        </div>
-      </el-scrollbar>
-
-      <footer class="panel-foot">
-        <span class="foot-state"><i /> 本地 SQLite</span>
-        <span class="foot-count">{{ state.reports.length }} / {{ state.stats.reports }}</span>
-      </footer>
+    <div v-if="sidebarPanels.length" class="nav-panel plugin-panel">
+      <component
+        v-for="panel in sidebarPanels"
+        :is="panel.component"
+        :key="panel.id"
+      />
     </div>
   </aside>
 </template>
@@ -383,8 +207,15 @@ function handleScroll({ scrollTop }) {
   flex: none;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  padding: 10px 10px 8px;
   background: var(--el-bg-color);
   border-right: 1px solid var(--wr-border);
+}
+
+.plugin-panel > * {
+  flex: 1;
+  min-height: 0;
 }
 
 .panel-head {

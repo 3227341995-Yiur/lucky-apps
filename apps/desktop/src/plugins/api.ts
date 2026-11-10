@@ -53,6 +53,8 @@ import {
   listNavItems,
   registerSettingsSection,
   listSettingsSections,
+  registerSidebarPanel,
+  listSidebarPanels,
   registerComponent,
   registerColumnSlot,
   listComponents,
@@ -62,7 +64,7 @@ import {
   extensionState,
 } from '@/plugins/registry'
 
-const VERSION = '2.0.10'
+const VERSION = '3.0.0'
 const API_VERSION = 2
 
 // ============================================================
@@ -282,6 +284,10 @@ export const pluginApi = {
   settings: {
     register: registerSettingsSection,
     list: listSettingsSections,
+  },
+  sidebar: {
+    registerPanel: registerSidebarPanel,
+    list: listSidebarPanels,
   },
   /** Cordis 扩展生命周期（插件脚本可注册自己的插件） */
   cordis,
