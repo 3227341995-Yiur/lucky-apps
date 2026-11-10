@@ -336,7 +336,14 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
 
 fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let root = project_root(app);
-  let server_script = root.join("apps").join("server").join("dist").join("index.mjs");
+  // 开发布局是 apps/server/dist；安装包历史上曾映射到 server/dist，两种都兼容。
+  let server_script = [
+    root.join("apps").join("server").join("dist").join("index.mjs"),
+    root.join("server").join("dist").join("index.mjs"),
+  ]
+    .into_iter()
+    .find(|path| path.is_file())
+    .unwrap_or_else(|| root.join("apps").join("server").join("dist").join("index.mjs"));
   let app_data = strip_verbatim(app.path().app_data_dir().map_err(|e| e.to_string())?);
   let env_db = std::env::var("WR_DB_PATH").ok().map(PathBuf::from);
   let env_profile = std::env::var("WR_PROFILE_DIR").ok();
