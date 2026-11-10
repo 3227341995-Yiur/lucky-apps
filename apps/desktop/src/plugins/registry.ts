@@ -106,7 +106,7 @@ export function registerSidebarPanel(item = {}) {
   if (!item.id || !item.component) throw new Error('[registry] 侧栏面板需要 id 与 component')
   const entry = {
     id: item.id,
-    order: Number(item.order) || 100,
+    order: Number.isFinite(Number(item.order)) ? Number(item.order) : 100,
     component: item.component,
   }
   const index = sidebarPanelCatalog.value.findIndex(existing => existing.id === entry.id)
@@ -124,7 +124,7 @@ export function registerRailAction(item = {}) {
   }
   const entry = {
     id: item.id,
-    order: Number(item.order) || 100,
+    order: Number.isFinite(Number(item.order)) ? Number(item.order) : 100,
     icon: item.icon || 'Plus',
     title: item.title || '',
     onClick: item.onClick,
@@ -142,7 +142,7 @@ export function registerOverlay(item = {}) {
   if (!item.id || !item.component) throw new Error('[registry] overlay 需要 id 与 component')
   const entry = {
     id: item.id,
-    order: Number(item.order) || 100,
+    order: Number.isFinite(Number(item.order)) ? Number(item.order) : 100,
     component: item.component,
   }
   const index = overlayCatalog.value.findIndex(existing => existing.id === entry.id)
@@ -176,7 +176,7 @@ export function registerNavItem(item) {
     iconSvg: item.iconSvg || '',
     // 组件图标可以被外部插件用来渲染徽标、动态状态等
     iconComponent: item.iconComponent ? markRaw(item.iconComponent) : null,
-    order: Number(item.order) || 100,
+    order: Number.isFinite(Number(item.order)) ? Number(item.order) : 100,
   }
   const index = navItemCatalog.value.findIndex(existing => existing.id === item.id)
   if (index === -1) navItemCatalog.value = [...navItemCatalog.value, entry]
@@ -205,7 +205,7 @@ export function registerSettingsSection(item) {
     id: item.id,
     label: item.label,
     icon: item.icon || 'Setting',
-    order: Number(item.order) || 100,
+    order: Number.isFinite(Number(item.order)) ? Number(item.order) : 100,
   }
   const index = settingsSectionCatalog.value.findIndex(existing => existing.id === item.id)
   if (index === -1) settingsSectionCatalog.value = [...settingsSectionCatalog.value, entry]

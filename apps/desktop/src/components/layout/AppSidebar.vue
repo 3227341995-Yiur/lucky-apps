@@ -6,9 +6,16 @@ import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 defineOptions({ name: 'AppSidebar' })
 
-defineProps({
+const props = defineProps({
   activePluginPage: { type: String, default: null },
+  /** 周报编辑器是否打开：此时“周报”icon 保持选中 */
+  reportOpen: { type: Boolean, default: false },
 })
+
+function isRailActive(item) {
+  if (props.activePluginPage === item.id) return true
+  return item.id === 'reports' && !props.activePluginPage && props.reportOpen
+}
 
 const emit = defineEmits(['settings', 'open-plugin-page'])
 
@@ -58,7 +65,7 @@ const railActions = computed(() => listRailActions())
             class="rail-item"
             :title="item.label"
             :aria-label="item.label"
-            :class="{ active: activePluginPage === item.id }"
+            :class="{ active: isRailActive(item) }"
             @click="emit('open-plugin-page', item)"
           >
             <component :is="item.iconComponent" v-if="item.iconComponent" />

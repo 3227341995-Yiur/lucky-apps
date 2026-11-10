@@ -3,7 +3,6 @@
  * 导入导出 / 模板设计 / 周报设计。
  */
 import { reactive } from 'vue'
-import { useWeekReport } from 'plugin-api'
 
 export type ReportsDialog = 'io' | 'template' | 'designer'
 
@@ -15,5 +14,4 @@ export const dialogState = reactive<Record<ReportsDialog, boolean>>({
 
 export function openReportsDialog(name: ReportsDialog) {
   dialogState[name] = true
-  useWeekReport().navigation.open('reports')
 }

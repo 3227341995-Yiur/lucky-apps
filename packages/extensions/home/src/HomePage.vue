@@ -91,7 +91,7 @@ function openReport(id) {
 function onQuick(action) {
   if (action === 'create') createReport()
   else if (action === 'io') api.navigation.open('data-io')
-  else if (action === 'designer') api.navigation.open('structure-designer')
+  else if (action === 'designer') api.ui.openDesigner()
   else if (action === 'settings') api.ui.openSettings()
 }
 
@@ -133,7 +133,7 @@ onBeforeUnmount(() => off?.())
               打开本周周报
             </el-button>
             <el-button v-else type="primary" @click="createReport">新建本周周报</el-button>
-            <el-button text @click="api.navigation.open('structure-designer')">
+            <el-button text @click="api.ui.openDesigner()">
               <el-icon><MagicStick /></el-icon>
               <span>画布设计</span>
             </el-button>

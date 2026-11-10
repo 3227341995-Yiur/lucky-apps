@@ -19,56 +19,48 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => off?.())
+
+function closeDialog(name: 'io' | 'template' | 'designer') {
+  dialogState[name] = false
+}
 </script>
 
 <template>
-  <el-dialog
+  <AppDialog
     v-model="dialogState.io"
-    class="reports-dialog"
-    title="导入导出"
-    width="min(980px, 94vw)"
-    append-to-body
-    align-center
-    destroy-on-close
+    title="导入 / 导出"
+    subtitle="导出单份或全部周报，也可以备份和恢复完整数据"
+    icon="Sort"
+    width="880px"
+    fill-height
+    @close="closeDialog('io')"
   >
     <ImportExportPage embedded />
-  </el-dialog>
+  </AppDialog>
 
-  <el-dialog
+  <AppDialog
     v-model="dialogState.template"
-    class="reports-dialog is-wide"
-    title="模板设计"
-    width="min(1320px, 96vw)"
-    append-to-body
-    align-center
-    destroy-on-close
+    title="模板设计器"
+    subtitle="Handlebars 模板 · 选择周报实时预览"
+    icon="EditPen"
+    width="96vw"
+    fill-height
+    :close-on-press-escape="false"
+    @close="closeDialog('template')"
   >
     <TemplateDesignerPage embedded />
-  </el-dialog>
+  </AppDialog>
 
-  <el-dialog
+  <AppDialog
     v-model="dialogState.designer"
-    class="reports-dialog is-wide"
-    title="周报设计"
-    width="min(1420px, 97vw)"
-    append-to-body
-    align-center
-    destroy-on-close
+    title="周报画布设计器"
+    subtitle="自由画布 · 支持拖拽组件、样式与交互"
+    icon="SetUp"
+    width="96vw"
+    fill-height
+    :close-on-press-escape="false"
+    @close="closeDialog('designer')"
   >
     <DesignerPage embedded />
-  </el-dialog>
+  </AppDialog>
 </template>
-
-<style>
-.reports-dialog .el-dialog__body {
-  height: 74vh;
-  padding: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.reports-dialog.is-wide .el-dialog__body {
-  height: 82vh;
-}
-</style>

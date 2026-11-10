@@ -1,22 +1,40 @@
 /**
- * 新建本周周报：侧栏 rail 的 + 和列表页共用。
+ * 新建本周周报：与宿主原逻辑一致——按默认配置生成区块、标题表达式与画布 layout。
  */
 import { ElMessage } from 'element-plus'
 import { useWeekReport } from 'plugin-api'
+import { createSectionsFromConfig } from './designer/config/defaultReportConfig'
+import { extractLayout } from './designer/config/reportLayout'
+import { evaluateJsExpression } from './designer/utils/expression'
+
+function weekRange(base = new Date()) {
+  const day = base.getDay() || 7
+  const monday = new Date(base)
+  monday.setDate(base.getDate() - (day - 1))
+  const friday = new Date(monday)
+  friday.setDate(monday.getDate() + 4)
+  const format = date => date.toISOString().slice(0, 10)
+  return [format(monday), format(friday)]
+}
 
 export async function createWeekReport() {
   const api = useWeekReport()
   try {
-    const now = new Date()
-    const day = now.getDay() || 7
-    const monday = new Date(now)
-    monday.setDate(now.getDate() - (day - 1))
-    const friday = new Date(monday)
-    friday.setDate(monday.getDate() + 4)
-    const format = date => date.toISOString().slice(0, 10)
+    const config = await api.config.get()
+    const sections = createSectionsFromConfig(config.sections)
+    const [start, end] = weekRange()
+    const fallbackTitle = `工作周报 - ${start} ~ ${end}`
+    const titleElement = (config.elements || []).find(element => element.type === 'title')
+    const title = evaluateJsExpression(
+      titleElement?.expression,
+      { title: fallbackTitle, dateRange: [start, end], sections },
+      fallbackTitle,
+    )
     const report = await api.reports.create({
-      title: `周报 ${format(monday).slice(5)} ~ ${format(friday).slice(5)}`,
-      dateRange: [format(monday), format(friday)],
+      title,
+      dateRange: [start, end],
+      sections,
+      layout: extractLayout(config),
     })
     await api.ui.selectReport(report.id)
     return report

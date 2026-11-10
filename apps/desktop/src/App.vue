@@ -44,6 +44,12 @@ function navigateTo(id) {
   const alias = id === 'welcome' ? 'home' : id
   const item = listNavItems().find(entry => entry.id === alias)
   if (!item) return false
+  // 与原行为一致：已打开周报时点“周报”回到编辑器，否则显示周报列表页
+  if (alias === 'reports' && state.currentReport) {
+    closeDialogs()
+    activePluginPage.value = null
+    return true
+  }
   openPluginPage(item)
   return true
 }
@@ -153,6 +159,7 @@ watch(
     <AppSidebar
       @settings="openSettings"
       :active-plugin-page="activePluginPage"
+      :report-open="!!state.currentReport"
       @open-plugin-page="openPluginPage"
     />
 

@@ -172,10 +172,17 @@ const BASE_TABS = [
   { key: 'about', label: '关于', icon: 'InfoFilled', desc: '版本与运行环境信息' },
 ]
 
-const tabs = computed(() => [
-  ...BASE_TABS,
-  ...listSettingsSections().map(item => ({ ...item, key: item.id, desc: '外部插件注册的设置面板' })),
-])
+const tabs = computed(() => {
+  const about = BASE_TABS.filter(tab => tab.key === 'about')
+  const base = BASE_TABS.filter(tab => tab.key !== 'about')
+  const external = listSettingsSections().map(item => ({
+    ...item,
+    key: item.id,
+    desc: '外部插件注册的设置面板',
+  }))
+  // “关于”固定在最下面，外部插件设置面板排在它前面
+  return [...base, ...external, ...about]
+})
 
 const themeOptions = [
   { value: 'system', icon: 'Monitor', desc: '自动跟随操作系统的亮暗色' },
