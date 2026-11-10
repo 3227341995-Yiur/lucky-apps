@@ -3,7 +3,7 @@ pre-commit:
   jobs:
     - name: lint (staged)
       glob: '*.{ts,vue}'
-      run: pnpm exec oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+      run: pnpm exec oxlint --config .oxlintrc.staged.json --fix --no-error-on-unmatched-pattern {staged_files}
       stage_fixed: true
     - name: whitespace (staged)
       run: git diff --cached --check

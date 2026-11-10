@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": [
+    "./.oxlintrc.json"
+  ],
+  "options": {
+    "typeAware": false
+  },
+  "ignorePatterns": [
+    "**/lib/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/target/**",
+    "docs-site/**",
+    "resources/**",
+    ".idea/**",
+    "**/*.config.ts",
+    "**/*.config.mts",
+    "**/*.d.ts"
+  ]
+}
