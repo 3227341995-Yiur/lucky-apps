@@ -34,3 +34,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# VitePress 构建产物（直接输出到 apps/desktop/dist/docs）
+public/docs
