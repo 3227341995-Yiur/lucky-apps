@@ -1,10 +1,10 @@
 import { build } from 'esbuild'
 import { mkdir } from 'node:fs/promises'
 
-await mkdir('server/dist', { recursive: true })
+await mkdir('apps/server/dist', { recursive: true })
 await build({
-  entryPoints: ['server/index.js'],
-  outfile: 'server/dist/index.mjs',
+  entryPoints: ['apps/server/index.ts'],
+  outfile: 'apps/server/dist/index.mjs',
   bundle: true,
   platform: 'node',
   format: 'esm',

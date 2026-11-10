@@ -5,7 +5,7 @@ export default defineConfig({
   title: '周报开发文档',
   description: '插件、外部组件与二次开发 API',
   base: '/docs/',
-  outDir: '../public/docs',
+  outDir: '../apps/desktop/dist/docs',
   cleanUrls: false,
   appearance: true,
   lastUpdated: true,

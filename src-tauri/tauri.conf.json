@@ -1,13 +1,13 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "week-report",
+  "productName": "Lucky Apps",
   "version": "2.0.10",
   "identifier": "com.lu.week-report",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../apps/desktop/dist",
     "devUrl": "http://127.0.0.1:34115",
-    "beforeDevCommand": "pnpm extensions:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs",
-    "beforeBuildCommand": "pnpm extensions:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs"
+    "beforeDevCommand": "pnpm plugins:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs",
+    "beforeBuildCommand": "pnpm plugins:build && pnpm build && node scripts/build-server.mjs && node scripts/build-profile.mjs"
   },
   "app": {
     "withGlobalTauri": true,
@@ -27,8 +27,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../dist": "dist",
-      "../server/dist/index.mjs": "server/dist/index.mjs",
+      "../apps/desktop/dist": "dist",
+      "../apps/server/dist/index.mjs": "server/dist/index.mjs",
       "../resources": "resources",
       "target/profile": "profile"
     },

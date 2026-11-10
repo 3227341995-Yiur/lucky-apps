@@ -326,7 +326,7 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
 
 fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let root = project_root(app);
-  let server_script = root.join("server").join("dist").join("index.mjs");
+  let server_script = root.join("apps").join("server").join("dist").join("index.mjs");
   let app_data = strip_verbatim(app.path().app_data_dir().map_err(|e| e.to_string())?);
   let env_db = std::env::var("WR_DB_PATH").ok().map(PathBuf::from);
   let env_profile = std::env::var("WR_PROFILE_DIR").ok();
@@ -355,7 +355,7 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let mut child = command
     .arg(&server_script)
     .env("WR_APP_ROOT", &root)
-    .env("WR_DIST_DIR", root.join("dist"))
+    .env("WR_DIST_DIR", if cfg!(debug_assertions) { root.join("apps").join("desktop").join("dist") } else { root.join("dist") })
     .env("WR_RESOURCES_DIR", root.join("resources"))
     .env("WR_BUNDLED_PROFILE_DIR", if cfg!(debug_assertions) { root.join("src-tauri").join("target").join("profile") } else { root.join("profile") })
     .env("WR_DB_PATH", &db_path)
@@ -420,7 +420,7 @@ pub fn run() {
         "main",
         WebviewUrl::External(url.parse().map_err(|e| format!("无效的服务地址: {e}"))?),
       )
-      .title("周报管理系统")
+      .title("Lucky Apps")
       .inner_size(1400.0, 800.0)
       .resizable(true)
       .devtools(cfg!(debug_assertions))
@@ -440,7 +440,7 @@ pub fn run() {
         _ => {}
       });
 
-      let show_item = MenuItemBuilder::with_id("show", "显示周报").build(app)?;
+      let show_item = MenuItemBuilder::with_id("show", "显示 Lucky Apps").build(app)?;
       let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
       let menu = MenuBuilder::new(app).items(&[&show_item, &quit_item]).build()?;
       let tray = TrayIconBuilder::new()

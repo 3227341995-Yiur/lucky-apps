@@ -16,11 +16,11 @@ resources/
 └─ js/my-plugin.js
 ```
 
-可以在「设置 → 扩展」中复制 profile / 资源路径、重新扫描或热加载组件。
+可以在「设置 → 扩展」中复制 profile / 资源路径、重新扫描或热加载功能插件；列组件与画布组件在「设置 → 周报组件」维护。
 
 ## 三步开始
 
-1. **组件包**：在 `extensions/<name>` 里用标准 Vue 3 + TypeScript 开发，`pnpm extensions:build` 输出到包内 `lib/client.js`；`pnpm profile:build` 打包并 `pnpm install` 到 `src-tauri/target/profile/node_modules`，宿主按 `weekReport.client.entry` 自动加载，不需要 `cordis.patch.yml`。
+1. **组件包**：在 `plugins/<name>` 里用标准 Vue 3 + TypeScript 开发，`pnpm plugins:build` 输出到包内 `lib/client.js`；`pnpm profile:build` 打包并 `pnpm install` 到 `src-tauri/target/profile/node_modules`，宿主按 `weekReport.client.entry` 自动加载，不需要 `cordis.patch.yml`。
 2. **脚本 / 样式**：放入 `resources/js` / `resources/css`，服务端 `/api/boot` 清单会下发。
 3. **启用**：到「设置 → 扩展」确认已加载；profile 变化由 Node 服务自动重载。
 

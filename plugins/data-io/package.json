@@ -1,0 +1,40 @@
+{
+  "name": "data-io",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/node.js",
+  "module": "lib/node.js",
+  "exports": {
+    ".": "./lib/node.js",
+    "./client": "./lib/client.js"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "devDependencies": {
+    "vite": "^8.3.5",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "vue": "^3.5.44",
+    "element-plus": "^2.14.7",
+    "@element-plus/icons-vue": "^2.3.2",
+    "@week-report/plugin-api": "workspace:*",
+    "handlebars": "^4.7.10"
+  },
+  "weekReport": {
+    "client": {
+      "entry": "./lib/client.js"
+    },
+    "kind": "feature",
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "description": "内置导入导出插件"
+}

@@ -9,8 +9,8 @@ import {
   layoutBottom,
   normalizeLayoutConfig,
   renderLayoutHtml
-} from '../src/config/reportLayout.js'
-import { DEFAULT_REPORT_CONFIG } from '../src/config/defaultReportConfig.js'
+} from '../apps/desktop/src/config/reportLayout.js'
+import { DEFAULT_REPORT_CONFIG } from '../apps/desktop/src/config/defaultReportConfig.js'
 
 const sections = [
   {

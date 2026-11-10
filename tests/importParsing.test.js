@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import {
   BACKUP_FORMAT,
   parseImportData
-} from '../src/services/importParsing.js'
+} from '../apps/desktop/src/services/importParsing.js'
 
 const report = {
   title: '测试周报',

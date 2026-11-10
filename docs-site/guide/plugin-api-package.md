@@ -32,7 +32,7 @@ export default definePlugin({
 | `components.registerColumnSlot` | 注册列属性编辑插槽 |
 | `components.list` / `listColumns` / `listCanvas` / `has` | 查询已注册组件 |
 | `navigation.register` | 注册左侧栏入口和自定义页面 |
-| `settings.register` | 注册设置中心面板 |
+| `settings.register` | 注册设置中心面板（内置 `reports` 插件用它提供「周报组件」维护页） |
 | `branding.get` / `set` / `onChange` | 读取或修改程序名称、图标（只影响界面；窗口标题与 exe 图标走设置中心「程序名称与图标」，保存后同步窗口/托盘/exe 文件图标） |
 | `events.on` / `once` / `off` | 订阅宿主事件 |
 | `ui.toast` / `selectReport` / `openSettings` / `openImportExport` / `openDesigner` / `openTemplates` | 调用宿主界面 |

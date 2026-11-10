@@ -1,4 +1,4 @@
-# 周报管理系统 v2.0.10
+# Lucky Apps v2.0.10
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的桌面周报工具。
 
@@ -33,6 +33,22 @@ pnpm build:server # 构建 Cordis Node 服务
 ## 目录结构
 
 ```
+apps/
+├─ desktop/           桌面端（Vue 3 前端，Vite 构建）
+│  └─ src/
+├─ server/            Cordis Node 服务（esbuild 打包为单文件）
+packages/        共享包（plugin-api / cli / core）
+plugins/         内置插件包（workspace，各自 Vite 构建）
+src-tauri/       Tauri 壳（窗口、托盘、exe 品牌）
+docs-site/       开发文档（VitePress）
+scripts/         server / profile 构建脚本
+resources/       运行时样式 / 插件脚本（服务端按清单下发）
+```
+
+<details>
+<summary>apps/desktop/src 内部结构</summary>
+
+```
 src/
 ├─ components/
 │  ├─ layout/          图标栏 + 周报导航面板
@@ -53,22 +69,16 @@ src/
 ├─ services/           数据库、模板、配置、导入导出
 ├─ utils/              日期、防抖、事件、ID、导出渲染
 └─ assets/css/         设计令牌与全局样式（亮/暗）
-extensions/   独立外部组件包（workspace，各自 Vite 构建）
-server/              Cordis Node 服务（真实 @cordisjs/plugin-loader）
-├─ index.js          启动、组合 profile、监听配置
-├─ profile.js        bundle / patch 组合
-└─ http.js           静态前端 + /api/db RPC + /api/boot
-src-tauri/target/profile/   构建时生成的 Cordis profile（不入库）
-├─ package.json      weekReport.profile.bundles
-├─ cordis.yml        空根节点
-├─ cordis.patch.yml  用户 patch 层
-└─ node_modules/     Cordis 插件包（浏览器依赖由宿主 dist 提供）
-resources/           运行时样式 / 插件脚本（服务端按清单下发）
 ```
+
+</details>
+
+构建时还会生成 `src-tauri/target/profile/`（Cordis profile：`package.json`
+`weekReport.profile.bundles` + `node_modules`，不入库）。
 
 ## 扩展开发
 
-外部组件是标准 **Vue 3 + TypeScript** 项目，放在 `extensions/<name>/`，各自构建到包内
+外部组件是标准 **Vue 3 + TypeScript** 项目，放在 `plugins/<name>/`，各自构建到包内
 `lib/client.js` 和 `lib/node.js`，包自带 `cordis.patch.yml`。`pnpm profile:build` 会用
 `pnpm pack` 打包成 profile 依赖，再由 `pnpm install` 生成
 `src-tauri/target/profile/node_modules`。绘制 profile 时按 DSH 语义组合：
