@@ -87,7 +87,7 @@ export function uninstallProfilePlugin(profileDir: string, name: string): { name
   execFileSync('pnpm', ['remove', String(name).trim(), '--node-linker=hoisted'], {
     cwd: profileDir,
     stdio: 'inherit',
-    shell: process.platform === 'win32'
+    shell: process.platform === 'win32',
   })
   const manifestPath = join(profileDir, 'package.json')
   const manifest = readJson(manifestPath)
@@ -141,7 +141,7 @@ export function installProfilePlugin(profileDir: string, spec: string): InstallR
   execFileSync('pnpm', ['add', spec, '--node-linker=hoisted'], {
     cwd: profileDir,
     stdio: 'inherit',
-    shell: process.platform === 'win32'
+    shell: process.platform === 'win32',
   })
   return registerInstalledPackage(profileDir, spec, before)
 }
@@ -158,7 +158,7 @@ export async function installProfilePluginStream(profileDir: string, spec: strin
   await new Promise((resolvePromise, reject) => {
     const child: ChildProcess = spawn('pnpm', ['add', spec, '--node-linker=hoisted', '--reporter=append-only'], {
       cwd: profileDir,
-      shell: process.platform === 'win32'
+      shell: process.platform === 'win32',
     })
     let tail = ''
     const consume = (chunk: Buffer | string, stream: 'stdout' | 'stderr') => {
@@ -171,7 +171,7 @@ export async function installProfilePluginStream(profileDir: string, spec: strin
     child.stdout?.on('data', chunk => consume(chunk, 'stdout'))
     child.stderr?.on('data', chunk => consume(chunk, 'stderr'))
     child.on('error', reject)
-    child.on('close', code => {
+    child.on('close', (code) => {
       if (code === 0) return resolvePromise()
       const detail = tail.trim().split(/\r?\n/).slice(-12).join('\n')
       reject(new Error(detail || `pnpm add 退出码 ${code}`))
@@ -196,13 +196,13 @@ export async function searchRegistry(query: string): Promise<RegistryHit[]> {
   if (!text) return []
   const response = await fetch(
     `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(text)}&size=20`,
-    { headers: { accept: 'application/json' } }
+    { headers: { accept: 'application/json' } },
   )
   if (!response.ok) throw new Error(`npm search ${response.status}`)
   const data = await response.json()
   return (data.objects || []).map(item => ({
     name: item.package?.name || '',
     version: item.package?.version || '',
-    description: item.package?.description || ''
+    description: item.package?.description || '',
   })).filter(item => item.name)
 }

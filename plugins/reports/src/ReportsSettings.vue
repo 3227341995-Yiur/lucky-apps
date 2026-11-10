@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 
 defineOptions({ name: 'ReportsSettings' })
 
@@ -11,7 +11,7 @@ const loading = ref(false)
 
 const KINDS = {
   'component-canvas': { label: '画布组件', hint: '拖入自由画布的外部组件' },
-  'component-column': { label: '列组件', hint: '表格单元格 / 列编辑的外部组件' }
+  'component-column': { label: '列组件', hint: '表格单元格 / 列编辑的外部组件' },
 }
 
 const canvasComponents = computed(() => resources.value.filter(item => item.componentKind === 'canvas' || item.kind === 'component-canvas'))
@@ -48,7 +48,7 @@ async function toggle(resource) {
     await ElMessageBox.confirm(
       `已${enabled ? '启用' : '禁用'}「${resource.name}」，需要重新加载应用后生效。是否立即重新加载？`,
       '需要重新加载',
-      { confirmButtonText: '立即重新加载', cancelButtonText: '稍后', type: 'info' }
+      { confirmButtonText: '立即重新加载', cancelButtonText: '稍后', type: 'info' },
     )
     window.location.reload()
   } catch {

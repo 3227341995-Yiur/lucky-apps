@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { useWeekReport } from '@week-report/plugin-api'
-import { resolveDefaultValue } from '../config/defaultReportConfig.js'
-import { evaluateJsExpression } from '../utils/expression.js'
+import { useWeekReport } from 'plugin-api'
+import { resolveDefaultValue } from '../config/defaultReportConfig.ts'
+import { evaluateJsExpression } from '../utils/expression.ts'
 import ElementWidget from './ElementWidget.vue'
 
 defineOptions({ name: 'WidgetView' })
@@ -12,20 +12,20 @@ const api = useWeekReport()
 const props = defineProps({
   element: {
     type: Object,
-    required: true
+    required: true,
   },
   section: {
     type: Object,
-    default: null
+    default: null,
   },
   title: {
     type: String,
-    default: '工作周报'
+    default: '工作周报',
   },
   dateRange: {
     type: String,
-    default: '2026-11-02 — 2026-11-08'
-  }
+    default: '2026-11-02 — 2026-11-08',
+  },
 })
 
 
@@ -34,7 +34,7 @@ function evaluateExpression(element, fallback) {
   return evaluateJsExpression(
     element?.expression,
     { title: props.title, dateRange: dateText, sections: [] },
-    fallback
+    fallback,
   )
 }
 
@@ -50,7 +50,7 @@ const boxStyle = computed(() => ({
     ? `${style.value.borderWidth}px solid ${style.value.borderColor || 'var(--el-border-color-lighter)'}`
     : 'none',
   borderRadius: `${style.value.borderRadius || 0}px`,
-  opacity: style.value.opacity ?? 1
+  opacity: style.value.opacity ?? 1,
 }))
 
 const textStyle = computed(() => ({
@@ -59,7 +59,7 @@ const textStyle = computed(() => ({
   color: style.value.color || 'var(--el-text-color-primary)',
   textAlign: style.value.textAlign || 'left',
   lineHeight: style.value.lineHeight || 1.5,
-  letterSpacing: `${style.value.letterSpacing || 0}px`
+  letterSpacing: `${style.value.letterSpacing || 0}px`,
 }))
 
 const sectionBoxStyle = computed(() => ({
@@ -69,7 +69,7 @@ const sectionBoxStyle = computed(() => ({
   '--wv-header-bg': style.value.headerBg || 'var(--el-fill-color-lighter)',
   '--wv-header-color': style.value.headerColor || 'var(--el-text-color-regular)',
   '--wv-body-color': style.value.bodyColor || 'var(--el-text-color-regular)',
-  '--wv-font-size': `${style.value.fontSize || 12}px`
+  '--wv-font-size': `${style.value.fontSize || 12}px`,
 }))
 
 const columns = computed(() => props.section?.columns || [])

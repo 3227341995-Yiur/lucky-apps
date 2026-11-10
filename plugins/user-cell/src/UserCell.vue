@@ -4,7 +4,7 @@ import { ElSelect, ElOption } from 'element-plus'
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   options: { type: Array, default: () => [] },
-  placeholder: { type: String, default: '选择成员' }
+  placeholder: { type: String, default: '选择成员' },
 })
 
 const emit = defineEmits(['update:modelValue'])

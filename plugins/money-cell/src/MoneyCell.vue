@@ -5,7 +5,7 @@ defineProps({
   modelValue: { type: [Number, String], default: 0 },
   min: { type: Number, default: 0 },
   max: { type: Number, default: 999999999 },
-  precision: { type: Number, default: 2 }
+  precision: { type: Number, default: 2 },
 })
 
 const emit = defineEmits(['update:modelValue'])

@@ -1,4 +1,4 @@
-import { definePlugin, navigation } from '@week-report/plugin-api'
+import { definePlugin, navigation } from 'plugin-api'
 import TemplateDesignerPage from './TemplateDesignerPage.vue'
 
 export default definePlugin({
@@ -9,7 +9,7 @@ export default definePlugin({
       label: '模板设计',
       icon: 'Document',
       order: 50,
-      component: TemplateDesignerPage
+      component: TemplateDesignerPage,
     })
-  }
+  },
 })

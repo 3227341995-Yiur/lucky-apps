@@ -32,7 +32,6 @@ export interface StartServerOptions {
   resourcesDir?: string
   bundledProfileDir?: string
   profileDir?: string
-  dbPath?: string
   port?: number
 }
 
@@ -40,11 +39,8 @@ export async function startServer(options: StartServerOptions = {}) {
   const distDir = options.distDir || process.env.WR_DIST_DIR || join(projectRoot, 'dist')
   const resourcesDir = options.resourcesDir || process.env.WR_RESOURCES_DIR || join(projectRoot, 'resources')
   const bundledProfileDir = options.bundledProfileDir || process.env.WR_BUNDLED_PROFILE_DIR || join(projectRoot, 'profile')
-  const profileDir = options.profileDir || process.env.WR_PROFILE_DIR || join(appDataRoot(), 'com.lu.week-report', 'profile')
-  const dbPath = options.dbPath || process.env.WR_DB_PATH || join(appDataRoot(), 'com.lu.week-report', 'week_report.db')
+  const profileDir = options.profileDir || process.env.WR_PROFILE_DIR || join(appDataRoot(), 'com.lu.lucky-apps', 'profile')
   const port = Number(options.port ?? process.env.WR_PORT ?? 0)
-
-  process.env.WR_DB_PATH = dbPath
 
   // 与壳进程绑定生命周期：父进程结束时 stdin 管道关闭，立即退出；
   // PID 轮询作为兜底，避免留下孤儿 Node 占用 SQLite / 端口。
@@ -63,7 +59,7 @@ export async function startServer(options: StartServerOptions = {}) {
   const ctx = new Context()
   let currentProfile = { bundles: [], rows: [] }
   let resolveReady = () => {}
-  const readyPromise = new Promise(resolve => { resolveReady = resolve })
+  const readyPromise = new Promise((resolve) => { resolveReady = resolve })
   let reloadImpl = async () => currentProfile
 
   // 安装插件时 pnpm 写 profile 会触发文件监听；把重载串行化，避免
@@ -91,7 +87,7 @@ export async function startServer(options: StartServerOptions = {}) {
     reload: requestReload,
     waitForReload: () => reloadBarrier,
     ready: () => readyPromise,
-    port
+    port,
   })
   console.log(`[server] ready ${http.url} (profile: ${profileDir})`)
 
@@ -106,13 +102,13 @@ export async function startServer(options: StartServerOptions = {}) {
     currentProfile = await composeProfile(profileDir)
     await ctx.plugin(Loader, { baseUrl: pathToFileURL(`${profileDir}/`).href })
 
-    const mountRows = async rows => {
+    const mountRows = async (rows) => {
       for (const row of rows) {
         if (!row?.name) continue
         await ctx.loader.create({
           name: row.name,
           config: row.config,
-          disabled: Boolean(row.disabled)
+          disabled: Boolean(row.disabled),
         })
       }
       await ctx.loader.await()
@@ -140,7 +136,7 @@ export async function startServer(options: StartServerOptions = {}) {
           id,
           package: id,
           file,
-          url: `/client/${encodeURIComponent(id)}/index.js`
+          url: `/client/${encodeURIComponent(id)}/index.js`,
         })
       }
     }
@@ -209,12 +205,12 @@ export async function startServer(options: StartServerOptions = {}) {
       clearTimeout(reloadTimer)
       await http.close()
       await ctx.loader?.dispose?.()
-    }
+    },
   }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  startServer().catch(error => {
+  startServer().catch((error) => {
     console.error('[server] failed:', error)
     process.exit(1)
   })

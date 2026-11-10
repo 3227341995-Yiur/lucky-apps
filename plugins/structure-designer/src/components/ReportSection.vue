@@ -1,14 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { Plus, Delete } from '@element-plus/icons-vue'
-import { createRow } from '../config/defaultReportConfig.js'
+import { createRow } from '../config/defaultReportConfig.ts'
 
 defineOptions({ name: 'ReportSection' })
 
 const props = defineProps({
   section: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['change'])

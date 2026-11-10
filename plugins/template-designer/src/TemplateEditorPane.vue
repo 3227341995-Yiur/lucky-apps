@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import CodeEditor from './CodeEditor.vue'
 
@@ -7,32 +7,32 @@ defineOptions({ name: 'TemplateEditorPane' })
 const props = defineProps({
   hasDraft: {
     type: Boolean,
-    default: false
+    default: false,
   },
   templateId: {
     type: [Number, String],
-    default: null
+    default: null,
   },
   isDefault: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isSystem: {
     type: Boolean,
-    default: false
+    default: false,
   },
   dirty: {
     type: Boolean,
-    default: false
+    default: false,
   },
   showPreview: {
     type: Boolean,
-    default: true
+    default: true,
   },
   types: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['toggle-preview', 'create'])
@@ -49,7 +49,7 @@ const typeOptions = computed(() => {
   return list
 })
 const typeLabel = computed(
-  () => typeOptions.value.find(item => item.value === type.value)?.label || type.value || 'HTML'
+  () => typeOptions.value.find(item => item.value === type.value)?.label || type.value || 'HTML',
 )
 const editorLanguage = computed(() => (
   ['html', 'markdown'].includes(type.value) ? type.value : 'markdown'

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, ref } from 'vue'
 
 defineOptions({ name: 'StatusSelectorColumnModify' })
@@ -8,12 +8,12 @@ const emit = defineEmits(['change'])
 const props = defineProps({
   column: {
     type: Object,
-    required: true
+    required: true,
   },
   disabled: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const inputVisible = ref(false)

@@ -18,7 +18,7 @@
 
 ```js
 // 入口名随意，由 package.json exports/main 指定
-import { definePlugin, components } from '@week-report/plugin-api'
+import { definePlugin, components } from 'plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({
@@ -86,16 +86,16 @@ src-tauri/target/profile/
 ├─ vendor/             pnpm pack 生成的包 tarball
 ├─ pnpm-lock.yaml      pnpm 安装锁
 └─ node_modules/       pnpm install 的真实依赖树
-   ├─ week-report-base/
+   ├─ base/
    ├─ kpi-card/ ...
    └─ 外部 Node 插件 ...
 ```
 
 组合顺序和 DSH 一致：空根 → 各 bundle 的 `weekReport.bundle.patch` →
 profile 的 `cordis.patch.yml`。内置 profile 的 `weekReport.profile.bundles` 列出
-`week-report-base`、画布包、列包、功能包和外部功能插件。
+`base`、画布包、列包、功能包和外部功能插件。
 
-用户 profile 在 `%APPDATA%\com.lu.week-report\profile`，安装外部组件不需要重新打包应用。
+用户 profile 在 `%APPDATA%\com.lu.lucky-apps\profile`，安装外部组件不需要重新打包应用。
 
 ::: tip 内置组件包
 仓库自带 `kpi-card`、`progress-board`、`timeline-card` 三个画布包，以及

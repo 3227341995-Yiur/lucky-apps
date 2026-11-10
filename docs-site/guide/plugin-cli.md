@@ -4,24 +4,24 @@
 
 ```bash
 # 安装到仓库内置 profile
-pnpm week-report plugin add ../my-widget
+pnpm lucky-apps plugin add ../my-widget
 
 # 安装到当前用户的应用 profile
-pnpm week-report plugin add ../my-widget --user
+pnpm lucky-apps plugin add ../my-widget --user
 
 # 查看 / 移除
-pnpm week-report plugin list --user
-pnpm week-report plugin remove my-widget --user
+pnpm lucky-apps plugin list --user
+pnpm lucky-apps plugin remove my-widget --user
 
 # 从 GitHub / Git 仓库安装
-pnpm week-report plugin add github:owner/repo
-pnpm week-report plugin add https://github.com/owner/repo
+pnpm lucky-apps plugin add github:owner/repo
+pnpm lucky-apps plugin add https://github.com/owner/repo
 ```
 
 也可以直接使用 CLI bin：
 
 ```bash
-week-report plugin add <包名|本地目录> [--profile <dir>|--user]
+lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
 ```
 
 ## 命令做了什么
@@ -65,6 +65,6 @@ week-report plugin add <包名|本地目录> [--profile <dir>|--user]
       name: my-widget
 ````
 
-Node half 登记 client bundle，浏览器 half 通过 `@week-report/plugin-api` 注册组件或页面。
+Node half 登记 client bundle，浏览器 half 通过 `plugin-api` 注册组件或页面。
 
-外部项目通过 `@week-report/plugin-api` 注册组件，不依赖宿主源码。
+外部项目通过 `plugin-api` 注册组件，不依赖宿主源码。

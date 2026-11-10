@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import ReportSection from '@/components/report/ReportSection.vue'
 import ColumnSettingsDialog from '@/components/report/ColumnSettingsDialog.vue'
@@ -12,16 +12,16 @@ defineOptions({ name: 'ReportPage' })
 const props = defineProps({
   report: {
     type: Object,
-    required: true
+    required: true,
   },
   layout: {
     type: Object,
-    required: true
+    required: true,
   },
   interactive: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['change'])
@@ -43,7 +43,7 @@ const page = computed(() => props.layout.page)
  */
 const placedElements = computed(() => {
   const elements = props.layout.elements || []
-  const info = elements.map(element => {
+  const info = elements.map((element) => {
     let height = element.h || 0
     if (element.type === 'section') {
       const section = sectionMap.value.get(element.sectionType)
@@ -106,9 +106,9 @@ onMounted(() => {
 
 watch(
   () => props.interactive,
-  value => {
+  (value) => {
     if (value) nextTick(runLoadInteractions)
-  }
+  },
 )
 
 onBeforeUnmount(() => {
@@ -118,7 +118,7 @@ onBeforeUnmount(() => {
 
 watch(
   () => (props.layout.elements || []).map(element => `${element.id}:${element.type}:${element.sectionType || ''}`).join('|'),
-  () => nextTick(observeSections)
+  () => nextTick(observeSections),
 )
 
 const pageStyle = computed(() => ({
@@ -126,7 +126,7 @@ const pageStyle = computed(() => ({
   minHeight: `${pageHeight.value}px`,
   background: !page.value.background || page.value.background === '#ffffff'
     ? 'var(--el-bg-color)'
-    : page.value.background
+    : page.value.background,
 }))
 
 const sectionMap = computed(() => {
@@ -140,7 +140,7 @@ function frameStyle(element) {
   const base = {
     left: `${element.x}px`,
     top: `${placed._top ?? element.y}px`,
-    width: `${element.w}px`
+    width: `${element.w}px`,
   }
   // 数据表格高度随记录数增长，不做固定裁切
   if (element.type === 'section') return { ...base, height: 'auto', minHeight: `${element.h}px` }
@@ -153,7 +153,7 @@ function boxStyle(style = {}) {
     padding: `${style.padding || 0}px`,
     border: style.borderWidth ? `${style.borderWidth}px solid ${style.borderColor || 'var(--el-border-color-lighter)'}` : 'none',
     borderRadius: `${style.borderRadius || 0}px`,
-    opacity: style.opacity ?? 1
+    opacity: style.opacity ?? 1,
   }
 }
 
@@ -164,7 +164,7 @@ function textStyle(style = {}) {
     color: style.color || 'var(--el-text-color-primary)',
     textAlign: style.textAlign || 'left',
     lineHeight: style.lineHeight || 1.5,
-    letterSpacing: `${style.letterSpacing || 0}px`
+    letterSpacing: `${style.letterSpacing || 0}px`,
   }
 }
 
@@ -177,7 +177,7 @@ function sectionStyle(element) {
     '--report-section-header-bg': style.headerBg || 'var(--el-fill-color-light)',
     '--report-section-header-color': style.headerColor || 'var(--el-text-color-secondary)',
     '--report-section-body-color': style.bodyColor || 'var(--el-text-color-primary)',
-    '--report-section-font-size': `${style.fontSize || 12}px`
+    '--report-section-font-size': `${style.fontSize || 12}px`,
   }
 }
 

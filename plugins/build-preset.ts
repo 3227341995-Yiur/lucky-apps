@@ -6,11 +6,12 @@
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 import { readFile, writeFile, rm } from 'node:fs/promises'
+import { transform } from 'esbuild'
 import type { Plugin } from 'vite'
 
 function cssInjectedByJs(name: string): Plugin {
   return {
-    name: 'week-report-css-injected-by-js',
+    name: 'lucky-apps-css-injected-by-js',
     apply: 'build',
     async writeBundle(options, bundle) {
       const outDir = options.dir
@@ -31,38 +32,55 @@ function cssInjectedByJs(name: string): Plugin {
   document.head.appendChild(style)
 })();\n`
       await writeFile(jsPath, js)
-    }
+    },
   }
 }
 
-function writeNodeHalf(name: string): Plugin {
+// 包可在 src/node-extra.js 里挂自己的 Node 能力（如周报插件的数据库），
+// 构建时原样复制到 lib/node-extra.js，由生成的 node half 动态加载。
+function writeNodeHalf(name: string, root?: string): Plugin {
   return {
-    name: 'week-report-package-node-half',
+    name: 'lucky-apps-package-node-half',
     apply: 'build',
     async writeBundle(options) {
       const outDir = options.dir
       if (!outDir) return
+      const extraSource = root ? path.join(root, 'src', 'node-extra.ts') : ''
+      if (extraSource) {
+        // node_modules 里不能 strip .ts，插件 Node half 的附加能力编译后再发布
+        const source = await readFile(extraSource, 'utf8').catch(() => '')
+        if (source) {
+          const { code } = await transform(source, { loader: 'ts', format: 'esm', target: 'node22' })
+          await writeFile(path.join(outDir, 'node-extra.js'), code)
+        }
+      }
       await writeFile(
         path.join(outDir, 'node.js'),
         `import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { existsSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const name = ${JSON.stringify(name)}
 export const inject = ['clientModules']
 
-export function apply(ctx) {
+export async function apply(ctx) {
   ctx.clientModules.register({
     id: ${JSON.stringify(name)},
     package: ${JSON.stringify(name)},
     file: join(dirname(fileURLToPath(import.meta.url)), 'client.js'),
     url: '/client/${name}/index.js'
   })
+  const extra = join(dirname(fileURLToPath(import.meta.url)), 'node-extra.js')
+  if (existsSync(extra)) {
+    const mod = await import(pathToFileURL(extra).href)
+    await mod.apply?.(ctx)
+  }
 }
 
 export default { name, inject, apply }
-`
+`,
       )
-    }
+    },
   }
 }
 
@@ -72,12 +90,12 @@ export function createExtensionConfig({ name, entry = 'src/index.ts', root = pro
   root?: string
 }) {
   return {
-    plugins: [vue(), cssInjectedByJs(name), writeNodeHalf(name)],
+    plugins: [vue(), cssInjectedByJs(name), writeNodeHalf(name, root)],
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
       __VUE_OPTIONS_API__: 'true',
       __VUE_PROD_DEVTOOLS__: 'false',
-      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false',
     },
     build: {
       outDir: path.resolve(root, 'lib'),
@@ -87,7 +105,7 @@ export function createExtensionConfig({ name, entry = 'src/index.ts', root = pro
         entry: path.resolve(root, entry),
         formats: ['iife'] as const,
         name: '__wrPlugin',
-        fileName: () => 'client.js'
+        fileName: () => 'client.js',
       },
       rollupOptions: {
         external: ['vue', 'element-plus', '@element-plus/icons-vue'],
@@ -95,10 +113,10 @@ export function createExtensionConfig({ name, entry = 'src/index.ts', root = pro
           globals: {
             vue: 'Vue',
             'element-plus': 'ElementPlus',
-            '@element-plus/icons-vue': 'ElementPlusIconsVue'
-          }
-        }
-      }
-    }
+            '@element-plus/icons-vue': 'ElementPlusIconsVue',
+          },
+        },
+      },
+    },
   }
 }

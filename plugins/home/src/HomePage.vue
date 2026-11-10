@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import { formatDate, formatDateTime, getWeekRange, isDateInRange } from './utils/date'
 
 defineOptions({ name: 'HomePage' })
@@ -31,28 +31,28 @@ const weekReport = computed(() => reports.value.find(report => isDateInRange(now
 
 const weekSections = computed(() => weekDetail.value?.sections || weekReport.value?.sections || [])
 const weekItemCount = computed(() =>
-  weekSections.value.reduce((total, section) => total + (section.items?.length || 0), 0)
+  weekSections.value.reduce((total, section) => total + (section.items?.length || 0), 0),
 )
 
 const metrics = computed(() => [
   { key: 'reports', label: '周报', value: stats.value.reports },
   { key: 'items', label: '工作项', value: stats.value.workItems },
   { key: 'trash', label: '回收站', value: stats.value.trash },
-  { key: 'templates', label: '模板', value: stats.value.templates }
+  { key: 'templates', label: '模板', value: stats.value.templates },
 ])
 
 const quickActions = [
   { key: 'create', label: '新建周报', hint: '按本周日期开始', icon: 'Plus' },
   { key: 'io', label: '导入 / 备份', hint: '迁移或备份数据', icon: 'Sort' },
   { key: 'designer', label: '画布设计', hint: '自由排版与样式', icon: 'MagicStick' },
-  { key: 'settings', label: '设置与扩展', hint: '主题、插件、资源', icon: 'Setting' }
+  { key: 'settings', label: '设置与扩展', hint: '主题、插件、资源', icon: 'Setting' },
 ]
 
 async function reload() {
   try {
     const [list, nextStats] = await Promise.all([
       api.reports.list({ limit: 300, offset: 0 }),
-      api.reports.stats()
+      api.reports.stats(),
     ])
     reports.value = list || []
     stats.value = { ...stats.value, ...(nextStats || {}) }
@@ -61,7 +61,7 @@ async function reload() {
   }
 }
 
-watch(weekReport, async report => {
+watch(weekReport, async (report) => {
   weekDetail.value = null
   if (!report) return
   try {
@@ -76,7 +76,7 @@ async function createReport() {
     const range = getWeekRange(new Date())
     const report = await api.reports.create({
       title: `周报 ${range[0].slice(5)} ~ ${range[1].slice(5)}`,
-      dateRange: range
+      dateRange: range,
     })
     await api.ui.selectReport(report.id)
   } catch (error) {

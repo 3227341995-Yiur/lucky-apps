@@ -37,3 +37,7 @@ coverage
 
 # VitePress 构建产物（直接输出到 apps/desktop/dist/docs）
 public/docs
+
+# 核心包从 TS 编译出的发布入口
+packages/core/*/index.js
+packages/core/*/lib/*.js

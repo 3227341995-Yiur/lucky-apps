@@ -1,15 +1,15 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: 'TextareaCell' })
 
 defineProps({
   modelValue: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
   placeholder: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

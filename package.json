@@ -1,5 +1,5 @@
 {
-  "name": "week-report",
+  "name": "lucky-apps",
   "version": "2.0.10",
   "private": true,
   "type": "module",
@@ -15,15 +15,18 @@
     "preview": "pnpm -C apps/desktop exec vite preview",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "test": "node --test \"tests/**/*.test.js\"",
+    "test": "node --test \"tests/**/*.test.ts\"",
     "plugins:build": "pnpm -r --filter \"./plugins/*\" build",
-    "build:server": "node scripts/build-server.mjs",
-    "profile:build": "pnpm plugins:build && node scripts/build-profile.mjs",
-    "plugin": "node packages/cli/bin.js",
-    "week-report": "node packages/cli/bin.js",
-    "plugin:add": "node packages/cli/bin.js plugin add",
-    "plugin:remove": "node packages/cli/bin.js plugin remove",
-    "plugin:list": "node packages/cli/bin.js plugin list"
+    "build:server": "node scripts/build-server.ts",
+    "profile:build": "pnpm plugins:build && node scripts/build-core.ts && node scripts/build-profile.ts",
+    "plugin": "node packages/cli/bin.ts",
+    "lucky-apps": "node packages/cli/bin.ts",
+    "plugin:add": "node packages/cli/bin.ts plugin add",
+    "plugin:remove": "node packages/cli/bin.ts plugin remove",
+    "plugin:list": "node packages/cli/bin.ts plugin list",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "packages:build": "node scripts/build-core.ts"
   },
   "dependencies": {
     "@cordisjs/plugin-loader": "1.0.0-rc.9",
@@ -34,6 +37,8 @@
     "@tauri-apps/cli": "2.10.1",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3",
-    "vitepress": "^1.6.4"
+    "vitepress": "^1.6.4",
+    "oxlint": "1.76.0",
+    "@stylistic/eslint-plugin": "^5.10.0"
   }
 }

@@ -1,23 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Calendar, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
-import { formatDate, getWeekRange } from '../utils/date.js'
+import { formatDate, getWeekRange } from '../utils/date.ts'
 
 defineOptions({ name: 'DateRangeField' })
 
 const props = defineProps({
   modelValue: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   placeholder: {
     type: String,
-    default: '选择日期范围'
+    default: '选择日期范围',
   },
   allowClear: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])

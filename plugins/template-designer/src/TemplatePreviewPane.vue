@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import Vditor from 'vditor'
 import { renderReport } from './utils/templateRenderer'
 import { formatDateRange } from './utils/reportExport'
@@ -11,39 +11,39 @@ defineOptions({ name: 'TemplatePreviewPane' })
 const props = defineProps({
   type: {
     type: String,
-    default: 'html'
+    default: 'html',
   },
   template: {
     type: String,
-    default: ''
+    default: '',
   },
   reports: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   reportsLoading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   report: {
     type: Object,
-    default: null
+    default: null,
   },
   sections: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   loadingSections: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close'])
 
 const reportId = defineModel('reportId', {
   type: [Number, String],
-  default: null
+  default: null,
 })
 
 const api = useWeekReport()
@@ -89,7 +89,7 @@ async function renderMarkdown(markdown) {
       theme: { current: resolvedTheme.value === 'dark' ? 'dark' : 'light' },
       // 复用宿主已加载的文案，避免每次预览都从 CDN 拉取；没有则用默认兜底文案
       i18n: window.VditorI18n || {},
-      icon: undefined
+      icon: undefined,
     })
     if (seq === markdownSeq) markdownFallback.value = false
   } catch (error) {
@@ -109,7 +109,7 @@ function renderPreview() {
   const reportData = {
     title: props.report.title,
     dateRange: formatDateRange(props.report.dateRange),
-    sections: props.sections || []
+    sections: props.sections || [],
   }
 
   let output = ''
@@ -141,9 +141,9 @@ watch(
     () => props.type,
     () => props.report,
     () => props.sections,
-    () => props.loadingSections
+    () => props.loadingSections,
   ],
-  scheduleRender
+  scheduleRender,
 )
 
 watch(resolvedTheme, () => {
@@ -151,7 +151,7 @@ watch(resolvedTheme, () => {
 })
 
 onMounted(() => {
-  offTheme = api.theme.onChange(theme => {
+  offTheme = api.theme.onChange((theme) => {
     resolvedTheme.value = theme?.resolved || api.theme.get().resolved
   })
   scheduleRender()

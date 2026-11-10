@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useReports } from '@/composables/useReports'
@@ -10,12 +10,12 @@ import ThemeToggle from '@/components/common/ThemeToggle.vue'
 defineOptions({ name: 'AppSidebar' })
 
 const props = defineProps({
-  activePluginPage: { type: String, default: null }
+  activePluginPage: { type: String, default: null },
 })
 
 const emit = defineEmits([
   'create', 'settings', 'templates', 'import-export', 'open-plugin-page',
-  'open-welcome', 'open-reports'
+  'open-welcome', 'open-reports',
 ])
 
 const reports = useReports()
@@ -53,7 +53,7 @@ function monthLabel(key) {
 
 const groupedReports = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
-  const filtered = state.reports.filter(report => {
+  const filtered = state.reports.filter((report) => {
     if (!kw) return true
     return String(report.title || '').toLowerCase().includes(kw) ||
       shortRange(report).includes(kw) ||
@@ -71,7 +71,7 @@ const groupedReports = computed(() => {
   return [...groups.entries()].map(([key, list]) => ({
     key,
     label: monthLabel(key),
-    reports: list
+    reports: list,
   }))
 })
 
@@ -87,8 +87,8 @@ async function handleDelete(report) {
       {
         confirmButtonText: '移入回收站',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     )
     await reports.deleteReport(report.id)
     ElMessage.success('已移入回收站')

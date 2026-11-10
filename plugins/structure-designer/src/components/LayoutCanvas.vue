@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CopyDocument, Delete, Rank, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import WidgetView from './WidgetView.vue'
-import { layoutBottom } from '../config/reportLayout.js'
+import { layoutBottom } from '../config/reportLayout.ts'
 
 defineOptions({ name: 'LayoutCanvas' })
 
@@ -12,7 +12,7 @@ const props = defineProps({
   draggingWidget: { type: Object, default: null },
   dragElementId: { type: String, default: null },
   preview: { type: Boolean, default: false },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -21,7 +21,7 @@ const emit = defineEmits([
   'update-drag-element',
   'delete-element',
   'duplicate-element',
-  'drag-end'
+  'drag-end',
 ])
 
 const page = computed(() => props.layout.page)
@@ -85,20 +85,20 @@ watch(() => page.value.width, () => {
 const xMarks = computed(() => (
   Array.from({ length: Math.floor(page.value.width / 50) + 1 }, (_, index) => ({
     pos: index * 50,
-    major: index % 2 === 0
+    major: index % 2 === 0,
   }))
 ))
 const yMarks = computed(() => (
   Array.from({ length: Math.floor(pageHeight.value / 50) + 1 }, (_, index) => ({
     pos: index * 50,
-    major: index % 2 === 0
+    major: index % 2 === 0,
   }))
 ))
 
 const pageStyle = computed(() => ({
   width: `${page.value.width}px`,
   minHeight: `${pageHeight.value}px`,
-  background: page.value.background || '#ffffff'
+  background: page.value.background || '#ffffff',
 }))
 
 function sectionOf(element) {
@@ -116,7 +116,7 @@ function elementStyle(element) {
       width: `${element.w}px`,
       height: `${element.h}px`,
       zIndex: 9999,
-      visibility: dragMoved.value ? 'visible' : 'hidden'
+      visibility: dragMoved.value ? 'visible' : 'hidden',
     }
   }
   return {
@@ -124,7 +124,7 @@ function elementStyle(element) {
     top: `${element.y}px`,
     width: `${element.w}px`,
     height: `${element.h}px`,
-    zIndex: selected.value?.id === element.id ? 20 : 10
+    zIndex: selected.value?.id === element.id ? 20 : 10,
   }
 }
 
@@ -177,7 +177,7 @@ function snapToGuides(x, y, w, h, excludeId, threshold = 6) {
     x: snappedX,
     y: snappedY,
     vertical: bestX.target != null ? [bestX.target] : [],
-    horizontal: bestY.target != null ? [bestY.target] : []
+    horizontal: bestY.target != null ? [bestY.target] : [],
   }
 }
 
@@ -225,7 +225,7 @@ function onPalettePointerMove(event) {
   guides.value = { vertical: guide.vertical, horizontal: guide.horizontal }
   dragVisual.value = {
     left: rect.left / scale + x,
-    top: rect.top / scale + y
+    top: rect.top / scale + y,
   }
   emit('update-drag-element', id, { x, y })
 }
@@ -256,10 +256,10 @@ function stopPaletteDrag() {
 
 watch(
   () => props.draggingWidget,
-  widget => {
+  (widget) => {
     if (widget && !props.preview && !props.disabled) startPaletteDrag()
     else stopPaletteDrag()
-  }
+  },
 )
 
 function selectElement(element) {
@@ -281,7 +281,7 @@ function onElementPointerDown(event, element) {
     element,
     startX: event.clientX,
     startY: event.clientY,
-    origin: { x: element.x, y: element.y, w: element.w, h: element.h }
+    origin: { x: element.x, y: element.y, w: element.w, h: element.h },
   }
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
@@ -298,7 +298,7 @@ function onResizePointerDown(event, element, dir) {
     element,
     startX: event.clientX,
     startY: event.clientY,
-    origin: { x: element.x, y: element.y, w: element.w, h: element.h }
+    origin: { x: element.x, y: element.y, w: element.w, h: element.h },
   }
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp)
@@ -317,7 +317,7 @@ function onPointerMove(event) {
       state.origin.y + dy,
       state.element.w,
       state.element.h,
-      state.element.id
+      state.element.id,
     )
     const x = clamp(snapped.x, 0, page.value.width - state.element.w)
     const y = Math.max(0, snapped.y)

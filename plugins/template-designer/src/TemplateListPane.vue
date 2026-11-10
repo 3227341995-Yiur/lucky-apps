@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
 
 defineOptions({ name: 'TemplateListPane' })
@@ -6,16 +6,16 @@ defineOptions({ name: 'TemplateListPane' })
 const props = defineProps({
   templates: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   currentId: {
     type: [Number, String],
-    default: null
+    default: null,
   },
   loading: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['select', 'copy', 'remove', 'set-default'])
@@ -42,7 +42,7 @@ const groups = computed(() => typeOptions.value
   .map(item => ({
     type: item.value,
     label: `${item.label} 模板`,
-    items: filtered.value.filter(template => template.type === item.value)
+    items: filtered.value.filter(template => template.type === item.value),
   }))
   .filter(group => group.items.length))
 </script>

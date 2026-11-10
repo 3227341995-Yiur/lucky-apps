@@ -1,4 +1,4 @@
-import { definePlugin, navigation, settings } from '@week-report/plugin-api'
+import { definePlugin, navigation, settings } from 'plugin-api'
 import ReportsPage from './ReportsPage.vue'
 import ReportsSettings from './ReportsSettings.vue'
 
@@ -10,14 +10,14 @@ export default definePlugin({
       label: '周报',
       icon: 'Document',
       order: 10,
-      component: ReportsPage
+      component: ReportsPage,
     })
     settings.register({
       id: 'reports-components',
       label: '周报组件',
       icon: 'Grid',
       order: 60,
-      component: ReportsSettings
+      component: ReportsSettings,
     })
-  }
+  },
 })

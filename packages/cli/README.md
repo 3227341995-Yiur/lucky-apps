@@ -1,17 +1,17 @@
-# @week-report/cli
+# @lucky-apps/cli
 
 外部 Cordis 组件安装命令。
 
 ```bash
 # 安装到仓库内置 profile
-week-report plugin add ../my-widget
+lucky-apps plugin add ../my-widget
 
 # 安装到当前用户的应用 profile
-week-report plugin add ../my-widget --user
+lucky-apps plugin add ../my-widget --user
 
 # 查看 / 移除
-week-report plugin list --user
-week-report plugin remove my-widget --user
+lucky-apps plugin list --user
+lucky-apps plugin remove my-widget --user
 ```
 
 `add` 会在 profile 里执行 `pnpm add`，读取包的 `weekReport.bundle.patch`，

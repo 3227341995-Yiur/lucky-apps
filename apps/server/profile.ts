@@ -115,11 +115,11 @@ function mergeProfileManifest(bundled: any, installed: any): any {
   const installedBundles = installed?.weekReport?.profile?.bundles || []
   const bundles = [
     ...bundledBundles,
-    ...installedBundles.filter(name => !bundledBundles.includes(name))
+    ...installedBundles.filter(name => !bundledBundles.includes(name)),
   ]
   const dependencies = {
     ...(installed?.dependencies || {}),
-    ...(bundled?.dependencies || {})
+    ...(bundled?.dependencies || {}),
   }
   for (const name of LEGACY_BROWSER_DEPS) {
     if (!bundled?.dependencies?.[name]) delete dependencies[name]
@@ -134,9 +134,9 @@ function mergeProfileManifest(bundled: any, installed: any): any {
       profile: {
         ...installed?.weekReport?.profile,
         ...bundled?.weekReport?.profile,
-        bundles
-      }
-    }
+        bundles,
+      },
+    },
   }
 }
 
@@ -171,7 +171,7 @@ async function copyProfileFiles(sourceDir: string, targetDir: string, bundled: a
   }
   await cp(join(sourceDir, 'vendor'), join(targetDir, 'vendor'), {
     recursive: true,
-    force: true
+    force: true,
   }).catch(() => {})
   await copyBundledModules(sourceDir, targetDir, bundled)
 }
@@ -210,7 +210,7 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
 
   await cp(join(sourceDir, 'vendor'), join(targetDir, 'vendor'), {
     recursive: true,
-    force: true
+    force: true,
   }).catch(() => {})
   await copyBundledModules(sourceDir, targetDir, bundled)
   // 复制来的 node_modules 记录了打包机的虚拟仓库绝对路径；
@@ -227,7 +227,7 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
   }
   await writeFile(
     join(targetDir, 'package.json'),
-    `${JSON.stringify(mergeProfileManifest(bundled, installed), null, 2)}\n`
+    `${JSON.stringify(mergeProfileManifest(bundled, installed), null, 2)}\n`,
   )
   return true
 }

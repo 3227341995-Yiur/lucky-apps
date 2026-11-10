@@ -1,4 +1,4 @@
-import { definePlugin, navigation } from '@week-report/plugin-api'
+import { definePlugin, navigation } from 'plugin-api'
 import HomePage from './HomePage.vue'
 
 export default definePlugin({
@@ -9,7 +9,7 @@ export default definePlugin({
       label: '工作台',
       icon: 'HomeFilled',
       order: 0,
-      component: HomePage
+      component: HomePage,
     })
-  }
+  },
 })

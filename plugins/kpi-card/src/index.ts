@@ -1,5 +1,5 @@
 import KpiCard from './KpiCard.vue'
-import { definePlugin, components } from '@week-report/plugin-api'
+import { definePlugin, components } from 'plugin-api'
 
 export default definePlugin({
   name: 'kpi-card',
@@ -7,7 +7,7 @@ export default definePlugin({
     components.registerCanvas('KpiCard', KpiCard, {
       value: 'kpi-card',
       icon: 'TrendCharts',
-      description: 'KPI 指标卡'
+      description: 'KPI 指标卡',
     })
-  }
+  },
 })

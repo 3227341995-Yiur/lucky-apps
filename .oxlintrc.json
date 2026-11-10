@@ -1,0 +1,70 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript"],
+  "categories": {
+    "correctness": "off"
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "warn"
+  },
+  "env": {
+    "builtin": true
+  },
+  "ignorePatterns": [
+    "**/lib/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/target/**",
+    "docs-site/**",
+    "resources/**",
+    ".idea/**",
+    "**/*.config.ts",
+    "**/*.config.mts",
+    "**/*.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["apps/**/*.{ts,vue}", "packages/**/*.{ts,vue}", "plugins/**/*.{ts,vue}", "scripts/**/*.ts", "tests/**/*.ts"],
+      "rules": {
+        "no-var": "error",
+        "prefer-const": "error",
+        "prefer-rest-params": "error",
+        "prefer-spread": "error",
+        "no-array-constructor": "error",
+        "no-unused-expressions": "error",
+        "no-unused-vars": [
+          "error",
+          {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
+          }
+        ],
+        "no-useless-constructor": "error"
+      }
+    },
+    {
+      "files": ["apps/**/*.{ts,vue}", "packages/**/*.{ts,vue}", "plugins/**/*.{ts,vue}", "scripts/**/*.ts", "tests/**/*.ts"],
+      "rules": {
+        "@stylistic/indent": ["error", 2],
+        "@stylistic/semi": ["error", "never"],
+        "@stylistic/quotes": ["error", "single", { "avoidEscape": true }],
+        "@stylistic/comma-dangle": ["error", "always-multiline"],
+        "@stylistic/eol-last": ["error", "always"],
+        "@stylistic/no-trailing-spaces": "error",
+        "@stylistic/object-curly-spacing": ["error", "always"],
+        "@stylistic/arrow-parens": ["error", "as-needed", { "requireForBlockBody": true }],
+        "@stylistic/max-len": [
+          "error",
+          {
+            "code": 140,
+            "ignoreUrls": true,
+            "ignoreStrings": true,
+            "ignoreTemplateLiterals": true
+          }
+        ]
+      },
+      "jsPlugins": ["@stylistic/eslint-plugin"]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { definePlugin, navigation } from '@week-report/plugin-api'
+import { definePlugin, navigation } from 'plugin-api'
 import DesignerPage from './DesignerPage.vue'
 
 export default definePlugin({
@@ -9,7 +9,7 @@ export default definePlugin({
       label: '周报设计',
       icon: 'MagicStick',
       order: 30,
-      component: DesignerPage
+      component: DesignerPage,
     })
-  }
+  },
 })

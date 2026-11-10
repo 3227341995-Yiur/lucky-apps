@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
 defineOptions({ name: 'SwitchCell' })
@@ -6,8 +6,8 @@ defineOptions({ name: 'SwitchCell' })
 const props = defineProps({
   modelValue: {
     type: [Boolean, String, Number],
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

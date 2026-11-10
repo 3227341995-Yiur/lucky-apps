@@ -3,11 +3,11 @@
 外部组件项目不再直接访问 `ctx.weekReport` 或全局变量，统一从 npm 包导入：
 
 ```bash
-pnpm add @week-report/plugin-api
+pnpm add plugin-api
 ```
 
 ```js
-import { definePlugin, components } from '@week-report/plugin-api'
+import { definePlugin, components } from 'plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({
@@ -44,7 +44,7 @@ export default definePlugin({
 ## 侧边栏页面与设置面板
 
 ```js
-import { definePlugin, navigation, settings } from '@week-report/plugin-api'
+import { definePlugin, navigation, settings } from 'plugin-api'
 import TrashPage from './TrashPage.vue'
 
 export default definePlugin({
@@ -91,7 +91,7 @@ packages/plugin-api/
 ```json
 {
   "dependencies": {
-    "@week-report/plugin-api": "workspace:*"
+    "plugin-api": "workspace:*"
   }
 }
 ```

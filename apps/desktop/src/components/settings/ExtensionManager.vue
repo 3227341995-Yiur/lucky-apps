@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
@@ -19,7 +19,7 @@ const {
   hotReloadComponents,
   copyResourcesPath,
   copyPluginsPath,
-  reloadApp
+  reloadApp,
 } = useExtensions()
 
 // 列组件 / 画布组件属于周报本体能力，由周报插件注册的「周报组件」设置面板维护
@@ -29,7 +29,7 @@ const STATUS_META = {
   loaded: { label: '已加载', type: 'success' },
   disabled: { label: '已禁用', type: 'info' },
   error: { label: '加载失败', type: 'danger' },
-  pending: { label: '待加载', type: 'warning' }
+  pending: { label: '待加载', type: 'warning' },
 }
 
 const TYPE_LABELS = {
@@ -38,7 +38,7 @@ const TYPE_LABELS = {
   'component-canvas': '画布',
   'component-column': '列',
   'component-feature': '功能',
-  'component-other': '组件'
+  'component-other': '组件',
 }
 
 const rescanning = ref(false)
@@ -207,7 +207,7 @@ async function handleUninstall(resource) {
     await ElMessageBox.confirm(
       `卸载「${name}」？会从 profile 移除该插件包，并重新加载应用。`,
       '卸载插件',
-      { type: 'warning', confirmButtonText: '卸载', cancelButtonText: '取消' }
+      { type: 'warning', confirmButtonText: '卸载', cancelButtonText: '取消' },
     )
   } catch {
     return
@@ -224,15 +224,15 @@ async function handleUninstall(resource) {
 }
 
 function typeIcon(key) {
-  if (key === "style") return "Brush"
-  if (key === "script") return "Document"
-  return "Grid"
+  if (key === 'style') return 'Brush'
+  if (key === 'script') return 'Document'
+  return 'Grid'
 }
 
 function handleMoreCommand(command) {
-  if (command === "resources") handleCopyPath()
-  else if (command === "plugins") handleCopyPluginsPath()
-  else if (command === "reload") reloadApp()
+  if (command === 'resources') handleCopyPath()
+  else if (command === 'plugins') handleCopyPluginsPath()
+  else if (command === 'reload') reloadApp()
 }
 
 async function handleToggle(resource) {
@@ -252,8 +252,8 @@ async function handleToggle(resource) {
       {
         confirmButtonText: '立即重新加载',
         cancelButtonText: '稍后',
-        type: 'info'
-      }
+        type: 'info',
+      },
     )
     reloadApp()
   } catch {

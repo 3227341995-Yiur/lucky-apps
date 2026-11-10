@@ -1,9 +1,9 @@
-# @week-report/plugin-api
+# plugin-api
 
 周报外部组件项目的官方 API 包。组件项目直接 import，不需要访问 `ctx.weekReport` 或全局变量。
 
 ```js
-import { definePlugin, components } from '@week-report/plugin-api'
+import { definePlugin, components } from 'plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({

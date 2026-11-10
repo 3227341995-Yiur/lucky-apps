@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { getElGlyph } from '@/utils/elementPlusGlyphs'
 
 defineOptions({ name: 'ElementPlusGlyph' })
 
 const props = defineProps({
-  name: { type: String, default: '' }
+  name: { type: String, default: '' },
 })
 
 const glyph = computed(() => getElGlyph(props.name))

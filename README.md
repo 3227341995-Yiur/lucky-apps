@@ -88,7 +88,7 @@ Node 服务用真实 Cordis loader 按行里的包名从 profile 的 `node_modul
 Tauri 窗口只打开服务地址。浏览器依赖 `vue` / `element-plus` / 图标已经由宿主 Vite
 构建进 `dist`，不再重复安装到 profile；profile 只包含 Cordis 插件包（约 150KB），
 避免安装/卸载时复制上万个无用文件。
-首次启动会复制到 `%APPDATA%/com.lu.week-report/profile`，用户可直接改 profile。
+首次启动会复制到 `%APPDATA%/com.lu.lucky-apps/profile`，用户可直接改 profile。
 应用升级时按 `weekReport.profile.version` 覆盖随包核心包和系统依赖，同时保留用户
 自己安装的插件与 bundle；安装器会先结束旧的托盘进程，避免文件占用和多实例。
 浏览器侧 client bundle 构建为 IIFE，Vue / Element Plus / 图标使用宿主 `window` 上的同一份实例。
@@ -104,7 +104,8 @@ Tauri 窗口只打开服务地址。浏览器依赖 `vue` / `element-plus` / 图
 
 ## 数据
 
-- SQLite 数据库 `week_report.db`
+- SQLite 数据库 `lucky_apps.db`：由周报插件（`plugins/reports` 的 Node half `reports-database`）自己提供，
+  宿主壳不持有周报数据层；卸载周报插件即不再挂载数据库
 - 周报软删除（`deleted_at`），回收站独立视图
 - 报表保存自由画布 `layout`；默认画布保存在 `config` 表
-- 设置中心 → 数据 → 导入/备份，支持全量备份与恢复
+- 左侧导航 → 导入导出（内置插件页），支持全量备份与恢复

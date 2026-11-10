@@ -9,9 +9,9 @@ const props = defineProps({
     default: () => [
       { label: '需求梳理', value: 100, status: 'success' },
       { label: '开发联调', value: 68, status: 'primary' },
-      { label: '测试验收', value: 30, status: 'warning' }
-    ]
-  }
+      { label: '测试验收', value: 30, status: 'warning' },
+    ],
+  },
 })
 
 const rows = computed(() => (Array.isArray(props.items) ? props.items : []))

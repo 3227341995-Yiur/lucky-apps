@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { Close } from '@element-plus/icons-vue'
 
@@ -18,7 +18,7 @@ const props = defineProps({
   closeOnClickModal: { type: Boolean, default: false },
   closeOnPressEscape: { type: Boolean, default: true },
   destroyOnClose: { type: Boolean, default: true },
-  beforeClose: { type: Function, default: null }
+  beforeClose: { type: Function, default: null },
 })
 
 const emit = defineEmits(['closed', 'close'])
@@ -26,7 +26,7 @@ const emit = defineEmits(['closed', 'close'])
 const dialogStyle = computed(() => ({
   width: props.fullscreen ? '100vw' : props.width,
   maxWidth: props.fullscreen ? '100vw' : 'calc(100vw - 32px)',
-  ...(props.fullscreen ? { height: '100vh', maxHeight: '100vh' } : {})
+  ...(props.fullscreen ? { height: '100vh', maxHeight: '100vh' } : {}),
 }))
 
 function close() {

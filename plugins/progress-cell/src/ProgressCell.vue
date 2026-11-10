@@ -3,7 +3,7 @@ import { ElSlider } from 'element-plus'
 
 defineProps({
   modelValue: { type: [Number, String], default: 0 },
-  max: { type: Number, default: 100 }
+  max: { type: Number, default: 100 },
 })
 
 const emit = defineEmits(['update:modelValue'])

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
 defineOptions({ name: 'ElementWidget' })
@@ -6,8 +6,8 @@ defineOptions({ name: 'ElementWidget' })
 const props = defineProps({
   element: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -17,7 +17,7 @@ const component = computed(() => props.element.component || 'el-button')
 const text = computed(() => props.element.text || '')
 
 const model = ref(elementProps.value.modelValue ?? '')
-watch(() => elementProps.value.modelValue, value => { model.value = value })
+watch(() => elementProps.value.modelValue, (value) => { model.value = value })
 watch(model, value => emit('update:modelValue', value))
 
 const options = computed(() => {

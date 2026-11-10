@@ -1,4 +1,4 @@
-import { definePlugin, navigation } from '@week-report/plugin-api'
+import { definePlugin, navigation } from 'plugin-api'
 import ImportExportPage from './ImportExportPage.vue'
 
 export default definePlugin({
@@ -9,7 +9,7 @@ export default definePlugin({
       label: '导入导出',
       icon: 'Sort',
       order: 40,
-      component: ImportExportPage
+      component: ImportExportPage,
     })
-  }
+  },
 })

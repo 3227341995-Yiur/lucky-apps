@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 // ponytail: 纯文本 textarea 代替宿主 CodeMirror 编辑器，插件包不引入 codemirror 依赖
 defineOptions({ name: 'CodeEditor' })
 
 defineProps({
   modelValue: { type: String, default: '' },
   language: { type: String, default: 'javascript' },
-  readonly: { type: Boolean, default: false }
+  readonly: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue'])

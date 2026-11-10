@@ -1,8 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import LayoutPalette from './components/LayoutPalette.vue'
 import LayoutCanvas from './components/LayoutCanvas.vue'
 import LayoutInspector from './components/LayoutInspector.vue'
@@ -11,17 +11,17 @@ import {
   cloneConfig,
   createRow,
   createSectionsFromConfig,
-  normalizeReportConfig
-} from './config/defaultReportConfig.js'
+  normalizeReportConfig,
+} from './config/defaultReportConfig.ts'
 import {
   createDefaultLayout,
   createSectionFromPreset,
   createWidget,
   extractLayout,
-  normalizeLayoutConfig
-} from './config/reportLayout.js'
-import { generateId } from './utils/idGenerator.js'
-import { getWeekRange } from './utils/date.js'
+  normalizeLayoutConfig,
+} from './config/reportLayout.ts'
+import { generateId } from './utils/idGenerator.ts'
+import { getWeekRange } from './utils/date.ts'
 
 defineOptions({ name: 'StructureDesignerPage' })
 
@@ -97,11 +97,11 @@ function preparePreview() {
   previewReport.value = {
     title: '工作周报',
     dateRange: getWeekRange(),
-    sections: createSectionsFromConfig(draft.value.sections)
+    sections: createSectionsFromConfig(draft.value.sections),
   }
 }
 
-watch(preview, value => {
+watch(preview, (value) => {
   if (value) preparePreview()
   else {
     previewReport.value = null
@@ -165,7 +165,7 @@ function updatePage(patch) {
   recordOnce()
   Object.assign(draft.value.page, patch)
   if (patch.width) {
-    draft.value.elements.forEach(element => {
+    draft.value.elements.forEach((element) => {
       if (element.x + element.w > draft.value.page.width) {
         element.x = Math.max(0, draft.value.page.width - element.w)
       }
@@ -234,7 +234,7 @@ function handleDragStart({ widget }) {
     h,
     component: widget.component,
     props: widget.props,
-    text: widget.text
+    text: widget.text,
   })
   if (section) element.sectionType = section.type
   draft.value.elements.push(element)
@@ -308,11 +308,11 @@ async function handleApply() {
     if (!report) throw new Error('周报不存在或已删除')
     const oldSections = report.sections || []
     // 同 type 的区块保留原有数据行，新区块生成一行默认数据
-    report.sections = normalizeReportConfig(config.sections).map(section => {
+    report.sections = normalizeReportConfig(config.sections).map((section) => {
       const previous = oldSections.find(item => item.type === section.type)
       return {
         ...cloneConfig(section),
-        items: previous?.items?.length ? cloneConfig(previous.items) : [createRow(section.columns)]
+        items: previous?.items?.length ? cloneConfig(previous.items) : [createRow(section.columns)],
       }
     })
     report.layout = extractLayout(config)
@@ -330,7 +330,7 @@ async function handleReset() {
     await ElMessageBox.confirm(
       '恢复系统默认版面会丢失当前画布上的布局与样式调整，确定继续吗？',
       '恢复默认版面',
-      { confirmButtonText: '恢复默认', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '恢复默认', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return

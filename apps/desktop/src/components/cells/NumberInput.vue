@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: 'NumberInput' })
 
 defineProps({
   modelValue: {
     type: [Number, String],
-    default: 0
-  }
+    default: 0,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

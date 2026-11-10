@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTheme } from '@/composables/useTheme'
@@ -16,7 +16,7 @@ import {
   LOADING_FONT_OPTIONS,
   previewStartupLoader,
   readLoadingConfig,
-  saveLoadingConfig
+  saveLoadingConfig,
 } from '@/startupLoader'
 import FullscreenIcon from '@/components/common/FullscreenIcon.vue'
 import ExtensionManager from '@/components/settings/ExtensionManager.vue'
@@ -41,7 +41,7 @@ const autostartLoading = ref(false)
 const loadingEffects = [
   { value: 'explode', label: '爆炸粒子' },
   { value: 'dissolve', label: '上升消散' },
-  { value: 'spark', label: '火花飞散' }
+  { value: 'spark', label: '火花飞散' },
 ]
 const loadingPresets = [
   {
@@ -52,8 +52,8 @@ const loadingPresets = [
       color: '#3574f0',
       background: '',
       effect: 'explode',
-      particleColors: '#3574f0,#36a3ff,#67c23a,#e6a23c,#f56c6c,#8b5cf6'
-    }
+      particleColors: '#3574f0,#36a3ff,#67c23a,#e6a23c,#f56c6c,#8b5cf6',
+    },
   },
   {
     key: 'neon',
@@ -63,8 +63,8 @@ const loadingPresets = [
       color: '#22d3ee',
       background: '#0b1020',
       effect: 'spark',
-      particleColors: '#22d3ee,#a78bfa,#f472b6,#facc15'
-    }
+      particleColors: '#22d3ee,#a78bfa,#f472b6,#facc15',
+    },
   },
   {
     key: 'candy',
@@ -74,8 +74,8 @@ const loadingPresets = [
       color: '#ec4899',
       background: '#fff7ed',
       effect: 'explode',
-      particleColors: '#ec4899,#f59e0b,#8b5cf6,#22c55e'
-    }
+      particleColors: '#ec4899,#f59e0b,#8b5cf6,#22c55e',
+    },
   },
   {
     key: 'night',
@@ -85,9 +85,9 @@ const loadingPresets = [
       color: '#a78bfa',
       background: '#111827',
       effect: 'dissolve',
-      particleColors: '#a78bfa,#60a5fa,#34d399,#f472b6'
-    }
-  }
+      particleColors: '#a78bfa,#60a5fa,#34d399,#f472b6',
+    },
+  },
 ]
 const activePreset = computed(() => {
   const config = loadingConfig.value
@@ -99,7 +99,7 @@ const activePreset = computed(() => {
 })
 const loadingShapes = [
   { value: 'circle', label: '圆点' },
-  { value: 'star', label: '星形' }
+  { value: 'star', label: '星形' },
 ]
 
 async function loadAutostart() {
@@ -162,7 +162,7 @@ function resetLoading() {
   loadingConfig.value = saveLoadingConfig(DEFAULT_LOADING_CONFIG)
 }
 
-watch(visible, open => {
+watch(visible, (open) => {
   if (!open) docsFullscreen.value = false
   else loadAutostart()
 })
@@ -173,25 +173,25 @@ const BASE_TABS = [
   { key: 'extensions', label: '扩展', icon: 'Grid', desc: '管理样式表、插件脚本与外部组件' },
   { key: 'data', label: '数据', icon: 'Coin', desc: '查看统计并维护周报结构' },
   { key: 'docs', label: '开发文档', icon: 'Reading', desc: '插件、外部组件与二开 API' },
-  { key: 'about', label: '关于', icon: 'InfoFilled', desc: '版本与运行环境信息' }
+  { key: 'about', label: '关于', icon: 'InfoFilled', desc: '版本与运行环境信息' },
 ]
 
 const tabs = computed(() => [
   ...BASE_TABS,
-  ...listSettingsSections().map(item => ({ ...item, key: item.id, desc: '外部插件注册的设置面板' }))
+  ...listSettingsSections().map(item => ({ ...item, key: item.id, desc: '外部插件注册的设置面板' })),
 ])
 
 const themeOptions = [
   { value: 'system', icon: 'Monitor', desc: '自动跟随操作系统的亮暗色' },
   { value: 'light', icon: 'Sunny', desc: '始终使用亮色主题' },
-  { value: 'dark', icon: 'Moon', desc: '始终使用暗色主题' }
+  { value: 'dark', icon: 'Moon', desc: '始终使用暗色主题' },
 ]
 
 const dataStats = computed(() => [
   { label: '周报', value: state.stats.reports },
   { label: '工作项', value: state.stats.workItems },
   { label: '回收站', value: state.stats.trash },
-  { label: '模板', value: state.stats.templates }
+  { label: '模板', value: state.stats.templates },
 ])
 
 const currentTab = computed(() => tabs.value.find(tab => tab.key === activeTab.value) || tabs.value[0])
@@ -204,8 +204,8 @@ async function handleResetConfig() {
       {
         confirmButtonText: '恢复默认',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     )
   } catch {
     return

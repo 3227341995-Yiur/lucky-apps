@@ -37,7 +37,7 @@ pnpm plugins:build
 内置 profile 的 `weekReport.profile.bundles` 按顺序列出：
 
 ```text
-week-report-base → home → reports → kpi-card → ... → trash-bin → 外部功能插件
+base → home → reports → kpi-card → ... → trash-bin → 外部功能插件
 ```
 
 功能插件（kind: feature）的页面和后台能力注册为导航/设置面板；
@@ -50,7 +50,7 @@ week-report-base → home → reports → kpi-card → ... → trash-bin → 外
 `src/index.ts` 默认导出 Cordis 插件：
 
 ```ts
-import { definePlugin, components } from '@week-report/plugin-api'
+import { definePlugin, components } from 'plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({

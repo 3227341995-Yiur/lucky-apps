@@ -1,10 +1,10 @@
-<script setup>
+<script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { Delete, CopyDocument, Plus, Setting } from '@element-plus/icons-vue'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import CodeEditor from './CodeEditor.vue'
-import { PAGE_PRESETS } from '../config/reportLayout.js'
-import { getAllElComponents, getElWidget } from '../utils/elementPlusWidgets.js'
+import { PAGE_PRESETS } from '../config/reportLayout.ts'
+import { getAllElComponents, getElWidget } from '../utils/elementPlusWidgets.ts'
 
 defineOptions({ name: 'LayoutInspector' })
 
@@ -14,7 +14,7 @@ const props = defineProps({
   layout: { type: Object, required: true },
   element: { type: Object, default: null },
   section: { type: Object, default: null },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -24,7 +24,7 @@ const emit = defineEmits([
   'delete-element',
   'duplicate-element',
   'move-layer',
-  'align-element'
+  'align-element',
 ])
 
 const componentOptions = computed(() => api.components.listColumns())
@@ -39,7 +39,7 @@ const TYPE_LABELS = {
   text: '文本',
   divider: '分割线',
   el: 'Element 组件',
-  component: '外部组件'
+  component: '外部组件',
 }
 
 const style = computed(() => props.element?.style || {})
@@ -65,7 +65,7 @@ function makeAction(type = 'show') {
     type,
     targetId: interactionTargets.value[0]?.id || '',
     variable: '',
-    value: ''
+    value: '',
   }
 }
 
@@ -79,9 +79,9 @@ function addInteraction() {
         trigger: 'click',
         condition: null,
         actions: [makeAction('show')],
-        elseActions: []
-      }
-    ]
+        elseActions: [],
+      },
+    ],
   })
 }
 
@@ -101,7 +101,7 @@ function removeInteraction(index) {
 
 function addCondition(index) {
   updateInteraction(index, {
-    condition: { source: 'variable', variable: '', targetId: '', operator: 'equals', value: '' }
+    condition: { source: 'variable', variable: '', targetId: '', operator: 'equals', value: '' },
   })
 }
 
@@ -163,7 +163,7 @@ function addColumn() {
   while (used.has(prop)) prop = `column${++index}`
   const columns = [
     ...props.section.columns,
-    { prop, label: `新列${index}`, component: '', fixed: false, attrs: {} }
+    { prop, label: `新列${index}`, component: '', fixed: false, attrs: {} },
   ]
   updateSection({ columns })
 }
@@ -234,7 +234,7 @@ function changeElComponent(name) {
   emit('update-element', {
     component: name,
     props: definition.props ? { ...definition.props } : {},
-    text: definition.text || ''
+    text: definition.text || '',
   })
 }
 

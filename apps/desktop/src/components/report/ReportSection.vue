@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { Plus, Setting, Delete } from '@element-plus/icons-vue'
 import MarkdownEditor from '@/components/editors/MarkdownEditor.vue'
 import { createRow } from '@/config/defaultReportConfig'
@@ -9,8 +9,8 @@ defineOptions({ name: 'ReportSection' })
 const props = defineProps({
   section: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['change', 'configure'])

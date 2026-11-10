@@ -1,15 +1,15 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: 'StatusSelector' })
 
 defineProps({
   modelValue: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
   options: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

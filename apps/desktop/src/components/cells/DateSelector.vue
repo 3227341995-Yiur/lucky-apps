@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: 'DateSelector' })
 
 defineProps({
   modelValue: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

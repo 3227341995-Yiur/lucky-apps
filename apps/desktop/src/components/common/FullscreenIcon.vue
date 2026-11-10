@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: 'FullscreenIcon' })
 
 defineProps({
   exit: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 </script>
 

@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import TemplateListPane from './TemplateListPane.vue'
 import TemplateEditorPane from './TemplateEditorPane.vue'
 import TemplatePreviewPane from './TemplatePreviewPane.vue'
@@ -14,7 +14,7 @@ const api = useWeekReport()
 
 const BUILTIN_TEMPLATE_TYPES = [
   { value: 'html', label: 'HTML' },
-  { value: 'markdown', label: 'Markdown' }
+  { value: 'markdown', label: 'Markdown' },
 ]
 const CUSTOM_TYPE_TEMPLATE = `# {{title}}
 
@@ -34,7 +34,7 @@ const draft = reactive({
   type: 'html',
   isDefault: false,
   isSystem: false,
-  template: ''
+  template: '',
 })
 const baseline = ref('')
 const saving = ref(false)
@@ -55,7 +55,7 @@ const snapshot = () => JSON.stringify([draft.id, draft.name, draft.type, draft.t
 const dirty = computed(() => snapshot() !== baseline.value)
 const hasDraft = computed(() => draft.id !== null)
 const currentReport = computed(
-  () => reports.value.find(item => item.id === selectedReportId.value) || null
+  () => reports.value.find(item => item.id === selectedReportId.value) || null,
 )
 
 const templateTypes = computed(() => {
@@ -141,7 +141,7 @@ async function openWorkspace() {
 }
 
 // 选择预览周报后懒加载区块数据
-watch(selectedReportId, async id => {
+watch(selectedReportId, async (id) => {
   const seq = ++sectionSeq
   sections.value = []
   if (id == null || id === '') {
@@ -163,7 +163,7 @@ watch(selectedReportId, async id => {
 })
 
 // 模板类型增减后，保证默认复制类型仍然有效
-watch(templateTypes, types => {
+watch(templateTypes, (types) => {
   if (types.some(item => item.value === copyDefaultType.value)) return
   copyDefaultType.value = types[0]?.value || 'html'
   api.data.copySettings.save({ defaultType: copyDefaultType.value }).catch(() => {})
@@ -175,7 +175,7 @@ async function confirmDiscard(actionLabel) {
     await ElMessageBox.confirm(
       `当前模板「${draft.name || '未命名'}」有未保存的修改，${actionLabel}将丢失这些修改，是否继续？`,
       '未保存的修改',
-      { confirmButtonText: '放弃修改', cancelButtonText: '返回编辑', type: 'warning' }
+      { confirmButtonText: '放弃修改', cancelButtonText: '返回编辑', type: 'warning' },
     )
     return true
   } catch {
@@ -212,7 +212,7 @@ async function handleCreate(type = 'html') {
       type,
       isDefault: false,
       isSystem: false,
-      template: content
+      template: content,
     })
     const created = await refreshTemplates(id)
     if (created) applyTemplate(created)
@@ -232,8 +232,8 @@ async function handleCreateCustomType() {
         confirmButtonText: '创建',
         cancelButtonText: '取消',
         inputPattern: /^[A-Za-z][\w-]*$/,
-        inputErrorMessage: '类型只能包含字母、数字、下划线或短横线，并以字母开头'
-      }
+        inputErrorMessage: '类型只能包含字母、数字、下划线或短横线，并以字母开头',
+      },
     )
     const type = String(value || '').trim()
     if (type) await handleCreate(type)
@@ -264,7 +264,7 @@ async function handleCopy(template) {
       type: source.type,
       isDefault: false,
       isSystem: false,
-      template: source.template
+      template: source.template,
     })
     const created = await refreshTemplates(id)
     if (created) applyTemplate(created)
@@ -303,7 +303,7 @@ async function handleRemove(template) {
         ? `模板「${template.name}」有未保存的修改，删除后这些修改也会丢失，确定删除吗？`
         : `确定删除模板「${template.name}」吗？删除后不可恢复。`,
       '删除模板',
-      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return
@@ -351,7 +351,7 @@ async function handleSave() {
       type: draft.type,
       isDefault: draft.isDefault,
       isSystem: draft.isSystem,
-      template: draft.template
+      template: draft.template,
     }
     const id = await api.templates.save(payload)
     draft.id = id

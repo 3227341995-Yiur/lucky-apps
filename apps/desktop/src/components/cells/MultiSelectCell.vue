@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
 defineOptions({ name: 'MultiSelectCell' })
@@ -6,16 +6,16 @@ defineOptions({ name: 'MultiSelectCell' })
 const props = defineProps({
   modelValue: {
     type: [Array, String, Number],
-    default: () => []
+    default: () => [],
   },
   options: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   placeholder: {
     type: String,
-    default: '请选择'
-  }
+    default: '请选择',
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

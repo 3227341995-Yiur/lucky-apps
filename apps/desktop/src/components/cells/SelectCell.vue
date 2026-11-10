@@ -1,19 +1,19 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: 'SelectCell' })
 
 defineProps({
   modelValue: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
   options: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   placeholder: {
     type: String,
-    default: '请选择'
-  }
+    default: '请选择',
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])

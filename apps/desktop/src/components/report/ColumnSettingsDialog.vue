@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
@@ -15,8 +15,8 @@ const visible = defineModel({ type: Boolean, default: false })
 const props = defineProps({
   section: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['save'])
@@ -33,11 +33,11 @@ const selectedColumn = computed(() => columns.value[selectedIndex.value] || null
 // 宽度留空 = 由表格自动分配，不再强制回填默认值
 const columnWidth = computed({
   get: () => selectedColumn.value?.width ?? '',
-  set: value => {
+  set: (value) => {
     if (!selectedColumn.value) return
     const digits = String(value ?? '').replace(/[^\d]/g, '')
     selectedColumn.value.width = digits ? Math.min(2000, Math.max(1, Number(digits))) : undefined
-  }
+  },
 })
 
 // 默认值统一按 JS 表达式编辑；旧的 literal/today/now 数据在这里转换成等价代码
@@ -52,11 +52,11 @@ const defaultCode = computed({
     if (value === undefined || value === null || value === '') return ''
     return JSON.stringify(value)
   },
-  set: value => {
+  set: (value) => {
     if (!selectedColumn.value) return
     selectedColumn.value.defaultValue = value
     selectedColumn.value.defaultValueType = 'code'
-  }
+  },
 })
 
 const propIssue = computed(() => {
@@ -76,15 +76,15 @@ const slotName = computed(() => {
   return `${toPascalCase(component)}ColumnModifySlot`
 })
 
-watch(visible, open => {
+watch(visible, (open) => {
   if (!open || !props.section) return
   draft.value = cloneConfig(props.section)
-  draft.value.columns = draft.value.columns.map(column => {
+  draft.value.columns = draft.value.columns.map((column) => {
     const attrs = column.attrs && typeof column.attrs === 'object' ? { ...column.attrs } : {}
     return {
       ...column,
       attrs,
-      attrsText: JSON.stringify(attrs, null, 2)
+      attrsText: JSON.stringify(attrs, null, 2),
     }
   })
   selectedIndex.value = 0
@@ -108,7 +108,7 @@ function addColumn() {
     label: `新列${index}`,
     fixed: false,
     component: '',
-    attrs: {}
+    attrs: {},
   })
   selectedIndex.value = draft.value.columns.length - 1
 }
@@ -175,7 +175,7 @@ function handleSave() {
 }
 
 // 同步 attrs 文本（外部插槽列由插槽组件自行编辑，不显示 JSON）
-watch(selectedColumn, column => {
+watch(selectedColumn, (column) => {
   if (column && !(column.component && hasColumnSlot(column.component))) {
     column.attrsText = JSON.stringify(column.attrs || {}, null, 2)
   }

@@ -54,10 +54,13 @@ fn project_root(app: &tauri::AppHandle) -> PathBuf {
 }
 
 
+/// 依次尝试旧标识目录：上一代产品 com.lu.week-report，更早的 com.lu.dev。
 fn legacy_data_dir(app_data: &Path) -> Option<PathBuf> {
   let parent = app_data.parent()?;
-  let legacy = parent.join("com.lu.dev");
-  legacy.is_dir().then_some(legacy)
+  ["com.lu.week-report", "com.lu.dev"]
+    .iter()
+    .map(|name| parent.join(name))
+    .find(|dir| dir.is_dir())
 }
 
 fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
@@ -74,20 +77,27 @@ fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
   Ok(())
 }
 
-/// 旧版本标识是 com.lu.dev；首次用新标识启动时把数据库和用户 profile 迁过来。
+/// 旧版本标识（com.lu.week-report / com.lu.dev）首次用新标识启动时，
+/// 把数据库和用户 profile 迁过来。旧库文件名为 week_report.db。
 fn migrate_legacy_data(app_data: &Path) -> std::io::Result<()> {
   let Some(legacy) = legacy_data_dir(app_data) else {
     return Ok(());
   };
   std::fs::create_dir_all(app_data)?;
-  let new_db = app_data.join("week_report.db");
-  let old_db = legacy.join("week_report.db");
-  if old_db.is_file() && !new_db.exists() {
-    std::fs::copy(&old_db, &new_db)?;
-    for suffix in ["week_report.db-wal", "week_report.db-shm"] {
-      let source = legacy.join(suffix);
-      if source.is_file() {
-        let _ = std::fs::copy(source, app_data.join(suffix));
+  let new_db = app_data.join("lucky_apps.db");
+  let old_db = ["week_report.db", "lucky_apps.db"]
+    .iter()
+    .map(|name| legacy.join(name))
+    .find(|path| path.is_file());
+  if let Some(old_db) = old_db {
+    if !new_db.exists() {
+      std::fs::copy(&old_db, &new_db)?;
+      for suffix in ["-wal", "-shm"] {
+        let source = old_db.with_file_name(format!("{}{}", old_db.file_name().unwrap().to_string_lossy(), suffix));
+        if source.is_file() {
+          let target = app_data.join(format!("lucky_apps.db{suffix}"));
+          let _ = std::fs::copy(source, target);
+        }
       }
     }
   }
@@ -336,12 +346,15 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
     }
   }
   let has_env_db = env_db.is_some();
-  let mut db_path = env_db.unwrap_or_else(|| app_data.join("week_report.db"));
+  let mut db_path = env_db.unwrap_or_else(|| app_data.join("lucky_apps.db"));
   // 只有没有显式指定数据库时才回退旧标识的数据；测试/多实例不能被旧库覆盖。
   if !has_env_db && !db_path.exists() {
     if let Some(legacy) = legacy_data_dir(&app_data) {
-      let legacy_db = legacy.join("week_report.db");
-      if legacy_db.is_file() {
+      if let Some(legacy_db) = ["week_report.db", "lucky_apps.db"]
+        .iter()
+        .map(|name| legacy.join(name))
+        .find(|path| path.is_file())
+      {
         db_path = legacy_db;
       }
     }

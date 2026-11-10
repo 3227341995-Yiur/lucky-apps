@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import Vditor from 'vditor'
 import { useTheme } from '@/composables/useTheme'
@@ -8,21 +8,21 @@ defineOptions({ name: 'MarkdownEditor' })
 const props = defineProps({
   modelValue: {
     type: String,
-    default: ''
+    default: '',
   },
   placeholder: {
     type: String,
-    default: '在此输入支持详情，支持 Markdown 格式…'
+    default: '在此输入支持详情，支持 Markdown 格式…',
   },
   height: {
     type: Number,
-    default: 420
+    default: 420,
   },
   /** 嵌在表格展开行等已有容器中：去掉外层留白与边框 */
   embedded: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -46,7 +46,7 @@ onMounted(async () => {
     theme: themeName(),
     cache: { enable: false },
     value: props.modelValue || '',
-    input: value => {
+    input: (value) => {
       emit('update:modelValue', value)
       emit('change', value)
     },
@@ -54,17 +54,17 @@ onMounted(async () => {
       if (props.modelValue && vditor && vditor.getValue() !== props.modelValue) {
         vditor.setValue(props.modelValue, true)
       }
-    }
+    },
   })
 })
 
-watch(() => props.modelValue, value => {
+watch(() => props.modelValue, (value) => {
   if (!vditor) return
   const current = vditor.getValue()
   if (value !== current) vditor.setValue(value || '', true)
 })
 
-watch(resolvedTheme, theme => {
+watch(resolvedTheme, (theme) => {
   if (!vditor) return
   try {
     vditor.setTheme(theme === 'dark' ? 'dark' : 'classic')

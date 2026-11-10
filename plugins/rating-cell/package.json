@@ -17,7 +17,7 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
-    "@week-report/plugin-api": "workspace:*"
+    "plugin-api": "workspace:*"
   },
   "module": "lib/node.js",
   "files": [

@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useWeekReport } from '@week-report/plugin-api'
-import { SECTION_PRESETS } from '../config/defaultReportConfig.js'
-import { WIDGETS } from '../config/reportLayout.js'
-import { getAllElComponents, getElComponentLabel, getElWidget } from '../utils/elementPlusWidgets.js'
+import { useWeekReport } from 'plugin-api'
+import { SECTION_PRESETS } from '../config/defaultReportConfig.ts'
+import { WIDGETS } from '../config/reportLayout.ts'
+import { getAllElComponents, getElComponentLabel, getElWidget } from '../utils/elementPlusWidgets.ts'
 import ElementPlusGlyph from './ElementPlusGlyph.vue'
 
 defineOptions({ name: 'LayoutPalette' })
@@ -16,7 +16,7 @@ const elWidgets = computed(() => {
   const keyword = elSearch.value.trim().toLowerCase()
   return getAllElComponents()
     .map(name => getElWidget(name))
-    .filter(widget => {
+    .filter((widget) => {
       if (!keyword) return true
       return widget.component.includes(keyword) || widget.label.toLowerCase().includes(keyword)
     })
@@ -37,7 +37,7 @@ const externalWidgets = computed(() => api.components.listCanvas()
     icon: item.icon || 'fas fa-puzzle-piece',
     iconSvg: item.iconSvg || '',
     w: 240,
-    h: 120
+    h: 120,
   })))
 
 const tableWidgets = [
@@ -49,7 +49,7 @@ const tableWidgets = [
     icon: preset.icon,
     preset,
     w: 698,
-    h: 200
+    h: 200,
   })),
   {
     kind: 'section',
@@ -59,8 +59,8 @@ const tableWidgets = [
     icon: 'fas fa-table',
     preset: null,
     w: 698,
-    h: 200
-  }
+    h: 200,
+  },
 ]
 
 function onPointerDown(event, widget) {

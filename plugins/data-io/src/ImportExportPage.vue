@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import { parseImportFile } from './utils/importParsing'
 import { exportReports, formatDateRange } from './utils/reportExport'
 import { rangesOverlap } from './utils/date'
@@ -14,7 +14,7 @@ const formats = [
   { value: 'html', label: 'HTML', hint: '带样式的网页', icon: 'Document' },
   { value: 'markdown', label: 'Markdown', hint: '纯文本 / 笔记', icon: 'EditPen' },
   { value: 'json', label: 'JSON', hint: '结构化数据', icon: 'Tickets' },
-  { value: 'backup', label: '全量备份', hint: '全部数据', icon: 'FolderOpened' }
+  { value: 'backup', label: '全量备份', hint: '全部数据', icon: 'FolderOpened' },
 ]
 
 // ============================================================
@@ -54,9 +54,9 @@ const progressPercent = computed(() => {
 
 const allChecked = computed({
   get: () => reports.value.length > 0 && selectedIds.value.length === reports.value.length,
-  set: value => {
+  set: (value) => {
     selectedIds.value = value ? reports.value.map(report => report.id) : []
-  }
+  },
 })
 
 const indeterminate = computed(() => {
@@ -136,7 +136,7 @@ async function handleExport() {
     const { ok, fail } = await exportReports(api, selected, exportFormat.value, {
       onProgress: (done, total) => {
         progress.value = { done, total }
-      }
+      },
     })
 
     if (fail === 0) {
@@ -236,7 +236,7 @@ async function handleImport() {
       await ElMessageBox.confirm(
         '导入默认结构会覆盖当前的默认周报结构，已有周报内容不会受影响。确定继续吗？',
         '覆盖默认结构',
-        { confirmButtonText: '继续导入', cancelButtonText: '取消', type: 'warning' }
+        { confirmButtonText: '继续导入', cancelButtonText: '取消', type: 'warning' },
       )
     } catch {
       return
@@ -250,7 +250,7 @@ async function handleImport() {
     const result = await api.data.importBackup(importParsed.value, {
       importReports: importReportsEnabled.value,
       importTemplates: isBackup && importTemplatesEnabled.value,
-      importConfig: isBackup && importConfigEnabled.value
+      importConfig: isBackup && importConfigEnabled.value,
     })
 
     importResult.value = result

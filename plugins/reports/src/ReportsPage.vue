@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 import { formatDateTime, getIsoWeek } from './utils-date'
 
 defineOptions({ name: 'ReportsPage' })
@@ -56,7 +56,7 @@ async function createReport() {
     const format = date => date.toISOString().slice(0, 10)
     const report = await api.reports.create({
       title: `周报 ${format(monday).slice(5)} ~ ${format(friday).slice(5)}`,
-      dateRange: [format(monday), format(friday)]
+      dateRange: [format(monday), format(friday)],
     })
     await api.ui.selectReport(report.id)
   } catch (error) {
@@ -73,7 +73,7 @@ async function removeReport(report) {
     await ElMessageBox.confirm(
       `确定把「${report.title}」移入回收站吗？`,
       '删除确认',
-      { confirmButtonText: '移入回收站', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '移入回收站', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return

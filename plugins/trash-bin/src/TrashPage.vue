@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@week-report/plugin-api'
+import { useWeekReport } from 'plugin-api'
 
 defineOptions({ name: 'TrashView' })
 
@@ -66,7 +66,7 @@ async function handlePurge(report) {
     await ElMessageBox.confirm(
       `确定彻底删除「${report.title}」吗？此操作不可恢复。`,
       '彻底删除',
-      { confirmButtonText: '彻底删除', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '彻底删除', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return
@@ -85,7 +85,7 @@ async function handleEmpty() {
     await ElMessageBox.confirm(
       '清空后所有已删除的周报将被永久移除，此操作不可恢复。确定继续吗？',
       '清空回收站',
-      { confirmButtonText: '清空回收站', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '清空回收站', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return

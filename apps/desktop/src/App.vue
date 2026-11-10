@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
@@ -94,7 +94,7 @@ function handleKeydown(event) {
 
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown)
-  offExtensionsChanged = pluginApi.events.on('extensions:components-reloaded', result => {
+  offExtensionsChanged = pluginApi.events.on('extensions:components-reloaded', (result) => {
     if (result.failed > 0) {
       ElMessage.warning(`外部组件热更新：成功 ${result.loaded} 个，失败 ${result.failed} 个（见设置 → 扩展）`)
     } else {
@@ -106,7 +106,7 @@ onMounted(async () => {
     openImportExport,
     openDesigner,
     openTemplates,
-    navigate: navigateTo
+    navigate: navigateTo,
   })
   await reports.init()
   if (!activePluginPage.value && !state.currentReport) {
@@ -125,20 +125,20 @@ watch(
   () => {
     const title = state.currentReport?.title
     document.title = title ? `${title} · ${branding.name}` : branding.name
-  }
+  },
 )
 
 watch(
   () => state.currentId,
-  id => { if (id != null) activePluginPage.value = null }
+  (id) => { if (id != null) activePluginPage.value = null },
 )
 
 watch(
   () => state.currentReport?.title,
-  title => {
+  (title) => {
     document.title = title ? `${title} · ${branding.name}` : branding.name
   },
-  { immediate: true }
+  { immediate: true },
 )
 </script>
 

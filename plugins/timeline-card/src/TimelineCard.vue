@@ -8,9 +8,9 @@ const props = defineProps({
     default: () => [
       { time: '周一', title: '需求评审', desc: '确认本周范围', type: 'primary' },
       { time: '周三', title: '开发完成', desc: '提交联调版本', type: 'success' },
-      { time: '周五', title: '验收上线', desc: '完成回归测试', type: 'warning' }
-    ]
-  }
+      { time: '周五', title: '验收上线', desc: '完成回归测试', type: 'warning' },
+    ],
+  },
 })
 
 const rows = computed(() => (Array.isArray(props.items) ? props.items : []))

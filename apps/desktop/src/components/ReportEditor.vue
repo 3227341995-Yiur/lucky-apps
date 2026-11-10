@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ReportPage from '@/components/report/ReportPage.vue'
@@ -20,7 +20,7 @@ const { state } = reports
 const copySettings = ref({ enabled: true, defaultType: 'html' })
 const copyTypes = ref([
   { value: 'html', label: 'HTML' },
-  { value: 'markdown', label: 'Markdown' }
+  { value: 'markdown', label: 'Markdown' },
 ])
 const copyBusy = ref(false)
 const defaultCopyLabel = computed(() => {
@@ -34,13 +34,13 @@ async function loadCopyOptions() {
     const [settings, types] = await Promise.all([getCopySettings(), getTemplateTypes()])
     copyTypes.value = types.length ? types : [
       { value: 'html', label: 'HTML' },
-      { value: 'markdown', label: 'Markdown' }
+      { value: 'markdown', label: 'Markdown' },
     ]
     copySettings.value = {
       enabled: settings.enabled,
       defaultType: types.some(item => item.value === settings.defaultType)
         ? settings.defaultType
-        : (types[0]?.value || 'html')
+        : (types[0]?.value || 'html'),
     }
   } catch (error) {
     console.warn('[editor] 加载复制设置失败:', error)
@@ -101,12 +101,12 @@ function isAutoLayout(layout, sections) {
   return true
 }
 
-watch(() => state.currentReport, report => {
+watch(() => state.currentReport, (report) => {
   if (!report) return
   report.sections = (report.sections || []).map(section => ({
     ...section,
     columns: Array.isArray(section.columns) ? section.columns : [],
-    items: Array.isArray(section.items) ? section.items : []
+    items: Array.isArray(section.items) ? section.items : [],
   }))
   if (!report.layout || !Array.isArray(report.layout.elements) || !report.layout.elements.length) {
     report.layout = extractLayout(createDefaultLayout(report.sections))
@@ -194,7 +194,7 @@ async function moveToTrash() {
     await ElMessageBox.confirm(
       `确定把「${state.currentReport.title}」移入回收站吗？`,
       '删除确认',
-      { confirmButtonText: '移入回收站', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '移入回收站', cancelButtonText: '取消', type: 'warning' },
     )
     flushPending()
     await reports.deleteReport(state.currentReport.id)

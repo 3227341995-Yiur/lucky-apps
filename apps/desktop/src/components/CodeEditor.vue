@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { Codemirror } from 'vue-codemirror'
 import { basicSetup } from 'codemirror'
@@ -15,17 +15,17 @@ defineOptions({ name: 'CodeEditor' })
 const props = defineProps({
   language: {
     type: String,
-    default: 'javascript'
+    default: 'javascript',
   },
   wrap: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const modelValue = defineModel({
   type: String,
-  default: ''
+  default: '',
 })
 
 const { resolvedTheme } = useTheme()
@@ -35,47 +35,47 @@ const wrTheme = EditorView.theme({
     height: '100%',
     fontSize: '13px',
     backgroundColor: 'var(--el-bg-color)',
-    color: 'var(--el-text-color-primary)'
+    color: 'var(--el-text-color-primary)',
   },
   '.cm-scroller': {
     fontFamily: 'var(--wr-mono)',
-    lineHeight: '1.72'
+    lineHeight: '1.72',
   },
   '.cm-content': {
-    padding: '10px 0'
+    padding: '10px 0',
   },
   '.cm-gutters': {
     backgroundColor: 'var(--el-bg-color)',
     color: 'var(--el-text-color-placeholder)',
     border: 'none',
-    borderRight: '1px solid var(--el-border-color-lighter)'
+    borderRight: '1px solid var(--el-border-color-lighter)',
   },
   '.cm-lineNumbers .cm-gutterElement': {
-    padding: '0 10px 0 12px'
+    padding: '0 10px 0 12px',
   },
   '.cm-activeLine': {
-    backgroundColor: 'var(--el-fill-color-lighter)'
+    backgroundColor: 'var(--el-fill-color-lighter)',
   },
   '.cm-activeLineGutter': {
     backgroundColor: 'var(--el-fill-color-lighter)',
-    color: 'var(--el-text-color-secondary)'
+    color: 'var(--el-text-color-secondary)',
   },
   '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
-    backgroundColor: 'var(--el-color-primary-light-7) !important'
+    backgroundColor: 'var(--el-color-primary-light-7) !important',
   },
   '.cm-cursor': {
-    borderLeftColor: 'var(--el-color-primary)'
+    borderLeftColor: 'var(--el-color-primary)',
   },
   '.cm-foldPlaceholder': {
     backgroundColor: 'var(--el-fill-color)',
     border: 'none',
-    color: 'var(--el-text-color-secondary)'
+    color: 'var(--el-text-color-secondary)',
   },
   '.cm-tooltip': {
     backgroundColor: 'var(--el-bg-color-overlay)',
     border: '1px solid var(--el-border-color-light)',
-    borderRadius: '8px'
-  }
+    borderRadius: '8px',
+  },
 })
 
 const cmExtensions = computed(() => {

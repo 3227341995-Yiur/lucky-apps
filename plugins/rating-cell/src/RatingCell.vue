@@ -4,7 +4,7 @@ import { ElRate } from 'element-plus'
 const props = defineProps({
   modelValue: { type: [Number, String], default: 0 },
   max: { type: Number, default: 5 },
-  allowHalf: { type: Boolean, default: false }
+  allowHalf: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue'])

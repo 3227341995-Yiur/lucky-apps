@@ -23,7 +23,7 @@ const MIME = {
   '.ico': 'image/x-icon',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf'
+  '.ttf': 'font/ttf',
 }
 
 async function listFiles(dir: string, suffix: string): Promise<string[]> {
@@ -42,7 +42,7 @@ function sendJson(res: ServerResponse, status: number, value: unknown) {
   const body = JSON.stringify(value)
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store'
+    'cache-control': 'no-store',
   })
   res.end(body)
 }
@@ -94,7 +94,7 @@ export async function createHttpServer({
   waitForReload = () => Promise.resolve(),
   ready = () => Promise.resolve(),
   port = 0,
-  host = '127.0.0.1'
+  host = '127.0.0.1',
 }: HttpServerOptions): Promise<HttpServerHandle> {
   const token = randomBytes(16).toString('hex')
   let bundledDeps = null
@@ -115,7 +115,7 @@ export async function createHttpServer({
     const raw = await readFile(join(distDir, 'index.html'), 'utf8')
     return raw.replace(
       '</head>',
-      `<script>window.__WR_TOKEN__=${JSON.stringify(token)}</script></head>`
+      `<script>window.__WR_TOKEN__=${JSON.stringify(token)}</script></head>`,
     )
   }
 
@@ -134,7 +134,7 @@ export async function createHttpServer({
         url: `/extensions/css/${encodeURIComponent(name)}`,
         enabled: true,
         status: 'loaded',
-        error: ''
+        error: '',
       })),
       ...scripts.map(name => ({
         id: `script:${name}`,
@@ -144,7 +144,7 @@ export async function createHttpServer({
         url: `/extensions/js/${encodeURIComponent(name)}`,
         enabled: true,
         status: 'loaded',
-        error: ''
+        error: '',
       })),
       ...modules.map(module => ({
         id: `plugin:${module.id}`,
@@ -158,8 +158,8 @@ export async function createHttpServer({
         enabled: true,
         removable: !bundled.has(module.package),
         status: module.status || 'loaded',
-        error: module.error || ''
-      }))
+        error: module.error || '',
+      })),
     ]
     return {
       token,
@@ -169,12 +169,12 @@ export async function createHttpServer({
         dir: profileDir,
         error: getProfileError() || '',
         bundles: profile.bundles || [],
-        rows: (profile.rows || []).map(row => ({ id: row.id, name: row.name }))
+        rows: (profile.rows || []).map(row => ({ id: row.id, name: row.name })),
       },
       paths: {
         resources: resourcesDir,
-        profile: profileDir
-      }
+        profile: profileDir,
+      },
     }
   }
 
@@ -231,7 +231,7 @@ export async function createHttpServer({
           const body = await readJsonBody(req)
           res.writeHead(200, {
             'content-type': 'application/x-ndjson; charset=utf-8',
-            'cache-control': 'no-store'
+            'cache-control': 'no-store',
           })
           const emit = (event: any) => {
             if (!res.writableEnded) res.write(`${JSON.stringify(event)}\n`)
@@ -265,7 +265,7 @@ export async function createHttpServer({
         const data = await readFile(module.file)
         res.writeHead(200, {
           'content-type': 'text/javascript; charset=utf-8',
-          'cache-control': 'no-store'
+          'cache-control': 'no-store',
         })
         return res.end(data)
       }
@@ -277,7 +277,7 @@ export async function createHttpServer({
         const data = await readFile(file)
         res.writeHead(200, {
           'content-type': MIME[extname(file)] || 'application/octet-stream',
-          'cache-control': 'no-store'
+          'cache-control': 'no-store',
         })
         return res.end(data)
       }
@@ -308,7 +308,7 @@ export async function createHttpServer({
       const data = await readFile(file)
       res.writeHead(200, {
         'content-type': MIME[extname(file)] || 'application/octet-stream',
-        'cache-control': 'no-cache'
+        'cache-control': 'no-cache',
       })
       res.end(data)
     } catch (error) {
@@ -318,8 +318,8 @@ export async function createHttpServer({
     }
   })
 
-  const listen = (listenPort) => new Promise((resolvePromise, reject) => {
-    const onError = error => {
+  const listen = listenPort => new Promise((resolvePromise, reject) => {
+    const onError = (error) => {
       server.removeListener('listening', onListening)
       reject(error)
     }
@@ -346,6 +346,6 @@ export async function createHttpServer({
     token,
     port: actualPort,
     url: `http://${host}:${actualPort}`,
-    close: () => new Promise(resolvePromise => server.close(resolvePromise))
+    close: () => new Promise(resolvePromise => server.close(resolvePromise)),
   }
 }

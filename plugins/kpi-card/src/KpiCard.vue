@@ -8,7 +8,7 @@ const props = defineProps({
   value: { type: [String, Number], default: 0 },
   unit: { type: String, default: '项' },
   trend: { type: [String, Number], default: 0 },
-  tone: { type: String, default: 'primary' }
+  tone: { type: String, default: 'primary' },
 })
 
 const trendUp = computed(() => Number(props.trend) >= 0)

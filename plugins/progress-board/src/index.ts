@@ -1,5 +1,5 @@
 import ProgressBoard from './ProgressBoard.vue'
-import { definePlugin, components } from '@week-report/plugin-api'
+import { definePlugin, components } from 'plugin-api'
 
 export default definePlugin({
   name: 'progress-board',
@@ -7,7 +7,7 @@ export default definePlugin({
     components.registerCanvas('ProgressBoard', ProgressBoard, {
       value: 'progress-board',
       icon: 'DataLine',
-      description: '项目进度看板'
+      description: '项目进度看板',
     })
-  }
+  },
 })

@@ -1,4 +1,4 @@
-import { definePlugin, navigation } from '@week-report/plugin-api'
+import { definePlugin, navigation } from 'plugin-api'
 import TrashNavIcon from './TrashNavIcon.vue'
 import TrashPage from './TrashPage.vue'
 
@@ -10,7 +10,7 @@ export default definePlugin({
       label: '回收站',
       iconComponent: TrashNavIcon,
       order: 20,
-      component: TrashPage
+      component: TrashPage,
     })
-  }
+  },
 })
