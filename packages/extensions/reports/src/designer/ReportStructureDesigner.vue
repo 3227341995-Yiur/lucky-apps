@@ -1,18 +1,14 @@
-<script setup lang="ts">
+<script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ElMessageBox } from 'element-plus'
-import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
 import { useWeekReport } from 'plugin-api'
 import LayoutPalette from './components/LayoutPalette.vue'
 import LayoutCanvas from './components/LayoutCanvas.vue'
 import LayoutInspector from './components/LayoutInspector.vue'
 import ReportPage from './components/ReportPage.vue'
-import {
-  cloneConfig,
-  createRow,
-  createSectionsFromConfig,
-  normalizeReportConfig,
-} from './config/defaultReportConfig.ts'
+import { getReportConfig, saveReportConfig } from './services.ts'
+import { cloneConfig, createRow, createSectionsFromConfig, normalizeReportConfig } from './config/defaultReportConfig.ts'
 import {
   createDefaultLayout,
   createSectionFromPreset,
@@ -23,26 +19,27 @@ import {
 import { generateId } from './utils/idGenerator.ts'
 import { getWeekRange } from './utils/date.ts'
 
-defineOptions({ name: 'StructureDesignerPage' })
+defineOptions({ name: 'ReportStructureDesigner' })
 
-const props = defineProps({ embedded: { type: Boolean, default: false } })
+const visible = defineModel({ type: Boolean, default: false })
 
 const api = useWeekReport()
 
+// ponytail: 独立弹窗恒为编辑态，保留原模板里的 isView 分支不动
+const isView = computed(() => false)
+
 const draft = ref(createDefaultLayout())
+const baseline = ref('')
 const loading = ref(false)
 const saving = ref(false)
-const applying = ref(false)
 const preview = ref(false)
 const selectedId = ref(null)
 const draggingWidget = ref(null)
 const dragElementId = ref(null)
+const closeConfirm = ref(false)
+const pendingClose = ref(null)
 const previewReport = ref(null)
 const previewLayout = ref(null)
-
-const reports = ref([])
-const reportsLoading = ref(false)
-const selectedReportId = ref(null)
 
 const history = ref([])
 const historyIndex = ref(-1)
@@ -50,6 +47,8 @@ let historyTimer = null
 const canUndo = computed(() => historyIndex.value > 0)
 const canRedo = computed(() => historyIndex.value < history.value.length - 1)
 
+const currentReport = ref(null)
+const canApply = computed(() => !isView.value && Boolean(currentReport.value))
 const selectedElement = computed(() => (
   draft.value.elements.find(element => element.id === selectedId.value) || null
 ))
@@ -57,6 +56,17 @@ const selectedSection = computed(() => {
   const type = selectedElement.value?.sectionType
   return type ? draft.value.sections.find(section => section.type === type) || null : null
 })
+const dirty = computed(() => JSON.stringify(draft.value) !== baseline.value)
+const dialogTitle = computed(() => (
+  isView.value ? '周报画布（只读）' : '周报画布设计器'
+))
+const dialogSubtitle = computed(() => (
+  `自由画布 · ${draft.value.elements.length} 个元素 · ${draft.value.page.width} × ${draft.value.page.height}`
+))
+
+function takeSnapshot() {
+  return JSON.stringify(draft.value)
+}
 
 function resetHistory() {
   history.value = [JSON.stringify(draft.value)]
@@ -95,11 +105,16 @@ function redo() {
 }
 
 function preparePreview() {
+  const current = currentReport.value
   previewLayout.value = cloneConfig(draft.value)
   previewReport.value = {
-    title: '工作周报',
-    dateRange: getWeekRange(),
-    sections: createSectionsFromConfig(draft.value.sections),
+    title: current?.title || '工作周报',
+    dateRange: Array.isArray(current?.dateRange) && current.dateRange.length
+      ? [...current.dateRange]
+      : getWeekRange(),
+    sections: current?.sections?.length
+      ? cloneConfig(current.sections)
+      : createSectionsFromConfig(draft.value.sections),
   }
 }
 
@@ -111,37 +126,40 @@ watch(preview, (value) => {
   }
 })
 
+async function loadCurrentReport() {
+  const id = api.ui.currentReportId()
+  currentReport.value = id ? await api.reports.get(id).catch(() => null) : null
+}
+
 async function loadDraft() {
   loading.value = true
   selectedId.value = null
   preview.value = false
   try {
-    draft.value = normalizeLayoutConfig(await api.config.get())
+    draft.value = normalizeLayoutConfig(await getReportConfig())
   } catch (error) {
     console.error('[designer] 加载画布失败:', error)
-    api.ui.toast('加载画布失败，已回退为默认画布', 'error')
+    ElMessage.error('加载画布失败，已回退为默认画布')
     draft.value = createDefaultLayout()
   } finally {
+    baseline.value = takeSnapshot()
     resetHistory()
     loading.value = false
   }
 }
 
-async function loadReports() {
-  reportsLoading.value = true
-  try {
-    reports.value = await api.reports.list({ limit: 200, offset: 0 })
-  } catch (error) {
-    api.ui.toast(error?.message || '加载周报列表失败', 'error')
-  } finally {
-    reportsLoading.value = false
-  }
-}
-
-function reportLabel(report) {
-  const range = Array.isArray(report.dateRange) ? report.dateRange.join(' ~ ') : report.dateRange || ''
-  return range ? `${report.title} · ${range}` : report.title
-}
+watch(
+  visible,
+  (value) => {
+    if (value) {
+      closeConfirm.value = false
+      pendingClose.value = null
+      loadDraft()
+      loadCurrentReport()
+    }
+  },
+  { immediate: true },
+)
 
 function selectElement(id) {
   selectedId.value = id || null
@@ -213,7 +231,7 @@ function removeDragElement() {
 }
 
 function handleDragStart({ widget }) {
-  if (!widget) {
+  if (!widget || isView.value) {
     draggingWidget.value = null
     return
   }
@@ -266,14 +284,14 @@ function handleDragEnd({ commit } = {}) {
 
 function validate() {
   if (!draft.value.elements.length) {
-    api.ui.toast('请至少放置一个元素', 'warning')
+    ElMessage.warning('请至少放置一个元素')
     return false
   }
   for (const element of draft.value.elements) {
     if (element.type === 'section') {
       const section = draft.value.sections.find(item => item.type === element.sectionType)
       if (!section || !section.columns.length) {
-        api.ui.toast('存在没有列的数据表格，请补充列或删除该元素', 'warning')
+        ElMessage.warning('存在没有列的数据表格，请补充列或删除该元素')
         return false
       }
     }
@@ -282,34 +300,45 @@ function validate() {
 }
 
 async function handleSave() {
-  if (saving.value) return
+  if (isView.value || saving.value) return
   if (!validate()) return
   saving.value = true
   try {
-    await api.config.set(normalizeLayoutConfig(draft.value))
+    const saved = await saveReportConfig(normalizeLayoutConfig(draft.value))
+    baseline.value = JSON.stringify(saved)
     resetHistory()
-    api.ui.toast('画布已保存为默认周报版面', 'success')
+    ElMessage.success('画布已保存为默认周报版面')
+    visible.value = false
   } catch (error) {
-    api.ui.toast(`保存失败：${error?.message || error}`, 'error')
+    ElMessage.error(`保存失败：${error?.message || error}`)
   } finally {
     saving.value = false
   }
 }
 
 async function handleApply() {
-  if (applying.value) return
-  if (!selectedReportId.value) {
-    api.ui.toast('请先选择要应用的周报', 'warning')
+  if (isView.value) return
+  const reportId = api.ui.currentReportId()
+  if (!reportId) {
+    ElMessage.warning('请先在左侧选择周报')
     return
   }
   if (!validate()) return
-  applying.value = true
+  try {
+    await ElMessageBox.confirm(
+      '将使用该结构重建当前周报的区块（相同类型保留原数据行），确定继续吗？',
+      '应用到当前周报',
+      { confirmButtonText: '应用', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
   try {
     const config = normalizeLayoutConfig(draft.value)
-    const report = await api.reports.get(selectedReportId.value)
+    const report = await api.reports.get(reportId)
     if (!report) throw new Error('周报不存在或已删除')
     const oldSections = report.sections || []
-    // 同 type 的区块保留原有数据行，新区块生成一行默认数据
+    // 同 type 的区块保留原有数据行，新区块生成一行默认数据（与原 applyConfigToCurrent 一致）
     report.sections = normalizeReportConfig(config.sections).map((section) => {
       const previous = oldSections.find(item => item.type === section.type)
       return {
@@ -319,15 +348,15 @@ async function handleApply() {
     })
     report.layout = extractLayout(config)
     await api.reports.update(report)
-    api.ui.toast(`已应用到「${report.title}」`, 'success')
+    visible.value = false
+    ElMessage.success('结构已应用并保存')
   } catch (error) {
-    api.ui.toast(`应用失败：${error?.message || error}`, 'error')
-  } finally {
-    applying.value = false
+    ElMessage.error(`应用失败：${error?.message || error}`)
   }
 }
 
 async function handleReset() {
+  if (isView.value) return
   try {
     await ElMessageBox.confirm(
       '恢复系统默认版面会丢失当前画布上的布局与样式调整，确定继续吗？',
@@ -340,21 +369,21 @@ async function handleReset() {
   recordOnce()
   draft.value = createDefaultLayout(draft.value.sections)
   selectedId.value = null
-  api.ui.toast('已重置为默认版面', 'success')
+  ElMessage.success('已重置为默认版面')
 }
 
 async function handleCopyJson() {
   try {
     await navigator.clipboard.writeText(JSON.stringify(normalizeLayoutConfig(draft.value), null, 2))
-    api.ui.toast('画布 JSON 已复制到剪贴板', 'success')
+    ElMessage.success('画布 JSON 已复制到剪贴板')
   } catch {
-    api.ui.toast('复制失败，请检查剪贴板权限', 'error')
+    ElMessage.error('复制失败，请检查剪贴板权限')
   }
 }
 
 function alignElement(direction) {
   const element = selectedElement.value
-  if (!element) return
+  if (!element || isView.value) return
   recordOnce()
   const page = draft.value.page
   const padding = page.padding
@@ -367,7 +396,7 @@ function alignElement(direction) {
 }
 
 function moveLayer(element, direction) {
-  if (!element) return
+  if (!element || isView.value) return
   const index = draft.value.elements.findIndex(item => item.id === element.id)
   if (index === -1) return
   recordOnce()
@@ -377,6 +406,7 @@ function moveLayer(element, direction) {
 }
 
 function onDesignerKeydown(event) {
+  if (!visible.value || isView.value) return
   const target = event.target
   if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) return
   const modifier = event.ctrlKey || event.metaKey
@@ -397,9 +427,27 @@ function handleCommand(command) {
   else if (command === 'copy') handleCopyJson()
 }
 
+function handleBeforeClose(done) {
+  if (!dirty.value) {
+    done()
+    return
+  }
+  pendingClose.value = done
+  closeConfirm.value = true
+}
+
+function cancelClose() {
+  closeConfirm.value = false
+  pendingClose.value = null
+}
+
+function confirmClose() {
+  const done = pendingClose.value
+  cancelClose()
+  done?.()
+}
+
 onMounted(() => {
-  loadDraft()
-  loadReports()
   window.addEventListener('keydown', onDesignerKeydown)
 })
 
@@ -410,181 +458,138 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <el-scrollbar class="wr-page designer-page" :class="{ 'is-embedded': props.embedded }">
-    <div class="wr-page-inner designer-inner">
-      <header class="designer-header">
-        <div v-if="!props.embedded" class="header-main">
-          <div class="wr-eyebrow">Designer</div>
-          <div class="title-row">
-            <h1 class="wr-page-title">周报设计</h1>
-            <span class="wr-chip">{{ draft.elements.length }} 个元素</span>
-            <span class="wr-chip">{{ draft.page.width }} × {{ draft.page.height }}</span>
-          </div>
-          <p class="wr-page-subtitle">自由画布设计周报版面：拖拽组件、调整样式与交互，保存为默认版面或应用到已有周报。</p>
-        </div>
-
-        <div class="header-actions">
-          <div class="preview-toggle">
-            <el-switch v-model="preview" size="small" />
-            <span>交互预览</span>
-          </div>
-          <el-button size="small" text circle title="撤销 Ctrl+Z" :disabled="!canUndo" @click="undo">
-            <el-icon><RefreshLeft /></el-icon>
-          </el-button>
-          <el-button size="small" text circle title="重做 Ctrl+Shift+Z" :disabled="!canRedo" @click="redo">
-            <el-icon><RefreshRight /></el-icon>
-          </el-button>
-          <el-select
-            v-model="selectedReportId"
-            size="small"
-            filterable
-            clearable
-            placeholder="选择要应用的周报"
-            class="apply-select"
-            :loading="reportsLoading"
-          >
-            <el-option v-for="report in reports" :key="report.id" :label="reportLabel(report)" :value="report.id" />
-          </el-select>
-          <el-button
-            size="small"
-            type="primary"
-            plain
-            :disabled="!selectedReportId || loading"
-            :loading="applying"
-            @click="handleApply"
-          >
-            <el-icon><Check /></el-icon>
-            <span>应用到周报</span>
-          </el-button>
-          <el-button size="small" type="primary" :loading="saving" :disabled="loading || preview" @click="handleSave">
-            保存默认版面
-          </el-button>
-          <el-dropdown trigger="click" placement="bottom-end" @command="handleCommand">
-            <el-button text circle size="small" title="更多">
-              <el-icon><MoreFilled /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="copy">
-                  <el-icon><CopyDocument /></el-icon> 复制画布 JSON
-                </el-dropdown-item>
-                <el-dropdown-item command="reset" divided>
-                  恢复默认版面
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </header>
-
-      <div v-if="preview" class="designer-preview">
-        <div class="preview-bar">
-          <span>交互预览</span>
-          <span>可点击表格、状态、日期等真实组件，并执行组件交互；预览修改不会写入当前周报</span>
-        </div>
-        <el-scrollbar class="preview-canvas">
-          <div class="preview-canvas-inner">
-            <ReportPage
-              v-if="previewReport && previewLayout"
-              :report="previewReport"
-              :layout="previewLayout"
-              interactive
-            />
-          </div>
-        </el-scrollbar>
+  <AppDialog
+    v-model="visible"
+    :title="dialogTitle"
+    :subtitle="dialogSubtitle"
+    icon="SetUp"
+    width="96vw"
+    fill-height
+    :close-on-press-escape="false"
+    :before-close="handleBeforeClose"
+  >
+    <template #actions>
+      <div class="preview-toggle">
+        <el-switch v-model="preview" size="small" />
+        <span>交互预览</span>
       </div>
+      <el-button size="small" text circle title="撤销 Ctrl+Z" :disabled="!canUndo" @click="undo">
+        <el-icon><RefreshLeft /></el-icon>
+      </el-button>
+      <el-button size="small" text circle title="重做 Ctrl+Shift+Z" :disabled="!canRedo" @click="redo">
+        <el-icon><RefreshRight /></el-icon>
+      </el-button>
+      <el-button v-if="canApply" size="small" type="primary" plain :disabled="loading" @click="handleApply">
+        <el-icon><Check /></el-icon>
+        <span>应用到当前周报</span>
+      </el-button>
+      <el-button v-if="!isView" size="small" type="primary" :loading="saving" :disabled="loading || preview" @click="handleSave">
+        保存默认版面
+      </el-button>
+      <el-dropdown trigger="click" placement="bottom-end" @command="handleCommand">
+        <el-button text circle size="small" title="更多">
+          <el-icon><MoreFilled /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="copy">
+              <el-icon><CopyDocument /></el-icon> 复制画布 JSON
+            </el-dropdown-item>
+            <el-dropdown-item v-if="!isView" command="reset" divided>
+              恢复默认版面
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </template>
 
-      <div v-else class="designer-body" v-loading="loading" element-loading-text="正在加载画布…">
-        <LayoutPalette @drag-start="handleDragStart" />
-
-        <div class="designer-canvas-area">
-          <LayoutCanvas
-            :layout="draft"
-            :selected-id="selectedId"
-            :dragging-widget="draggingWidget"
-            :drag-element-id="dragElementId"
-            @select="selectElement"
-            @update-element="updateElement"
-            @update-drag-element="updateDragElement"
-            @drag-end="handleDragEnd"
-            @delete-element="deleteElement"
-            @duplicate-element="duplicateElement"
-          />
-        </div>
-
-        <LayoutInspector
-          :layout="draft"
-          :element="selectedElement"
-          :section="selectedSection"
-          @update-element="patch => updateElement(selectedId, patch)"
-          @update-section="updateSection"
-          @update-page="updatePage"
-          @delete-element="deleteElement"
-          @duplicate-element="duplicateElement"
-          @align-element="alignElement"
-          @move-layer="moveLayer"
-        />
+    <div v-if="closeConfirm" class="close-confirm">
+      <el-icon :size="14"><WarningFilled /></el-icon>
+      <span>画布有未保存的修改，关闭后会丢失。</span>
+      <div class="close-confirm-actions">
+        <el-button size="small" @click="cancelClose">继续编辑</el-button>
+        <el-button size="small" type="warning" @click="confirmClose">放弃并关闭</el-button>
       </div>
     </div>
-  </el-scrollbar>
+
+    <div v-if="preview" class="designer-preview">
+      <div class="preview-bar">
+        <span>交互预览</span>
+        <span>可点击表格、状态、日期等真实组件，并执行组件交互；预览修改不会写入当前周报</span>
+      </div>
+      <el-scrollbar class="preview-canvas">
+        <div class="preview-canvas-inner">
+          <ReportPage
+            v-if="previewReport && previewLayout"
+            :report="previewReport"
+            :layout="previewLayout"
+            interactive
+          />
+        </div>
+      </el-scrollbar>
+    </div>
+
+    <div v-else class="designer-body" v-loading="loading" element-loading-text="正在加载画布…">
+      <LayoutPalette
+        v-if="!preview && !isView"
+        @drag-start="handleDragStart"
+      />
+
+      <div class="designer-canvas-area">
+        <LayoutCanvas
+          :layout="draft"
+          :selected-id="preview ? null : selectedId"
+          :dragging-widget="draggingWidget"
+          :drag-element-id="dragElementId"
+          :preview="preview"
+          :disabled="isView"
+          @select="selectElement"
+          @update-element="updateElement"
+          @update-drag-element="updateDragElement"
+          @drag-end="handleDragEnd"
+          @delete-element="deleteElement"
+          @duplicate-element="duplicateElement"
+        />
+      </div>
+
+      <LayoutInspector
+        v-if="!preview"
+        :layout="draft"
+        :element="selectedElement"
+        :section="selectedSection"
+        :disabled="isView"
+        @update-element="patch => updateElement(selectedId, patch)"
+        @update-section="updateSection"
+        @update-page="updatePage"
+        @delete-element="deleteElement"
+        @duplicate-element="duplicateElement"
+        @align-element="alignElement"
+        @move-layer="moveLayer"
+      />
+    </div>
+  </AppDialog>
 </template>
 
 <style scoped>
-.designer-page {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.designer-page :deep(.el-scrollbar__view) {
-  height: 100%;
-}
-
-.designer-inner {
-  max-width: none;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 20px;
-}
-
-.designer-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+.close-confirm {
   flex: none;
-  margin-bottom: 16px;
-}
-
-.header-main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 0;
-}
-
-.title-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--el-color-warning-light-5);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+  font-size: 12px;
 }
 
-.header-actions {
+.close-confirm > span {
+  flex: 1;
+}
+
+.close-confirm-actions {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.header-actions :deep(.el-button + .el-button) {
-  margin-left: 0;
-}
-
-.apply-select {
-  width: 220px;
+  gap: 8px;
 }
 
 .preview-toggle {
@@ -601,10 +606,6 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: flex;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-bg-color);
-  box-shadow: var(--wr-shadow-sm);
 }
 
 .designer-canvas-area {
@@ -619,9 +620,6 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
   background-color: var(--wr-bg);
   background-image: radial-gradient(circle at 1px 1px, var(--el-border-color) 0.8px, transparent 0);
   background-size: 20px 20px;
@@ -659,12 +657,5 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-}
-
-@media (max-width: 900px) {
-  .designer-header {
-    align-items: stretch;
-    flex-direction: column;
-  }
 }
 </style>

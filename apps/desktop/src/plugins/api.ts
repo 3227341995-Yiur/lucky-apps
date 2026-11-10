@@ -48,6 +48,7 @@ import { events } from '@/utils/eventBus'
 import { useTheme } from '@/composables/useTheme'
 import { branding, setBranding } from '@/composables/useBranding'
 import { useExtensions } from '@/composables/useExtensions'
+import { useReports } from '@/composables/useReports'
 import {
   registerNavItem,
   listNavItems,
@@ -309,6 +310,8 @@ export const pluginApi = {
   ui: {
     /** 选中并打开一条周报 */
     selectReport: id => callUi('selectReport', id),
+    /** 当前打开的周报 id（无则 null） */
+    currentReportId: () => useReports().state.currentId ?? null,
     toast(message, type = 'info') {
       const fn = ElMessage[type]
       if (typeof fn === 'function') fn(message)

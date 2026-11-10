@@ -165,13 +165,15 @@ export function listSidebarPanels() {
 }
 
 export function registerNavItem(item) {
-  if (!item?.id || !item?.label || !item?.component) {
-    throw new Error('[registry] 导航项需要 id、label、component')
+  if (!item?.id || !item?.label || (!item?.component && !item?.hostView)) {
+    throw new Error('[registry] 导航项需要 id、label 与 component 或 hostView')
   }
-  navItemMap.set(item.id, item.component)
+  if (item.component) navItemMap.set(item.id, item.component)
   const entry = {
     id: item.id,
     label: item.label,
+    // hostView：宿主内置视图（如周报编辑器），插件不提供组件
+    hostView: item.hostView || '',
     icon: item.icon || 'Grid',
     iconSvg: item.iconSvg || '',
     // 组件图标可以被外部插件用来渲染徽标、动态状态等

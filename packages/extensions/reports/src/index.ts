@@ -1,5 +1,4 @@
 import { definePlugin } from 'plugin-api'
-import ReportsPage from './ReportsPage.vue'
 import ReportsSidebar from './ReportsSidebar.vue'
 import ReportsSettings from './ReportsSettings.vue'
 import ReportsOverlays from './ReportsOverlays.vue'
@@ -14,7 +13,7 @@ export default definePlugin({
       label: '周报',
       icon: 'Document',
       order: 10,
-      component: ReportsPage,
+      hostView: 'report-editor',
     })
     ctx.sidebar.registerRailAction({
       id: 'reports-create',

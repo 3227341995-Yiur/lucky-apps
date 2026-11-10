@@ -78,6 +78,7 @@ export const events: {
 export const ui: {
   toast(message: string, type?: string): void
   selectReport(id: number | string): Promise<boolean>
+  currentReportId(): number | string | null
   openSettings(): Promise<boolean>
   openImportExport(): Promise<boolean>
   openDesigner(): Promise<boolean>

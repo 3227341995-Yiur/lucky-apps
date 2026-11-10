@@ -17,6 +17,11 @@ const showSettings = ref(false)
 const activePluginPage = ref(null)
 const overlays = computed(() => listOverlays())
 
+const activeHostView = computed(() => {
+  const item = activePluginPage.value ? listNavItems().find(entry => entry.id === activePluginPage.value) : null
+  return item?.hostView || ''
+})
+
 const pluginPageComponent = computed(() => (
   activePluginPage.value ? getNavItemComponent(activePluginPage.value) : null
 ))
@@ -44,12 +49,6 @@ function navigateTo(id) {
   const alias = id === 'welcome' ? 'home' : id
   const item = listNavItems().find(entry => entry.id === alias)
   if (!item) return false
-  // 与原行为一致：已打开周报时点“周报”回到编辑器，否则显示周报列表页
-  if (alias === 'reports' && state.currentReport) {
-    closeDialogs()
-    activePluginPage.value = null
-    return true
-  }
   openPluginPage(item)
   return true
 }
@@ -170,11 +169,16 @@ watch(
         class="plugin-page-host"
       />
       <ReportEditor
-        v-else-if="state.currentReport"
+        v-else-if="activeHostView === 'report-editor' && state.currentReport"
         :key="state.currentReport.id"
         @open-import-export="openImportExport"
         @open-design="openDesigner()"
       />
+      <div v-else-if="activeHostView === 'report-editor'" class="report-empty">
+        <el-icon :size="26"><Document /></el-icon>
+        <h3>还没有打开周报</h3>
+        <p>从左侧栏选择一份周报，或点击左上角 + 新建本周周报。</p>
+      </div>
     </main>
 
     <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
@@ -187,3 +191,28 @@ watch(
     />
   </div>
 </template>
+
+<style scoped>
+.report-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--el-text-color-secondary);
+}
+
+.report-empty h3 {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+}
+
+.report-empty p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+</style>
