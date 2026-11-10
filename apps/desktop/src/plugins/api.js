@@ -42,6 +42,7 @@ import {
   hasCustomReportConfig
 } from '@/services/reportConfigService'
 import { createBackup, exportBackupFile, importData } from '@/services/importExportService'
+import { getCopySettings as readCopySettings, saveCopySettings as writeCopySettings } from '@/utils/reportExport'
 import { generateId } from '@/utils/idGenerator'
 import { events } from '@/utils/eventBus'
 import { useTheme } from '@/composables/useTheme'
@@ -240,7 +241,12 @@ export const pluginApi = {
     /** 生成并下载全量备份文件 */
     exportBackup: exportBackupFile,
     /** 执行导入：parsed 为解析后的备份对象，options 控制导入范围 */
-    importBackup: (parsed, options) => importData(parsed, options)
+    importBackup: (parsed, options) => importData(parsed, options),
+    /** 复制周报设置（与宿主复制流程共用同一份 DB 配置） */
+    copySettings: {
+      get: readCopySettings,
+      save: writeCopySettings
+    }
   },
   components: {
     /** @deprecated 使用 registerColumn / registerCanvas */

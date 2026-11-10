@@ -5,7 +5,6 @@ import { useWeekReport } from '@week-report/plugin-api'
 import TemplateListPane from './TemplateListPane.vue'
 import TemplateEditorPane from './TemplateEditorPane.vue'
 import TemplatePreviewPane from './TemplatePreviewPane.vue'
-import { getCopySettings, saveCopySettings } from './utils/reportExport'
 import defaultHtmlTemplate from './config/default-html.html?raw'
 import defaultMarkdownTemplate from './config/default-markdown.md?raw'
 
@@ -167,7 +166,7 @@ watch(selectedReportId, async id => {
 watch(templateTypes, types => {
   if (types.some(item => item.value === copyDefaultType.value)) return
   copyDefaultType.value = types[0]?.value || 'html'
-  saveCopySettings({ defaultType: copyDefaultType.value })
+  api.data.copySettings.save({ defaultType: copyDefaultType.value }).catch(() => {})
 })
 
 async function confirmDiscard(actionLabel) {
@@ -387,13 +386,13 @@ function handleRemoveCurrent() {
 
 function handleCopyEnabledChange(value) {
   copyEnabled.value = Boolean(value)
-  saveCopySettings({ enabled: copyEnabled.value })
+  api.data.copySettings.save({ enabled: copyEnabled.value }).catch(() => {})
 }
 
 function handleCopyDefaultTypeChange(value) {
   if (!value) return
   copyDefaultType.value = value
-  saveCopySettings({ defaultType: value })
+  api.data.copySettings.save({ defaultType: value }).catch(() => {})
 }
 
 function handleKeydown(event) {
@@ -405,10 +404,12 @@ function handleKeydown(event) {
   if (!saving.value) handleSave()
 }
 
-onMounted(() => {
-  const settings = getCopySettings()
-  copyEnabled.value = settings.enabled
-  copyDefaultType.value = settings.defaultType
+onMounted(async () => {
+  try {
+    const settings = await api.data.copySettings.get()
+    copyEnabled.value = settings.enabled
+    copyDefaultType.value = settings.defaultType
+  } catch {}
 
   openWorkspace()
   offReportChanged = api.events.on('report:changed', loadReports)
