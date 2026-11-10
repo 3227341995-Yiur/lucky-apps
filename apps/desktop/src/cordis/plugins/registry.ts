@@ -17,6 +17,8 @@ import {
   listSidebarPanels,
   registerRailAction,
   listRailActions,
+  registerOverlay,
+  listOverlays,
 } from '@/plugins/registry'
 
 export const name = 'registry'
@@ -35,6 +37,10 @@ export function apply(ctx) {
     list: listSidebarPanels,
     registerRailAction,
     listRailActions,
+  })
+  ctx.provide('overlay', {
+    register: registerOverlay,
+    list: listOverlays,
   })
   ctx.provide('components', {
     register: (name, component, meta) => registerComponent(name, component, { ...meta, scope: 'column', source: 'plugin' }),

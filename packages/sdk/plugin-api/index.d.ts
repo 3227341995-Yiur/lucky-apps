@@ -46,6 +46,11 @@ export const navigation: {
   list(): unknown[]
 }
 
+export const overlay: {
+  register(item: { id: string; component: unknown; order?: number }): unknown
+  list(): unknown[]
+}
+
 export const sidebar: {
   registerPanel(item: { id: string; component: unknown; order?: number }): unknown
   list(): unknown[]

@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { useTheme } from '@/composables/useTheme'
 import { branding, setBranding } from '@/composables/useBranding'
 import { apiGet, apiPost } from '@/services/rpc'
-import { useReports } from '@/composables/useReports'
 import { useExtensions } from '@/composables/useExtensions'
-import { resetReportConfig } from '@/services/reportConfigService'
 import { buildIconPayload } from '@/utils/appIcon'
 import { pluginApi } from '@/plugins/api'
 import AppDialog from '@/components/common/AppDialog.vue'
@@ -29,7 +27,6 @@ const visible = defineModel({ type: Boolean, default: false })
 const emit = defineEmits(['open-import-export', 'open-templates', 'open-designer'])
 
 const { themeMode, labels, setTheme } = useTheme()
-const { state } = useReports()
 const { copyResourcesPath } = useExtensions()
 
 const activeTab = ref('appearance')
@@ -171,7 +168,6 @@ const BASE_TABS = [
   { key: 'appearance', label: '外观', icon: 'Sunny', desc: '选择界面主题' },
   { key: 'loading', label: '加载动画', icon: 'MagicStick', desc: '自定义启动 loading 文字、手绘动效与粒子' },
   { key: 'extensions', label: '扩展', icon: 'Grid', desc: '管理样式表、插件脚本与外部组件' },
-  { key: 'data', label: '数据', icon: 'Coin', desc: '查看统计并维护周报结构' },
   { key: 'docs', label: '开发文档', icon: 'Reading', desc: '插件、外部组件与二开 API' },
   { key: 'about', label: '关于', icon: 'InfoFilled', desc: '版本与运行环境信息' },
 ]
@@ -187,37 +183,7 @@ const themeOptions = [
   { value: 'dark', icon: 'Moon', desc: '始终使用暗色主题' },
 ]
 
-const dataStats = computed(() => [
-  { label: '周报', value: state.stats.reports },
-  { label: '工作项', value: state.stats.workItems },
-  { label: '回收站', value: state.stats.trash },
-  { label: '模板', value: state.stats.templates },
-])
-
 const currentTab = computed(() => tabs.value.find(tab => tab.key === activeTab.value) || tabs.value[0])
-
-async function handleResetConfig() {
-  try {
-    await ElMessageBox.confirm(
-      '将删除自定义的周报结构配置，恢复为系统默认结构。已有周报内容不会受到影响。',
-      '恢复系统默认结构',
-      {
-        confirmButtonText: '恢复默认',
-        cancelButtonText: '取消',
-        type: 'warning',
-      },
-    )
-  } catch {
-    return
-  }
-
-  try {
-    await resetReportConfig()
-    ElMessage.success('已恢复系统默认结构')
-  } catch (error) {
-    ElMessage.error(`恢复默认结构失败：${error?.message || error}`)
-  }
-}
 
 async function handleCopyResources() {
   try {
@@ -493,33 +459,6 @@ async function handleCopyResources() {
         <!-- 扩展 -->
         <div v-else-if="activeTab === 'extensions'" class="panel">
           <ExtensionManager />
-        </div>
-
-        <!-- 数据 -->
-        <div v-else-if="activeTab === 'data'" class="panel">
-          <div class="stat-grid">
-            <div v-for="item in dataStats" :key="item.label" class="stat-tile">
-              <span class="stat-value">{{ item.value }}</span>
-              <span class="stat-label">{{ item.label }}</span>
-            </div>
-          </div>
-
-          <div class="action-row">
-            <el-button @click="emit('open-import-export')">
-              <el-icon><Sort /></el-icon><span>导入 / 导出</span>
-            </el-button>
-            <el-button @click="emit('open-designer')">
-              <el-icon><MagicStick /></el-icon><span>打开结构设计器</span>
-            </el-button>
-          </div>
-
-          <div class="reset-row">
-            <div class="reset-text">
-              <strong>默认结构</strong>
-              <span>仅重置之后新建周报所使用的区块结构，不影响已有周报内容。</span>
-            </div>
-            <el-button type="danger" plain @click="handleResetConfig">恢复系统默认结构</el-button>
-          </div>
         </div>
 
         <!-- 外部设置面板 -->

@@ -8,6 +8,8 @@ import { rangesOverlap } from './utils/date'
 
 defineOptions({ name: 'ImportExportPage' })
 
+const props = defineProps({ embedded: { type: Boolean, default: false } })
+
 const api = useWeekReport()
 
 const formats = [
@@ -283,9 +285,9 @@ onBeforeUnmount(() => off?.())
 </script>
 
 <template>
-  <el-scrollbar class="wr-page data-io-view">
+  <el-scrollbar class="wr-page data-io-view" :class="{ 'is-embedded': props.embedded }">
     <div class="wr-page-inner data-io-inner">
-      <header class="data-io-header">
+      <header v-if="!props.embedded" class="data-io-header">
         <div class="header-main">
           <div class="wr-eyebrow">Data I/O</div>
           <div class="title-row">

@@ -2,12 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useWeekReport } from 'plugin-api'
+import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSettings' })
 
 const api = useWeekReport()
 const resources = ref([])
 const loading = ref(false)
+const stats = ref({ reports: 0, workItems: 0, trash: 0, templates: 0 })
 
 const KINDS = {
   'component-canvas': { label: '画布组件', hint: '拖入自由画布的外部组件' },
@@ -21,6 +23,12 @@ function statusOf(resource) {
   if (resource.status === 'error') return { label: '加载失败', type: 'danger' }
   if (!resource.enabled) return { label: '已禁用', type: 'info' }
   return { label: '已加载', type: 'success' }
+}
+
+async function loadStats() {
+  try {
+    stats.value = { ...stats.value, ...(await api.reports.stats()) }
+  } catch {}
 }
 
 async function load() {
@@ -69,11 +77,56 @@ async function rescan() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadStats()
+})
+
+async function resetConfig() {
+  try {
+    await ElMessageBox.confirm(
+      '将删除自定义的周报结构配置，恢复为系统默认结构。已有周报内容不会受到影响。',
+      '恢复系统默认结构',
+      { confirmButtonText: '恢复默认', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await api.config.reset()
+    ElMessage.success('已恢复系统默认结构')
+  } catch (error) {
+    ElMessage.error(`恢复默认结构失败：${error?.message || error}`)
+  }
+}
 </script>
 
 <template>
   <div class="report-components">
+    <section class="rc-data">
+      <div class="stat-grid">
+        <div class="stat-tile"><strong>{{ stats.reports }}</strong><span>周报</span></div>
+        <div class="stat-tile"><strong>{{ stats.workItems }}</strong><span>工作项</span></div>
+        <div class="stat-tile"><strong>{{ stats.trash }}</strong><span>回收站</span></div>
+        <div class="stat-tile"><strong>{{ stats.templates }}</strong><span>模板</span></div>
+      </div>
+      <div class="data-actions">
+        <el-button @click="openReportsDialog('io')">
+          <el-icon><Sort /></el-icon><span>导入 / 导出</span>
+        </el-button>
+        <el-button @click="openReportsDialog('designer')">
+          <el-icon><MagicStick /></el-icon><span>打开结构设计器</span>
+        </el-button>
+      </div>
+      <div class="reset-row">
+        <div class="reset-text">
+          <strong>默认结构</strong>
+          <span>仅重置之后新建周报所使用的区块结构，不影响已有周报内容。</span>
+        </div>
+        <el-button type="danger" plain @click="resetConfig">恢复系统默认结构</el-button>
+      </div>
+    </section>
+
     <div class="rc-head">
       <div>
         <strong>周报组件</strong>
@@ -147,6 +200,81 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.rc-data {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: var(--el-bg-color);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-fill-color-lighter);
+}
+
+.stat-tile strong {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--el-text-color-primary);
+}
+
+.stat-tile span {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.data-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.data-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.reset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+}
+
+.reset-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.reset-text strong {
+  font-size: 12.5px;
+  color: var(--el-text-color-primary);
+}
+
+.reset-text span {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 
 .rc-head {

@@ -57,6 +57,8 @@ import {
   listSidebarPanels,
   registerRailAction,
   listRailActions,
+  registerOverlay,
+  listOverlays,
   registerComponent,
   registerColumnSlot,
   listComponents,
@@ -286,6 +288,10 @@ export const pluginApi = {
   settings: {
     register: registerSettingsSection,
     list: listSettingsSections,
+  },
+  overlay: {
+    register: registerOverlay,
+    list: listOverlays,
   },
   sidebar: {
     registerPanel: registerSidebarPanel,

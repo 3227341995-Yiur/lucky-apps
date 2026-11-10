@@ -136,6 +136,26 @@ export function registerRailAction(item = {}) {
   return entry
 }
 
+const overlayCatalog = shallowRef([])
+
+export function registerOverlay(item = {}) {
+  if (!item.id || !item.component) throw new Error('[registry] overlay 需要 id 与 component')
+  const entry = {
+    id: item.id,
+    order: Number(item.order) || 100,
+    component: item.component,
+  }
+  const index = overlayCatalog.value.findIndex(existing => existing.id === entry.id)
+  overlayCatalog.value = index === -1
+    ? [...overlayCatalog.value, entry]
+    : overlayCatalog.value.map(existing => (existing.id === entry.id ? entry : existing))
+  return entry
+}
+
+export function listOverlays() {
+  return [...overlayCatalog.value].sort((a, b) => a.order - b.order)
+}
+
 export function listRailActions() {
   return [...railActionCatalog.value].sort((a, b) => a.order - b.order)
 }

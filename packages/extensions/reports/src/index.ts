@@ -2,11 +2,12 @@ import { definePlugin } from 'plugin-api'
 import ReportsPage from './ReportsPage.vue'
 import ReportsSidebar from './ReportsSidebar.vue'
 import ReportsSettings from './ReportsSettings.vue'
+import ReportsOverlays from './ReportsOverlays.vue'
 import { createWeekReport } from './createReport'
 
 export default definePlugin({
   name: 'reports',
-  inject: ['navigation', 'settings', 'sidebar'],
+  inject: ['navigation', 'settings', 'sidebar', 'overlay'],
   apply(ctx) {
     ctx.navigation.register({
       id: 'reports',
@@ -27,10 +28,15 @@ export default definePlugin({
       order: 10,
       component: ReportsSidebar,
     })
+    ctx.overlay.register({
+      id: 'reports',
+      order: 10,
+      component: ReportsOverlays,
+    })
     ctx.settings.register({
-      id: 'reports-components',
-      label: '周报组件',
-      icon: 'Grid',
+      id: 'reports',
+      label: '周报',
+      icon: 'Document',
       order: 60,
       component: ReportsSettings,
     })

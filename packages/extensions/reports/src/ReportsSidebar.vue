@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useWeekReport } from 'plugin-api'
 import { getIsoWeek } from './utils-date'
 import { createWeekReport } from './createReport'
+import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSidebar' })
 
@@ -112,12 +113,12 @@ onBeforeUnmount(() => off?.())
       </div>
       <div class="panel-actions">
         <el-tooltip content="模板设计" placement="bottom" :show-after="500">
-          <button type="button" title="模板设计" aria-label="模板设计" @click="api.navigation.open('template-designer')">
+          <button type="button" title="模板设计" aria-label="模板设计" @click="openReportsDialog('template')">
             <el-icon :size="14"><DocumentCopy /></el-icon>
           </button>
         </el-tooltip>
         <el-tooltip content="导入 / 导出" placement="bottom" :show-after="500">
-          <button type="button" title="导入导出" aria-label="导入导出" @click="api.navigation.open('data-io')">
+          <button type="button" title="导入导出" aria-label="导入导出" @click="openReportsDialog('io')">
             <el-icon :size="14"><Sort /></el-icon>
           </button>
         </el-tooltip>

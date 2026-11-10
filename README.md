@@ -40,8 +40,8 @@ packages/
 ├─ core/              base / client-modules（tsdown 编译）
 ├─ sdk/               plugin-api（外部组件 API）
 ├─ tooling/           cli
-└─ extensions/        内置插件包（home / reports / data-io / template-designer /
-                      structure-designer / trash-bin / 画布与列组件）
+└─ extensions/        内置插件包（home / reports / trash-bin / 画布与列组件）；
+                      reports 内部含 列表、周报设计、模板设计、导入导出与数据设置
 src-tauri/            Tauri 壳（窗口、托盘、exe 品牌）
 docs-site/            开发文档（VitePress）
 scripts/              server / profile 构建脚本

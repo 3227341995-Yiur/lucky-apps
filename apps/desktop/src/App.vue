@@ -6,14 +6,17 @@ import ReportEditor from '@/components/ReportEditor.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import { useReports } from '@/composables/useReports'
 import { pluginApi } from '@/plugins/api'
-import { getNavItemComponent, listNavItems } from '@/plugins/registry'
+import { getNavItemComponent, listNavItems, listOverlays } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
+import { emit as emitAppEvent } from '@/utils/eventBus'
 
 const reports = useReports()
 const { state } = reports
 
 const showSettings = ref(false)
 const activePluginPage = ref(null)
+const overlays = computed(() => listOverlays())
+
 const pluginPageComponent = computed(() => (
   activePluginPage.value ? getNavItemComponent(activePluginPage.value) : null
 ))
@@ -51,19 +54,22 @@ function openSettings() {
   showSettings.value = true
 }
 
-function openTemplates() {
+function openReportsDialog(name) {
   closeDialogs()
-  return navigateTo('template-designer')
+  emitAppEvent('reports:open-dialog', name)
+  return true
+}
+
+function openTemplates() {
+  return openReportsDialog('template')
 }
 
 function openImportExport() {
-  closeDialogs()
-  return navigateTo('data-io')
+  return openReportsDialog('io')
 }
 
 function openDesigner() {
-  closeDialogs()
-  return navigateTo('structure-designer')
+  return openReportsDialog('designer')
 }
 
 async function handleCreate() {
@@ -163,6 +169,8 @@ watch(
         @open-design="openDesigner()"
       />
     </main>
+
+    <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
 
     <SettingsDialog
       v-model="showSettings"

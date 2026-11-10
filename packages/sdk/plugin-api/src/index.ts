@@ -76,6 +76,15 @@ export const navigation = {
   },
 }
 
+export const overlay = {
+  register(item) {
+    return requireHost().overlay.register(item)
+  },
+  list() {
+    return requireHost().overlay.list()
+  },
+}
+
 export const sidebar = {
   registerPanel(item) {
     return requireHost().sidebar.registerPanel(item)
@@ -145,4 +154,4 @@ export const commands = {
   },
 }
 
-export default { useWeekReport, definePlugin, components, navigation, settings, sidebar, branding, events, ui, commands }
+export default { useWeekReport, definePlugin, components, navigation, settings, sidebar, overlay, branding, events, ui, commands }

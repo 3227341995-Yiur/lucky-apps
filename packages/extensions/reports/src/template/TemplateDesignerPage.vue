@@ -10,6 +10,8 @@ import defaultMarkdownTemplate from './config/default-markdown.md?raw'
 
 defineOptions({ name: 'TemplateDesignerPage' })
 
+const props = defineProps({ embedded: { type: Boolean, default: false } })
+
 const api = useWeekReport()
 
 const BUILTIN_TEMPLATE_TYPES = [
@@ -424,10 +426,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <el-scrollbar class="wr-page td-page">
+  <el-scrollbar class="wr-page td-page" :class="{ 'is-embedded': props.embedded }">
     <div class="wr-page-inner td-page-inner">
       <header class="td-page-header">
-        <div class="td-header-main">
+        <div v-if="!props.embedded" class="td-header-main">
           <div class="wr-eyebrow">Templates</div>
           <div class="td-title-row">
             <h1 class="wr-page-title">模板设计</h1>

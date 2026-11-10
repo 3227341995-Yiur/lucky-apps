@@ -25,6 +25,8 @@ import { getWeekRange } from './utils/date.ts'
 
 defineOptions({ name: 'StructureDesignerPage' })
 
+const props = defineProps({ embedded: { type: Boolean, default: false } })
+
 const api = useWeekReport()
 
 const draft = ref(createDefaultLayout())
@@ -408,10 +410,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <el-scrollbar class="wr-page designer-page">
+  <el-scrollbar class="wr-page designer-page" :class="{ 'is-embedded': props.embedded }">
     <div class="wr-page-inner designer-inner">
       <header class="designer-header">
-        <div class="header-main">
+        <div v-if="!props.embedded" class="header-main">
           <div class="wr-eyebrow">Designer</div>
           <div class="title-row">
             <h1 class="wr-page-title">周报设计</h1>
