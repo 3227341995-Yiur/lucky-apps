@@ -135,7 +135,6 @@ async function handleEmpty() {
           <span class="empty-icon"><el-icon :size="26"><Delete /></el-icon></span>
           <h3>回收站是空的</h3>
           <p>删除的周报会出现在这里，可以随时恢复。</p>
-          <el-button type="primary" plain @click="api.navigation.open('reports')">返回周报</el-button>
         </div>
 
         <div v-else class="trash-list">
