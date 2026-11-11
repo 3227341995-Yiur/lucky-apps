@@ -274,15 +274,18 @@ importers:
 
   apps/server: {}
 
-  packages/core/base: {}
+  packages/bundle/base: {}
 
-  packages/core/client-modules: {}
+  packages/client/modules: {}
 
   packages/extensions/home:
     devDependencies:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -301,6 +304,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -316,6 +322,9 @@ importers:
 
   packages/extensions/money-cell:
     devDependencies:
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -331,6 +340,9 @@ importers:
 
   packages/extensions/progress-board:
     devDependencies:
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -346,6 +358,9 @@ importers:
 
   packages/extensions/progress-cell:
     devDependencies:
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -361,6 +376,9 @@ importers:
 
   packages/extensions/rating-cell:
     devDependencies:
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -391,6 +409,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -418,6 +439,9 @@ importers:
 
   packages/extensions/timeline-card:
     devDependencies:
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -436,6 +460,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
@@ -454,6 +481,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/plugin-api':
+        specifier: file:../../sdk/plugin-api
+        version: link:../../sdk/plugin-api
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(esbuild@0.28.2)(less@4.9.1(supports-color@7.2.0))(sass@1.107.1)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))
