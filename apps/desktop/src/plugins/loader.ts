@@ -10,6 +10,7 @@ import {
   updateExtensionResource,
   addExtensionError,
   markExtensionsChanged,
+  resetPluginRegistries,
   extensionState,
 } from '@/plugins/registry'
 import { mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
@@ -139,6 +140,7 @@ export async function loadExtensionResources() {
 export async function reloadExtensionComponents() {
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
   await unmountCordisPlugins('component:')
+  resetPluginRegistries()
   document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
   const payload = await apiGet('/api/boot')
   applyBoot(payload)

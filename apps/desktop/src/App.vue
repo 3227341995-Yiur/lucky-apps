@@ -164,6 +164,16 @@ watch(
 )
 
 watch(
+  () => listNavItems().map(item => item.id).join(','),
+  () => {
+    if (!activePluginPage.value) return
+    if (listNavItems().some(item => item.id === activePluginPage.value)) return
+    const home = listNavItems().find(item => item.id === 'home') || listNavItems()[0]
+    activePluginPage.value = home?.id || null
+  },
+)
+
+watch(
   () => state.currentId,
   (id) => { if (id != null) activePluginPage.value = null },
 )

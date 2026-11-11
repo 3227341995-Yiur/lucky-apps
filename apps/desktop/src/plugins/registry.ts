@@ -250,6 +250,22 @@ export function markExtensionsReady() {
   extensionState.loading = false
 }
 
+/** 热更新前清空插件注册项，保留内置组件。 */
+export function resetPluginRegistries() {
+  const pluginComponents = componentCatalog.value.filter(item => item.source === 'plugin')
+  if (pluginComponents.length) {
+    componentCatalog.value = componentCatalog.value.filter(item => item.source !== 'plugin')
+    for (const item of pluginComponents) componentMap.delete(item.name)
+  }
+  navItemCatalog.value = []
+  navItemMap.clear()
+  settingsSectionCatalog.value = []
+  settingsSectionMap.clear()
+  sidebarPanelCatalog.value = []
+  railActionCatalog.value = []
+  overlayCatalog.value = []
+}
+
 export function markExtensionsChanged() {
   extensionVersion.value += 1
 }
