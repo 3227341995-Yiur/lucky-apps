@@ -182,8 +182,16 @@ function registerInstalledPackage(profileDir: string, spec: string, before: Reco
   return { name, hasBundle, hasNode, hasClient }
 }
 
+function isValidInstallSpec(spec: string): boolean {
+  if (!spec) return false
+  if (existsSync(resolve(spec))) return true
+  if (/^(https?:\/\/|git\+https?:\/\/|git\+ssh:\/\/|git@|github:|gitlab:|bitbucket:)/i.test(spec)) return true
+  return /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:@[a-z0-9._-]+)?$/i.test(spec)
+}
+
 export function installProfilePlugin(profileDir: string, spec: string): InstallResult {
   if (!spec || !String(spec).trim()) throw new Error('请输入包名或本地目录')
+  if (!isValidInstallSpec(String(spec).trim())) throw new Error('无效的包名、Git 地址或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   prepareProfile(profileDir)
   const before = readJson(join(profileDir, 'package.json')).dependencies || {}
@@ -212,6 +220,7 @@ function streamChildLogs(child: ChildProcess, emit: (event: any) => void): () =>
 
 export async function installProfilePluginStream(profileDir: string, spec: string, emit: (event: any) => void): Promise<InstallResult> {
   if (!spec || !String(spec).trim()) throw new Error('请输入包名或本地目录')
+  if (!isValidInstallSpec(String(spec).trim())) throw new Error('无效的包名、Git 地址或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   prepareProfile(profileDir)
   const before = readJson(join(profileDir, 'package.json')).dependencies || {}

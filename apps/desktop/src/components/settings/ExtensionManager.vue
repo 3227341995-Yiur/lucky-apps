@@ -147,6 +147,29 @@ function handleInstallEvent(event) {
   }
 }
 
+function normalizeInstallSpec(value) {
+  let spec = String(value || '').trim()
+  if (!spec) return ''
+  if (/^github\.com[:/]/i.test(spec)) {
+    spec = `https://${spec.replace(/^github\.com[:/]/i, 'github.com/')}`
+  } else if (/^git@github\.com:/i.test(spec)) {
+    spec = `git+ssh://${spec.replace(/^git@github\.com:/i, 'git@github.com/')}`
+  }
+  return spec
+}
+
+function isGitSpec(spec) {
+  return /^(https?:\/\/|git\+https?:\/\/|git\+ssh:\/\/|git@|github:|gitlab:|bitbucket:)/i.test(spec)
+}
+
+function isLocalSpec(spec) {
+  return /^(?:[A-Za-z]:[\\/]|\\\\|\.{1,2}[\\/]|\/)/.test(spec)
+}
+
+function isPackageSpec(spec) {
+  return /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:@[a-z0-9._-]+)?$/i.test(spec)
+}
+
 function scheduleSearch() {
   clearTimeout(searchTimer)
   const query = installQuery.value.trim()
@@ -154,18 +177,23 @@ function scheduleSearch() {
     installResults.value = []
     return
   }
+  const spec = normalizeInstallSpec(query)
+  if (isGitSpec(spec)) {
+    installResults.value = [{ name: 'Git 仓库', version: '', description: spec, spec }]
+    return
+  }
+  if (isLocalSpec(spec)) {
+    installResults.value = [{ name: '本地组件目录', version: '', description: spec, spec }]
+    return
+  }
+  if (!isPackageSpec(spec)) {
+    installResults.value = []
+    return
+  }
   searchTimer = setTimeout(async () => {
-    if (/^(https?:\/\/|git\+|git@|github:)/i.test(query)) {
-      installResults.value = [{ name: 'GitHub / Git 仓库', version: '', description: query, spec: query }]
-      return
-    }
-    if (/[\\/]|^\.|^[A-Za-z]:/.test(query)) {
-      installResults.value = [{ name: '本地组件目录', version: '', description: query, spec: query }]
-      return
-    }
     searching.value = true
     try {
-      installResults.value = await searchPlugins(query)
+      installResults.value = await searchPlugins(spec)
     } catch {
       installResults.value = []
     } finally {
@@ -175,9 +203,13 @@ function scheduleSearch() {
 }
 
 async function handleInstall(specArg) {
-  const spec = String(specArg || installSpec.value || installQuery.value).trim()
+  const spec = normalizeInstallSpec(specArg || installSpec.value || installQuery.value)
   if (!spec) {
-    ElMessage.warning('请输入 npm 包名或本地组件目录')
+    ElMessage.warning('请输入 npm 包名、Git 地址或本地组件目录')
+    return
+  }
+  if (!isGitSpec(spec) && !isLocalSpec(spec) && !isPackageSpec(spec)) {
+    ElMessage.warning('输入内容不是有效的 npm 包名、Git 地址或本地目录')
     return
   }
   installSpec.value = spec
@@ -504,7 +536,7 @@ async function handleToggle(resource) {
           <el-icon class="install-arrow"><ArrowRight /></el-icon>
         </button>
         <div v-if="installQuery.trim() && !installResults.length && !searching" class="install-hint">
-          没有搜索结果，可以直接安装当前输入。
+          没有匹配的插件，请输入完整包名或 Git/本地路径。
         </div>
       </div>
       <template #footer>
