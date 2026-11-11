@@ -1,7 +1,7 @@
 {
   "name": "user-cell",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-apps"],
+  "keywords": ["cordis", "lucky-app"],
   "private": true,
   "type": "module",
   "main": "lib/node.js",

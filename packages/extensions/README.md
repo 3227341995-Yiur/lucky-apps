@@ -3,7 +3,7 @@
 宿主的内置能力（首页、报表、回收站、画布与列组件）都以插件包形式放在这里；
 每个目录都是标准的 **Vue 3 + TypeScript** bundle 包，目录结构、入口文件名、构建工具由包自己决定。宿主只认 `package.json`：
 
-- `keywords`：必须是 `["cordis", "lucky-apps"]`，npm 搜索安装只展示带 `lucky-apps` 标签的包
+- `keywords`：必须是 `["cordis", "lucky-app"]`，npm 搜索安装只展示带 `lucky-app` 标签的包
 - `weekReport.bundle.patch`：bundle 的 `cordis.patch.yml`
 - `weekReport.client.entry`：浏览器组件 bundle
 - `weekReport.kind`：`canvas` / `column` / `feature`
@@ -31,7 +31,7 @@ packages/extensions/
 pnpm plugins:build
 ```
 
-共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；`handlebars` 由 `reports` 插件 external 到宿主全局实例，全应用共用一份。
+共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；宿主提供唯一的 `window.Handlebars` 实例，`reports` 插件直接消费，不打包第二份。
 
 ## profile
 

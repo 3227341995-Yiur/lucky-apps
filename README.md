@@ -12,7 +12,7 @@
 - 画布组件：`kpi-card` / `progress-board` / `timeline-card`
 - 列组件：`rating-cell` / `progress-cell` / `user-cell` / `money-cell`
 
-插件可以注册导航入口与页面、设置面板、程序名称与图标、画布组件、列组件以及列属性编辑插槽。插件包统一在 `package.json` 声明 `keywords: ["cordis", "lucky-apps"]`，安装面板只检索带 `lucky-apps` 标签的包。
+插件可以注册导航入口与页面、设置面板、程序名称与图标、画布组件、列组件以及列属性编辑插槽。插件包统一在 `package.json` 声明 `keywords: ["cordis", "lucky-app"]`，安装面板只检索带 `lucky-app` 标签的包。
 
 ## 开发
 
@@ -93,7 +93,7 @@ Tauri 窗口只打开服务地址。浏览器依赖 `vue` / `element-plus` / 图
 浏览器侧 client bundle 构建为 IIFE，Vue / Element Plus / 图标使用宿主 `window` 上的同一份实例。
 运行时脚本与样式放入 `resources/js|css/`，由服务端 `/api/boot` 清单下发。
 
-外部插件通过 npm 搜索安装时只展示声明了 `keywords: ["cordis", "lucky-apps"]` 的包；
+外部插件通过 npm 搜索安装时只展示声明了 `keywords: ["cordis", "lucky-app"]` 的包；
 本地目录、GitHub / Git 仓库和直接包名安装仍然可用。
 
 完整开发文档（架构、API、组件、列、模板/画布设计器、常见问题）在 [docs-site](docs-site) 与设置中心 → 帮助文档中。

@@ -24,7 +24,7 @@ resources/
 2. **脚本 / 样式**：放入 `resources/js` / `resources/css`，服务端 `/api/boot` 清单会下发。
 3. **启用**：到「设置 → 扩展」确认已加载；profile 变化由 Node 服务自动重载。
 
-发布到 npm 供搜索安装的插件，必须在 `package.json` 声明 `keywords: ["cordis", "lucky-apps"]`。安装面板只检索带 `lucky-apps` 标签的包，本地目录、GitHub / Git 仓库和直接包名安装不受限制。
+发布到 npm 供搜索安装的插件，必须在 `package.json` 声明 `keywords: ["cordis", "lucky-app"]`。安装面板只检索带 `lucky-app` 标签的包，本地目录、GitHub / Git 仓库和直接包名安装不受限制。
 
 ::: warning 加载顺序
 插件脚本按文件名排序加载。需要强顺序时使用数字前缀，例如 `01-init.js`、`02-search.js`。

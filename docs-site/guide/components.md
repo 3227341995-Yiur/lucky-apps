@@ -6,7 +6,7 @@
 {
   "name": "my-widget",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-apps"],
+  "keywords": ["cordis", "lucky-app"],
   "weekReport": {
     "client": { "entry": "./dist/my-widget.js" }
   }
@@ -15,7 +15,7 @@
 
 宿主从 profile 的 `node_modules` 发现包，并加载 `client.entry`。入口叫 `index.js`、`plugin.js`、`dist/widget.js` 都可以。
 
-`keywords` 必须包含 `lucky-apps`；设置中心的搜索安装只展示带该标签的 npm 包。
+`keywords` 必须包含 `lucky-app`；设置中心的搜索安装只展示带该标签的 npm 包。
 
 如果还需要 Node 侧 Cordis 逻辑，再声明 `main` / `exports`；宿主会用真实 Cordis loader 挂载。组件注册入口示例：
 

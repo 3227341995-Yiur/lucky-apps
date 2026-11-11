@@ -26,5 +26,5 @@
 
 ## 为什么 npm 搜索不到我的插件？
 
-安装面板只返回 `package.json` 的 `keywords` 含 `lucky-apps` 的包。请声明
-`"keywords": ["cordis", "lucky-apps"]` 并重新发布；本地目录、Git 仓库和直接包名安装不受此限制。
+安装面板只返回 `package.json` 的 `keywords` 含 `lucky-app` 的包。请声明
+`"keywords": ["cordis", "lucky-app"]` 并重新发布；本地目录、Git 仓库和直接包名安装不受此限制。

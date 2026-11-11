@@ -90,7 +90,7 @@ packages/sdk/plugin-api/
 
 ```json
 {
-  "keywords": ["cordis", "lucky-apps"],
+  "keywords": ["cordis", "lucky-app"],
   "dependencies": {
     "plugin-api": "workspace:*"
   }
@@ -98,4 +98,4 @@ packages/sdk/plugin-api/
 ```
 
 发布到 npm 后，外部项目直接安装即可，不需要复制宿主源码。设置中心的搜索安装只展示
-`keywords` 含 `lucky-apps` 的包。
+`keywords` 含 `lucky-app` 的包。

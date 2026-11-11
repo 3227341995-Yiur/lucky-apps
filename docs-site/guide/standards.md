@@ -9,7 +9,7 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
   "name": "my-plugin",
   "version": "1.0.0",
   "type": "module",
-  "keywords": ["cordis", "lucky-apps"],
+  "keywords": ["cordis", "lucky-app"],
   "main": "lib/node.js",
   "exports": {
     ".": "./lib/node.js",
@@ -24,7 +24,7 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
 }
 ```
 
-- `keywords` 必须包含 `cordis` 与 `lucky-apps`。宿主安装面板只检索带 `lucky-apps` 标签的 npm 包。
+- `keywords` 必须包含 `cordis` 与 `lucky-app`。宿主安装面板只检索带 `lucky-app` 标签的 npm 包。
 - `weekReport.bundle.patch` 指向必须入库的 `cordis.patch.yml`；`lib/` 是构建产物，不入库。
 - `weekReport.kind` 使用 `feature` / `canvas` / `column`，决定插件出现在扩展中心的分类。
 - `files` 只包含运行时需要的文件，不要把源码、测试、截图打进包。
@@ -34,7 +34,7 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
 插件是标准 npm 包：需要什么依赖、用什么版本，由插件自己的 `package.json` 决定，由插件自己的 Vite 打进 bundle。宿主不提供依赖，也不锁定插件版本；需要升级时插件自己升 `version`。
 
 - 不要假设宿主会提供某个库或某个版本；需要什么就在插件里声明什么。
-- `handlebars` 由内置 `reports` 插件复用宿主全局实例（构建时 external 到 `window.Handlebars`），全应用只有一份；helper 由 `resources/js/registerHelper.js` 统一注册，插件不要另打包一份。
+- `handlebars` 由宿主提供唯一实例（`window.Handlebars`），内置 `reports` 插件直接消费；helper 由 `resources/js/registerHelper.js` 统一注册，插件不要另打包一份。
 - 插件不能引用宿主源码别名 `@/...`；需要宿主能力时使用 `plugin-api` 或 Cordis `ctx` 服务。
 
 ## 3. 生命周期
@@ -92,4 +92,4 @@ npm publish
 - 版本遵循 semver；破坏插件 API 或配置结构时升 major。
 - 发布前跑 `pnpm build` 与 `pnpm test`，确认 `lib/` 产物包含 `client.js`、`node.js` 和所需资源。
 - 宿主通过 `weekReport.profile.bundles` 升级内置插件，通过 npm 安装外部插件；不要手工复制 `node_modules`。
-- 安装面板只搜索带 `lucky-apps` 标签的包；本地目录、Git 仓库和直接包名安装不受限制。
+- 安装面板只搜索带 `lucky-app` 标签的包；本地目录、Git 仓库和直接包名安装不受限制。

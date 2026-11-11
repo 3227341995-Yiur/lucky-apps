@@ -1,7 +1,7 @@
 {
   "name": "lucky-apps",
   "version": "3.0.0",
-  "keywords": ["cordis", "lucky-apps"],
+  "keywords": ["cordis", "lucky-app"],
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.16.1",

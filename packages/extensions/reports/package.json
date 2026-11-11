@@ -1,7 +1,10 @@
 {
   "name": "reports",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-apps"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",
@@ -28,7 +31,6 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "codemirror": "^6.0.2",
     "element-plus": "^2.14.7",
-    "handlebars": "^4.7.10",
     "vditor": "^3.11.1",
     "vite": "^8.3.5",
     "vue": "^3.5.44",

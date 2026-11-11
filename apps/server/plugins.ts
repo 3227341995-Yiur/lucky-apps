@@ -191,18 +191,18 @@ export interface RegistryHit {
   description: string
 }
 
-/** 只搜索带 lucky-apps 标签的插件包；npm 的 keywords 检索仍可能混入近似结果，再按 keywords 精确过滤一次。 */
+/** 只搜索带 lucky-app 标签的插件包；npm 的 keywords 检索仍可能混入近似结果，再按 keywords 精确过滤一次。 */
 export async function searchRegistry(query: string): Promise<RegistryHit[]> {
   const text = String(query || '').trim()
   if (!text) return []
   const response = await fetch(
-    `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(`${text} keywords:lucky-apps`)}&size=50`,
+    `https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(`${text} keywords:lucky-app`)}&size=50`,
     { headers: { accept: 'application/json' } },
   )
   if (!response.ok) throw new Error(`npm search ${response.status}`)
   const data = await response.json()
   return (data.objects || [])
-    .filter(item => (item.package?.keywords || []).some(keyword => String(keyword).toLowerCase() === 'lucky-apps'))
+    .filter(item => (item.package?.keywords || []).some(keyword => String(keyword).toLowerCase() === 'lucky-app'))
     .map(item => ({
       name: item.package?.name || '',
       version: item.package?.version || '',
