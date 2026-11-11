@@ -34,7 +34,8 @@ apps/
 ├─ desktop/           桌面端（Vue 3 前端，Vite 构建）
 ├─ server/            Cordis Node 服务（TypeScript，esbuild 打包）
 packages/
-├─ core/              base / client-modules（tsdown 编译）
+├─ bundle/            profile bundle（base，tsdown 编译）
+├─ client/            client module system（client-modules）
 ├─ sdk/               plugin-api（外部插件 API）
 ├─ tooling/           cli
 └─ extensions/        内置插件包（home / reports / trash-bin / 画布与列组件）

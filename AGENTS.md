@@ -7,7 +7,9 @@
 ```text
 apps/desktop          Vue 3 + TypeScript 前端（Vite 构建）
 apps/server           Cordis Node 服务（TypeScript，esbuild 打包）
-packages/core/*       Cordis 核心包（base、client-modules），源码 TS → tsdown 编译
+packages/bundle/*     profile bundle（base）
+packages/client/*     client module system（client-modules）
+packages/sdk/*        plugin-api（外部组件 API）
 packages/sdk/*        @lucky-apps/plugin-api（外部组件 API）
 packages/tooling/*    CLI
 packages/extensions/* 内置插件（Vue SFC + 自带 cordis.patch.yml + Node half）

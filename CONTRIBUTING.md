@@ -10,7 +10,7 @@ Node ≥ 24、pnpm 12+。`pnpm install` 会安装 lefthook hooks。
 pnpm dev            # Vite 前端开发
 pnpm build          # 前端 + 文档（dist/docs）
 pnpm plugins:build  # 构建全部内置插件
-pnpm packages:build # tsdown 编译 packages/core
+pnpm packages:build # tsdown 编译 packages/bundle、client、sdk
 pnpm profile:build  # 打包并安装 Cordis profile
 pnpm test           # node --test 单元测试
 pnpm lint           # oxlint（含 @stylistic 格式规则）
