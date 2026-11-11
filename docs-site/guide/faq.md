@@ -13,8 +13,8 @@
 ## 可以 import npm 包吗？
 
 可以。插件是标准 Vue 3 + Vite 项目，依赖和版本写在插件自己的 `package.json`，
-由插件自己的 Vite 打包；按自己的依赖树构建即可。`handlebars` 是例外：内置 `reports` 插件
-复用宿主全局实例，helper 由 `resources/js/registerHelper.js` 统一注册。
+由插件自己的 Vite 打包；按自己的依赖树构建即可。`handlebars` 由宿主 client module 注册表
+提供唯一实例，helper 由 `resources/js/registerHelper.js` 统一注册。
 
 ## 插件脚本的执行顺序？
 

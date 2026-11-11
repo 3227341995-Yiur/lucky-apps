@@ -62,6 +62,32 @@ export function nodeHalf(root = process.cwd()): Plugin {
   }
 }
 
+// client module 形状：bundle 注册 CJS factory，require 由宿主 module loader 注入。
+function clientModuleBundle(name: string): Plugin {
+  return {
+    name: 'lucky-apps-client-bundle',
+    apply: 'build',
+    enforce: 'post',
+    async writeBundle(options) {
+      const outDir = options.dir
+      if (!outDir) return
+      const file = path.join(outDir, 'client.js')
+      const js = await readFile(file, 'utf8').catch(() => '')
+      if (!js || js.includes('__luckyModules')) return
+      await writeFile(file, `window.__luckyModules.load({
+  id: ${JSON.stringify(name)},
+  factory: (require) => {
+    var module = { exports: {} };
+    var exports = module.exports;
+${js}
+    return module.exports;
+  }
+});
+`)
+    },
+  }
+}
+
 // 普通组件包没有 Node half：生成一个只登记 client bundle 的 loader 行。
 function writeNodeHalf(name: string): Plugin {
   return {
@@ -102,7 +128,7 @@ export function createExtensionConfig({ name, entry = 'src/index.ts', root = pro
   withNodeHalf?: boolean
 }) {
   return {
-    plugins: [vue(), cssInjectedByJs(name), ...(withNodeHalf ? [writeNodeHalf(name)] : [])],
+    plugins: [vue(), cssInjectedByJs(name), clientModuleBundle(name), ...(withNodeHalf ? [writeNodeHalf(name)] : [])],
     // 直接指向工作区源码：不依赖 node_modules 里 pnpm 为 workspace 包建的 junction
     resolve: {
       alias: {
@@ -121,19 +147,12 @@ export function createExtensionConfig({ name, entry = 'src/index.ts', root = pro
       cssCodeSplit: false,
       lib: {
         entry: path.resolve(root, entry),
-        formats: ['iife'] as const,
-        name: '__wrPlugin',
+        // client module：CJS 输出，external 在运行时由 loader 的 require 解析
+        formats: ['cjs'] as const,
         fileName: () => 'client.js',
       },
       rollupOptions: {
-        external: ['vue', 'element-plus', '@element-plus/icons-vue'],
-        output: {
-          globals: {
-            vue: 'Vue',
-            'element-plus': 'ElementPlus',
-            '@element-plus/icons-vue': 'ElementPlusIconsVue',
-          },
-        },
+        external: ['vue', 'element-plus', '@element-plus/icons-vue', 'handlebars'],
       },
     },
   }

@@ -1,6 +1,7 @@
 /**
  * 从全局 ElementPlus 模块枚举可拖拽的组件名（el-button / el-table ...）
  */
+import * as ElementPlus from 'element-plus'
 import { EP_WIDGETS } from '../config/reportLayout.ts'
 
 export function toKebabComponentName(name) {
@@ -11,7 +12,7 @@ export function toKebabComponentName(name) {
 }
 
 export function getAllElComponents() {
-  const namespace = typeof window !== 'undefined' ? window.ElementPlus : null
+  const namespace = ElementPlus
   if (!namespace) return EP_WIDGETS.map(widget => widget.component)
 
   const names = Object.keys(namespace)

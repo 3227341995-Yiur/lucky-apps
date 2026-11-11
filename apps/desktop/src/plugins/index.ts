@@ -2,7 +2,7 @@
  * 扩展系统安装入口
  *
  * 由 main.js 显式 await 调用（Vue app.use 不会等待 async install），
- * 保证外部脚本执行时 window.weekReport / window.Vue 等全局能力已就绪。
+ * 保证外部脚本执行时 window.weekReport / window.__luckyModules 等能力已就绪。
  */
 import CodeEditor from '@/components/CodeEditor.vue'
 import AppDialog from '@/components/common/AppDialog.vue'
@@ -22,13 +22,10 @@ import {
   markExtensionsReady,
 } from '@/plugins/registry'
 import { loadExtensionResources, startExtensionWatcher } from '@/plugins/loader'
+import { installModuleRegistry } from '@/plugins/modules'
 
 async function installGlobalModules() {
-  window.Vue = await import('vue')
-  window.ElementPlus = await import('element-plus')
-  window.ElementPlusIconsVue = await import('@element-plus/icons-vue')
-  window.Handlebars = await import('handlebars')
-  window.VditorModule = await import('vditor')
+  installModuleRegistry()
 }
 
 function installBuiltinComponents(app) {

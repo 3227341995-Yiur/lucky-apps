@@ -25,7 +25,7 @@ api.commands.register('my-plugin.refresh', async payload => {
 
 ## 可用全局对象
 
-`window.weekReport`、`window.Vue`、`window.ElementPlus`、`window.ElementPlusIconsVue`、`window.Handlebars`。
+`window.weekReport`，以及宿主模块加载器 `window.__luckyModules.require('vue' | 'element-plus' | '@element-plus/icons-vue' | 'handlebars')`。
 
 ## 事件
 

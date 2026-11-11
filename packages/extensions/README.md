@@ -31,7 +31,7 @@ packages/extensions/
 pnpm plugins:build
 ```
 
-共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；宿主提供唯一的 `window.Handlebars` 实例，`reports` 插件直接消费，不打包第二份。
+共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；`vue` / `element-plus` / 图标 / `handlebars` 由宿主 client module 注册表提供，插件 bundle 标为 external，由 loader 注入。
 
 ## profile
 

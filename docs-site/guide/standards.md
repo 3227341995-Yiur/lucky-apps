@@ -34,7 +34,7 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
 插件是标准 npm 包：需要什么依赖、用什么版本，由插件自己的 `package.json` 决定，由插件自己的 Vite 打进 bundle。宿主不提供依赖，也不锁定插件版本；需要升级时插件自己升 `version`。
 
 - 不要假设宿主会提供某个库或某个版本；需要什么就在插件里声明什么。
-- `handlebars` 由宿主提供唯一实例（`window.Handlebars`），内置 `reports` 插件直接消费；helper 由 `resources/js/registerHelper.js` 统一注册，插件不要另打包一份。
+- `handlebars` 由宿主 client module 注册表提供唯一实例，插件构建时 external，由 loader 注入；helper 由 `resources/js/registerHelper.js` 统一注册，插件不要另打包一份。
 - 插件不能引用宿主源码别名 `@/...`；需要宿主能力时使用 `plugin-api` 或 Cordis `ctx` 服务。
 
 ## 3. 生命周期

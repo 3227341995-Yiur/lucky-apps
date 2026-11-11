@@ -1,16 +1,16 @@
 // Handlebars 自定义 helper 注册（系统插件）
 // 依赖（由扩展加载器保证顺序，见 src/packages/extensions/loader.js）：
-//   window.Handlebars - main.js initGlobalModules 挂载
-//   window.marked     - resources/js/marked.min.js（字母序在本文件之前加载）
+//   window.__luckyModules - 宿主 client module loader
+//   window.marked         - resources/js/marked.min.js（字母序在本文件之前加载）
 (function() {
-  if (typeof window.Handlebars === 'undefined') {
+  const H = typeof window.__luckyModules?.require === 'function'
+    ? window.__luckyModules.require('handlebars')
+    : null
+  if (!H) {
     console.error('[registerHelper] Handlebars 未加载，helper 注册失败')
     return
   }
-
-  // window.Handlebars 可能是 ESM 命名空间（named exports）或 default 导出，两种取法都兜住
-  const H = window.Handlebars.default || window.Handlebars
-  const SafeString = H.SafeString || window.Handlebars.SafeString
+  const SafeString = H.SafeString
 
   H.registerHelper('not', function(o1, o2) {
     return o1 !== o2

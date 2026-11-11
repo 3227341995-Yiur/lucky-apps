@@ -3,7 +3,7 @@
 插件可以把已有组件注册进宿主，内置 `reports` 插件的列设置下拉框会直接展示这些组件。
 
 ```js
-const { defineComponent, h } = window.Vue
+const { defineComponent, h } = window.__luckyModules.require('vue')
 
 window.weekReport.components.register('rating', defineComponent({
   props: { modelValue: Number },

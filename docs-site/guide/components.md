@@ -107,5 +107,5 @@ profile 的 `cordis.patch.yml`。内置 profile 的 `weekReport.profile.bundles`
 
 ::: tip Vue / Element Plus
 组件包是标准 Vite 项目，依赖和版本由插件自己的 `package.json` 声明并打包。
-`handlebars` 由内置 `reports` 插件复用宿主全局实例，不重复打包。
+`handlebars` 由宿主 client module 注册表提供，插件构建时 external，不重复打包。
 :::
