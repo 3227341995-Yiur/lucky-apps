@@ -8,16 +8,22 @@ function readJson(path: string): any {
 }
 
 function specName(spec: string): string {
-  const dir = resolve(spec)
+  const text = String(spec || '').trim()
+  if (/^(https?:|git\+|git@|github:|gitlab:|bitbucket:)/i.test(text)) {
+    const clean = text.replace(/^git\+/, '').replace(/\.git$/i, '')
+    const parts = clean.split(/[\/:]/).filter(Boolean)
+    return parts[parts.length - 1] || text
+  }
+  const dir = resolve(text)
   const manifestPath = join(dir, 'package.json')
   if (existsSync(manifestPath)) {
     try { return readJson(manifestPath).name } catch {}
   }
-  if (spec.startsWith('@')) {
-    const [scope, name] = spec.split('/')
-    return name ? `${scope}/${name}` : spec
+  if (text.startsWith('@')) {
+    const [scope, name] = text.split('/')
+    return name ? `${scope}/${name}` : text
   }
-  return spec.split('/')[0]
+  return text.split('/')[0]
 }
 
 function prepareProfile(profileDir: string): void {
@@ -210,7 +216,17 @@ function streamChildLogs(child: ChildProcess, emit: (event: any) => void): () =>
     const text = chunk.toString()
     tail = `${tail}${text}`.slice(-4000)
     for (const line of text.split(/\r?\n/)) {
-      if (line.trim()) emit({ type: 'log', stream, line })
+      const value = line.trim()
+      if (!value) continue
+      // pnpm 会打印整个 profile 的依赖树，和本次安装目标无关，隐藏掉噪音
+      if (/^(dependencies|devDependencies):$/.test(value)
+        || /^\+ /.test(value)
+        || /^Progress:/.test(value)
+        || /^Packages:/.test(value)
+        || /^Done in /.test(value)
+        || /^Lockfile /.test(value)
+        || /^Scope:/.test(value)) continue
+      emit({ type: 'log', stream, line })
     }
   }
   child.stdout?.on('data', chunk => consume(chunk, 'stdout'))
