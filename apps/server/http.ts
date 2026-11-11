@@ -6,8 +6,40 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { installProfilePluginStream, uninstallProfilePlugin, searchRegistry } from './plugins.ts'
 import { getAutostart, setAutostart } from './system.ts'
+
+const execFileAsync = promisify(execFile)
+let envCache: { at: number; value: any } | null = null
+
+async function envInfo() {
+  if (envCache && Date.now() - envCache.at < 30000) return envCache.value
+  let pnpm = ''
+  try {
+    const { stdout } = await execFileAsync('pnpm', ['--version'], {
+      shell: process.platform === 'win32',
+      windowsHide: true,
+      timeout: 10000,
+      encoding: 'utf8',
+    })
+    pnpm = stdout.trim()
+  } catch {}
+  const node = process.versions.node || ''
+  const nodeMajor = Number(node.split('.')[0]) || 0
+  const pnpmMajor = Number(pnpm.split('.')[0]) || 0
+  const value = {
+    node,
+    nodeOk: nodeMajor >= 24,
+    requiredNode: 24,
+    pnpm,
+    pnpmOk: pnpmMajor >= 12,
+    requiredPnpm: 12,
+  }
+  envCache = { at: Date.now(), value }
+  return value
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -194,6 +226,9 @@ export async function createHttpServer({
         // 避免插件热加载瞬间出现 ctx.database 为 undefined。
         if (pathname === '/api/boot' || pathname.startsWith('/api/db/')) {
           try { await waitForReload() } catch {}
+        }
+        if (pathname === '/api/env' && req.method === 'GET') {
+          return sendJson(res, 200, await envInfo())
         }
         if (pathname === '/api/boot' && req.method === 'GET') {
           return sendJson(res, 200, await bootPayload())

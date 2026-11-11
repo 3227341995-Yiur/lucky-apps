@@ -9,11 +9,13 @@ import { pluginApi, setActiveView } from '@/plugins/api'
 import { getNavItemComponent, listNavItems, listOverlays } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
 import { emit as emitAppEvent } from '@/utils/eventBus'
+import { apiGet } from '@/services/rpc'
 
 const reports = useReports()
 const { state } = reports
 
 const showSettings = ref(false)
+const envIssue = ref<any>(null)
 const activePluginPage = ref(null)
 const overlays = computed(() => listOverlays())
 
@@ -120,6 +122,16 @@ function handleKeydown(event) {
 
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown)
+  try {
+    const env = await apiGet('/api/env')
+    const nodeMajor = Number(String(env?.node || '').split('.')[0]) || 0
+    const pnpmMajor = Number(String(env?.pnpm || '').split('.')[0]) || 0
+    if (!env?.nodeOk || nodeMajor < (env?.requiredNode || 24)) {
+      envIssue.value = { kind: 'node', ...env }
+    } else if (!env?.pnpmOk || pnpmMajor < (env?.requiredPnpm || 12)) {
+      envIssue.value = { kind: 'pnpm', ...env }
+    }
+  } catch {}
   offExtensionsChanged = pluginApi.events.on('extensions:components-reloaded', (result) => {
     if (result.failed > 0) {
       ElMessage.warning(`外部组件热更新：成功 ${result.loaded} 个，失败 ${result.failed} 个（见设置 → 扩展）`)
@@ -176,6 +188,20 @@ watch(
 
 <template>
   <div class="wr-app">
+    <div v-if="envIssue" class="env-banner" role="alert">
+      <strong>{{ envIssue.kind === 'node' ? 'Node.js 版本不满足要求' : 'pnpm 不可用' }}</strong>
+      <span v-if="envIssue.kind === 'node'">
+        当前 {{ envIssue.node || '未检测到' }}，Lucky Apps 需要 v{{ envIssue.requiredNode }} 或更高版本。
+      </span>
+      <span v-else>
+        当前 {{ envIssue.pnpm || '未安装' }}，安装插件需要 pnpm {{ envIssue.requiredPnpm }} 或更高版本。
+      </span>
+      <a
+        :href="envIssue.kind === 'node' ? 'https://nodejs.org/zh-CN/download' : 'https://pnpm.io/zh/installation'"
+        target="_blank"
+        rel="noopener"
+      >去安装</a>
+    </div>
     <AppSidebar
       @settings="openSettings"
       :active-plugin-page="activePluginPage"
@@ -206,3 +232,35 @@ watch(
     />
   </div>
 </template>
+
+<style scoped>
+.env-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 9px 14px;
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: 11px;
+  background: var(--el-color-warning-light-9);
+  box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.45);
+  color: var(--el-color-warning-dark-2);
+  font-size: 11.5px;
+  transform: translateX(-50%);
+}
+
+.env-banner strong {
+  font-size: 11.5px;
+}
+
+.env-banner a {
+  color: var(--el-color-primary);
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+</style>
