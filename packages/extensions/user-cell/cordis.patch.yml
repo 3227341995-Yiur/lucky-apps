@@ -1,3 +1,3 @@
 - insert:
-    - id: user-cell
-      name: user-cell
+    - id: '@lucky-apps/extension-user-cell'
+      name: '@lucky-apps/extension-user-cell'

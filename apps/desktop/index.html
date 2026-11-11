@@ -45,6 +45,27 @@
     </script>
   </head>
   <body>
+    <script>
+      (function () {
+        function showBootError(message) {
+          var node = document.getElementById('boot-placeholder')
+          if (!node) return
+          node.textContent = '启动失败：' + String(message || '未知错误')
+          node.style.fontSize = '18px'
+          node.style.fontFamily = 'system-ui, sans-serif'
+          node.style.whiteSpace = 'pre-wrap'
+          node.style.padding = '24px'
+          node.style.opacity = '0.9'
+        }
+        window.addEventListener('error', function (event) {
+          showBootError(event.message || (event.error && event.error.message))
+        }, true)
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason
+          showBootError(reason && (reason.stack || reason.message) || reason)
+        })
+      })()
+    </script>
     <div id="boot-placeholder" aria-hidden="true">loading</div>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>

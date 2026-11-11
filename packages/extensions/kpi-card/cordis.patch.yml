@@ -1,3 +1,3 @@
 - insert:
-    - id: kpi-card
-      name: kpi-card
+    - id: '@lucky-apps/extension-kpi-card'
+      name: '@lucky-apps/extension-kpi-card'

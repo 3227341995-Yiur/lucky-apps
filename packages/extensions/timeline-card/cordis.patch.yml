@@ -1,3 +1,3 @@
 - insert:
-    - id: timeline-card
-      name: timeline-card
+    - id: '@lucky-apps/extension-timeline-card'
+      name: '@lucky-apps/extension-timeline-card'
