@@ -336,6 +336,8 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
 
 const NODE_MIN_MAJOR: u32 = 24;
 const NODE_DOWNLOAD_URL: &str = "https://nodejs.org/zh-CN/download";
+const PNPM_MIN_MAJOR: u32 = 12;
+const PNPM_INSTALL_URL: &str = "https://pnpm.io/zh/installation";
 
 fn node_version(bin: &str) -> Option<String> {
   let mut command = Command::new(bin);
@@ -407,6 +409,85 @@ fn check_node_environment() -> Result<String, String> {
   Ok(bin)
 }
 
+fn pnpm_version() -> Option<String> {
+  if let Ok(custom) = std::env::var("WR_PNPM_BIN") {
+    let custom = custom.trim().to_string();
+    if !custom.is_empty() {
+      let mut command = Command::new(&custom);
+      #[cfg(windows)]
+      command.creation_flags(CREATE_NO_WINDOW);
+      if let Ok(output) = command.arg("--version").output() {
+        if output.status.success() {
+          let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+          if !version.is_empty() {
+            return Some(version);
+          }
+        }
+      }
+    }
+  }
+
+  #[cfg(windows)]
+  {
+    let mut command = Command::new("cmd");
+    command.creation_flags(CREATE_NO_WINDOW);
+    if let Ok(output) = command.args(["/C", "pnpm --version"]).output() {
+      if output.status.success() {
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !version.is_empty() {
+          return Some(version);
+        }
+      }
+    }
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+      let bin = format!("{local_app_data}\\pnpm\\pnpm.exe");
+      let mut command = Command::new(&bin);
+      command.creation_flags(CREATE_NO_WINDOW);
+      if let Ok(output) = command.arg("--version").output() {
+        if output.status.success() {
+          let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+          if !version.is_empty() {
+            return Some(version);
+          }
+        }
+      }
+    }
+  }
+  #[cfg(target_os = "macos")]
+  {
+    for candidate in ["pnpm", "/opt/homebrew/bin/pnpm", "/usr/local/bin/pnpm"] {
+      if let Ok(output) = Command::new(candidate).arg("--version").output() {
+        if output.status.success() {
+          let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+          if !version.is_empty() {
+            return Some(version);
+          }
+        }
+      }
+    }
+  }
+  None
+}
+
+fn check_pnpm_environment() -> Result<(), String> {
+  let Some(version) = pnpm_version() else {
+    return Err(format!(
+      "未检测到 pnpm。\n\n安装插件需要 pnpm {PNPM_MIN_MAJOR} 或更高版本。\n应用仍可使用，但插件安装功能不可用。"
+    ));
+  };
+  let major = version
+    .trim_start_matches('v')
+    .split('.')
+    .next()
+    .and_then(|value| value.parse::<u32>().ok());
+  if major.unwrap_or(0) < PNPM_MIN_MAJOR {
+    return Err(format!(
+      "当前 pnpm 版本为 {version}，低于安装插件要求的 v{PNPM_MIN_MAJOR}。\n\n请升级 pnpm 后再安装插件。"
+    ));
+  }
+  Ok(())
+}
+
 #[cfg(windows)]
 fn wide(value: &str) -> Vec<u16> {
   use std::os::windows::ffi::OsStrExt;
@@ -416,7 +497,7 @@ fn wide(value: &str) -> Vec<u16> {
 #[cfg(windows)]
 fn show_environment_error(message: &str) -> bool {
   use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, IDYES, MB_ICONWARNING, MB_YESNO};
-  let text = wide(&format!("{message}\n\n是否打开 Node.js 官网下载页？"));
+  let text = wide(&format!("{message}\n\n是否打开安装页面？"));
   let caption = wide("Lucky Apps 环境检查");
   let result = unsafe {
     MessageBoxW(std::ptr::null_mut(), text.as_ptr(), caption.as_ptr(), MB_YESNO | MB_ICONWARNING)
@@ -446,11 +527,11 @@ fn open_url(url: &str) {
 fn show_environment_error(message: &str) -> bool {
   let quoted = message.replace('\\', "\\\\").replace('"', "\\\"");
   let script = format!(
-    "display dialog \"{quoted}\" with title \"Lucky Apps 环境检查\" buttons {{\"退出\", \"打开下载页\"}} default button \"打开下载页\" with icon caution"
+    "display dialog \"{quoted}\" with title \"Lucky Apps 环境检查\" buttons {{\"关闭\", \"打开安装页\"}} default button \"打开安装页\" with icon caution"
   );
   let output = Command::new("osascript").arg("-e").arg(script).output();
   match output {
-    Ok(output) => String::from_utf8_lossy(&output.stdout).contains("打开下载页"),
+    Ok(output) => String::from_utf8_lossy(&output.stdout).contains("打开安装页"),
     Err(_) => false,
   }
 }
@@ -512,6 +593,12 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
       return Err(message);
     }
   };
+  // pnpm 只影响插件安装，不阻塞应用启动
+  if let Err(message) = check_pnpm_environment() {
+    if show_environment_error(&message) {
+      open_url(PNPM_INSTALL_URL);
+    }
+  }
   let mut command = Command::new(&node);
   #[cfg(windows)]
   command.creation_flags(CREATE_NO_WINDOW);
