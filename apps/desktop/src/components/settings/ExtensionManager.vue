@@ -216,6 +216,9 @@ function handleUninstallEvent(event) {
   }
   if (event.type === 'error') {
     uninstallError.value = event.error || '卸载失败'
+    if (!uninstallLogs.value.includes(uninstallError.value)) {
+      uninstallLogs.value = [...uninstallLogs.value, uninstallError.value].slice(-300)
+    }
   }
 }
 
@@ -247,6 +250,9 @@ async function handleUninstall(resource) {
     const message = error?.message || String(error)
     uninstallError.value = message
     uninstallStage.value = '卸载失败'
+    if (!uninstallLogs.value.includes(message)) {
+      uninstallLogs.value = [...uninstallLogs.value, message].slice(-300)
+    }
     ElMessage.error(`卸载失败：${message}`)
     removingName.value = ''
   }
@@ -443,14 +449,6 @@ async function handleToggle(resource) {
           <strong>{{ uninstallPercent }}%</strong>
         </div>
         <el-progress :percentage="uninstallPercent" :show-text="false" :stroke-width="7" />
-        <el-alert
-          v-if="uninstallError"
-          class="install-error"
-          type="error"
-          :title="uninstallError"
-          :closable="false"
-          show-icon
-        />
         <pre v-if="uninstallLogs.length" class="install-log">{{ uninstallLogs.join('\n') }}</pre>
       </div>
     </AppDialog>
@@ -484,14 +482,6 @@ async function handleToggle(resource) {
           <strong>{{ installPercent }}%</strong>
         </div>
         <el-progress :percentage="installPercent" :show-text="false" :stroke-width="7" />
-        <el-alert
-          v-if="installError"
-          class="install-error"
-          type="error"
-          :title="installError"
-          :closable="false"
-          show-icon
-        />
         <pre v-if="installLogs.length" class="install-log">{{ installLogs.join('\n') }}</pre>
       </div>
 
