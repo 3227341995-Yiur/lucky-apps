@@ -1,7 +1,7 @@
 /**
  * Client module loader，对应 DSH client-modules 的 staticModules。
  *
- * bundle 通过 window.__luckyModules.load({ id, factory }) 注册 CJS factory；
+ * bundle 通过 window.__ModuleLoader__.load({ id, factory }) 注册 CJS factory；
  * factory 里的 require('vue') 等由这里解析，不把库挂到 window 上。
  */
 import * as Vue from 'vue'
@@ -40,7 +40,7 @@ export function instantiateModule(id: string) {
 }
 
 export function installModuleRegistry() {
-  ;(window as any).__luckyModules = {
+  ;(window as any).__ModuleLoader__ = {
     load: loadModule,
     require: requireModule,
     staticModules,

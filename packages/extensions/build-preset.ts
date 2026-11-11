@@ -73,8 +73,8 @@ function clientModuleBundle(name: string): Plugin {
       if (!outDir) return
       const file = path.join(outDir, 'client.js')
       const js = await readFile(file, 'utf8').catch(() => '')
-      if (!js || js.includes('__luckyModules')) return
-      await writeFile(file, `window.__luckyModules.load({
+      if (!js || js.includes('__ModuleLoader__')) return
+      await writeFile(file, `window.__ModuleLoader__.load({
   id: ${JSON.stringify(name)},
   factory: (require) => {
     var module = { exports: {} };

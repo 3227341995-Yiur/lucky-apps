@@ -1,10 +1,10 @@
 // Handlebars 自定义 helper 注册（系统插件）
 // 依赖（由扩展加载器保证顺序，见 src/packages/extensions/loader.js）：
-//   window.__luckyModules - 宿主 client module loader
+//   window.__ModuleLoader__ - 宿主 client module loader
 //   window.marked         - resources/js/marked.min.js（字母序在本文件之前加载）
 (function() {
-  const H = typeof window.__luckyModules?.require === 'function'
-    ? window.__luckyModules.require('handlebars')
+  const H = typeof window.__ModuleLoader__?.require === 'function'
+    ? window.__ModuleLoader__.require('handlebars')
     : null
   if (!H) {
     console.error('[registerHelper] Handlebars 未加载，helper 注册失败')

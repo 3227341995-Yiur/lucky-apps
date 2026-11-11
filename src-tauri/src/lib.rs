@@ -334,6 +334,141 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
   }
 }
 
+const NODE_MIN_MAJOR: u32 = 24;
+const NODE_DOWNLOAD_URL: &str = "https://nodejs.org/zh-CN/download";
+
+fn node_version(bin: &str) -> Option<String> {
+  let mut command = Command::new(bin);
+  #[cfg(windows)]
+  command.creation_flags(CREATE_NO_WINDOW);
+  let output = command.arg("--version").output().ok()?;
+  if !output.status.success() {
+    return None;
+  }
+  let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+  if version.is_empty() { None } else { Some(version) }
+}
+
+fn resolve_node_bin() -> Option<(String, String)> {
+  if let Ok(custom) = std::env::var("WR_NODE_BIN") {
+    let custom = custom.trim().to_string();
+    if !custom.is_empty() {
+      return node_version(&custom).map(|version| (custom, version));
+    }
+  }
+
+  let mut candidates = vec!["node".to_string()];
+  #[cfg(windows)]
+  {
+    if let Ok(program_files) = std::env::var("ProgramFiles") {
+      candidates.push(format!("{program_files}\\nodejs\\node.exe"));
+    }
+    if let Ok(program_files_x86) = std::env::var("ProgramFiles(x86)") {
+      candidates.push(format!("{program_files_x86}\\nodejs\\node.exe"));
+    }
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+      candidates.push(format!("{local_app_data}\\Programs\\nodejs\\node.exe"));
+    }
+    if let Ok(user_profile) = std::env::var("USERPROFILE") {
+      candidates.push(format!("{user_profile}\\scoop\\apps\\nodejs\\current\\node.exe"));
+    }
+  }
+  #[cfg(target_os = "macos")]
+  {
+    candidates.push("/opt/homebrew/bin/node".to_string());
+    candidates.push("/usr/local/bin/node".to_string());
+    candidates.push("/usr/bin/node".to_string());
+  }
+
+  for candidate in candidates {
+    if let Some(version) = node_version(&candidate) {
+      return Some((candidate, version));
+    }
+  }
+  None
+}
+
+fn check_node_environment() -> Result<String, String> {
+  let Some((bin, version)) = resolve_node_bin() else {
+    return Err(format!(
+      "未检测到 Node.js。\n\nLucky Apps 需要 Node.js {NODE_MIN_MAJOR} 或更高版本。\n请安装后重新启动应用。"
+    ));
+  };
+  let major = version
+    .trim_start_matches('v')
+    .split('.')
+    .next()
+    .and_then(|value| value.parse::<u32>().ok());
+  if major.unwrap_or(0) < NODE_MIN_MAJOR {
+    return Err(format!(
+      "当前 Node.js 版本为 {version}，低于 Lucky Apps 要求的 v{NODE_MIN_MAJOR}。\n\n请升级到 Node.js {NODE_MIN_MAJOR} 或更高版本后重新启动应用。"
+    ));
+  }
+  Ok(bin)
+}
+
+#[cfg(windows)]
+fn wide(value: &str) -> Vec<u16> {
+  use std::os::windows::ffi::OsStrExt;
+  std::ffi::OsStr::new(value).encode_wide().chain(Some(0)).collect()
+}
+
+#[cfg(windows)]
+fn show_environment_error(message: &str) -> bool {
+  use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, IDYES, MB_ICONWARNING, MB_YESNO};
+  let text = wide(&format!("{message}\n\n是否打开 Node.js 官网下载页？"));
+  let caption = wide("Lucky Apps 环境检查");
+  let result = unsafe {
+    MessageBoxW(std::ptr::null_mut(), text.as_ptr(), caption.as_ptr(), MB_YESNO | MB_ICONWARNING)
+  };
+  result == IDYES
+}
+
+#[cfg(windows)]
+fn open_url(url: &str) {
+  use windows_sys::Win32::UI::Shell::ShellExecuteW;
+  use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+  let operation = wide("open");
+  let file = wide(url);
+  unsafe {
+    ShellExecuteW(
+      std::ptr::null_mut(),
+      operation.as_ptr(),
+      file.as_ptr(),
+      std::ptr::null(),
+      std::ptr::null(),
+      SW_SHOWNORMAL,
+    );
+  }
+}
+
+#[cfg(target_os = "macos")]
+fn show_environment_error(message: &str) -> bool {
+  let quoted = message.replace('\\', "\\\\").replace('"', "\\\"");
+  let script = format!(
+    "display dialog \"{quoted}\" with title \"Lucky Apps 环境检查\" buttons {{\"退出\", \"打开下载页\"}} default button \"打开下载页\" with icon caution"
+  );
+  let output = Command::new("osascript").arg("-e").arg(script).output();
+  match output {
+    Ok(output) => String::from_utf8_lossy(&output.stdout).contains("打开下载页"),
+    Err(_) => false,
+  }
+}
+
+#[cfg(target_os = "macos")]
+fn open_url(url: &str) {
+  let _ = Command::new("open").arg(url).spawn();
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn show_environment_error(message: &str) -> bool {
+  eprintln!("[shell] {message}");
+  false
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn open_url(_url: &str) {}
+
 fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   let root = project_root(app);
   // 开发布局是 apps/server/dist；安装包历史上曾映射到 server/dist，两种都兼容。
@@ -368,7 +503,15 @@ fn spawn_server(app: &tauri::AppHandle) -> Result<(Child, String), String> {
   }
 
   eprintln!("[shell] root={:?} server={:?} db={:?}", root, server_script, db_path);
-  let node = std::env::var("WR_NODE_BIN").unwrap_or_else(|_| "node".to_string());
+  let node = match check_node_environment() {
+    Ok(bin) => bin,
+    Err(message) => {
+      if show_environment_error(&message) {
+        open_url(NODE_DOWNLOAD_URL);
+      }
+      return Err(message);
+    }
+  };
   let mut command = Command::new(&node);
   #[cfg(windows)]
   command.creation_flags(CREATE_NO_WINDOW);

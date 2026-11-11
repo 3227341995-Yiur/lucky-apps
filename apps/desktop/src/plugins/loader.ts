@@ -13,7 +13,7 @@ import {
   extensionState,
 } from '@/plugins/registry'
 import { mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
-import { instantiateModule, requireModule } from '@/plugins/modules'
+import { instantiateModule } from '@/plugins/modules'
 import { getSetting } from '@/services/database'
 import { emit } from '@/utils/eventBus'
 
@@ -78,21 +78,9 @@ async function loadBrowserComponent(item) {
     if (!response.ok) throw new Error(`client bundle ${response.status}`)
     const source = await response.text()
     const id = item.package || item.name
-    let exported
-    if (source.includes('__luckyModules')) {
-      // client module：bundle 自己注册 factory，loader 负责 require 解析
-      new Function(source)()
-      exported = instantiateModule(id)
-    } else {
-      // 兼容早期 IIFE 插件
-      const prelude = "var Vue=require('vue'),ElementPlus=require('element-plus'),ElementPlusIconsVue=require('@element-plus/icons-vue'),Handlebars=require('handlebars');\n"
-      const module = { exports: {} as any }
-      const run = new Function('require', 'module', 'exports', `${prelude}${source}
-;return (typeof __wrPlugin !== 'undefined' ? __wrPlugin : undefined);`)
-      const returned = run(requireModule, module, module.exports)
-      const cjs = module.exports
-      exported = cjs?.default || (cjs && Object.keys(cjs).length ? cjs : returned)
-    }
+    // client module：bundle 自己注册 factory，loader 负责 require 解析
+    new Function(source)()
+    const exported = instantiateModule(id)
     const plugin = exported?.default || exported
     if (!plugin || typeof plugin !== 'object') {
       throw new Error('client bundle 没有导出 Cordis 插件对象')
