@@ -4,7 +4,7 @@ Lucky Apps 由 Tauri 窗口 + Cordis Node 服务 + Vue 前端组成。扩展分�
 
 ```text
 src-tauri/target/profile/
-├─ package.json        weekReport.profile.bundles
+├─ package.json        la.profile.bundles
 ├─ cordis.yml          []
 ├─ cordis.patch.yml    用户 patch
 └─ node_modules/
@@ -20,7 +20,7 @@ resources/
 
 ## 三步开始
 
-1. **插件包**：在 `packages/extensions/<name>` 里用标准 Vue 3 + TypeScript 开发。`package.json` 声明 `weekReport.bundle.patch` / `weekReport.client.entry` / `weekReport.kind`，`cordis.patch.yml` 必须入库；`pnpm plugins:build` 输出到包内 `lib/`，`pnpm profile:build` 打包并安装到 profile。
+1. **插件包**：在 `packages/extensions/<name>` 里用标准 Vue 3 + TypeScript 开发。`package.json` 声明 `la.bundle.patch` / `la.client.entry` / `la.kind`，`cordis.patch.yml` 必须入库；`pnpm plugins:build` 输出到包内 `lib/`，`pnpm profile:build` 打包并安装到 profile。
 2. **脚本 / 样式**：放入 `resources/js` / `resources/css`，服务端 `/api/boot` 清单会下发。
 3. **启用**：到「设置 → 扩展」确认已加载；profile 变化由 Node 服务自动重载。
 

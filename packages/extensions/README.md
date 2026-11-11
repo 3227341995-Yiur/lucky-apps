@@ -4,12 +4,12 @@
 每个目录都是标准的 **Vue 3 + TypeScript** bundle 包，目录结构、入口文件名、构建工具由包自己决定。宿主只认 `package.json`：
 
 - `keywords`：必须是 `["cordis", "lucky-app"]`，npm 搜索安装只展示带 `lucky-app` 标签的包
-- `weekReport.bundle.patch`：bundle 的 `cordis.patch.yml`
-- `weekReport.client.entry`：浏览器组件 bundle
-- `weekReport.kind`：`canvas` / `column` / `feature`
+- `la.bundle.patch`：bundle 的 `cordis.patch.yml`
+- `la.client.entry`：浏览器组件 bundle
+- `la.kind`：`canvas` / `column` / `feature`
 - 可选的 `main` / `exports`：Node half
 
-这和 DSH 的 bundle 形态一致：包自带 patch，profile 的 `weekReport.profile.bundles` 按顺序叠加。画布 / 列 / 功能包也走同一套 Cordis loader 行，Node half 负责把 client bundle 登记进 clientModules。
+这和 DSH 的 bundle 形态一致：包自带 patch，profile 的 `la.profile.bundles` 按顺序叠加。画布 / 列 / 功能包也走同一套 Cordis loader 行，Node half 负责把 client bundle 登记进 clientModules。
 
 ```text
 packages/extensions/
@@ -17,7 +17,7 @@ packages/extensions/
 │  ├─ package.json
 │  ├─ cordis.patch.yml
 │  ├─ tsconfig.json
-│  ├─ vite.config.ts
+│  ├─ tsdown.config.ts
 │  └─ src/
 │     ├─ index.ts
 │     ├─ env.d.ts
@@ -31,11 +31,11 @@ packages/extensions/
 pnpm plugins:build
 ```
 
-共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；`vue` / `element-plus` / 图标 / `handlebars` 由宿主 client module 注册表提供，插件 bundle 标为 external，由 loader 注入。
+共用 `packages/extensions/tsdown.client.ts`（tsdown client preset），输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；`vue` / `element-plus` / 图标 / `handlebars` 由宿主 client module 注册表提供，插件 bundle 标为 external，由 loader 注入。
 
 ## profile
 
-内置 profile 的 `weekReport.profile.bundles` 按顺序列出：
+内置 profile 的 `la.profile.bundles` 按顺序列出：
 
 ```text
 base → home → reports → kpi-card → ... → trash-bin → 外部功能插件

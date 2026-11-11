@@ -70,7 +70,7 @@ for (const dir of candidates) {
     name: manifest.name,
     version: manifest.version,
     file: `file:./vendor/${manifest.name.replace(/^@/, '').replace(/\//g, '-')}-${manifest.version}.tgz`,
-    hasBundle: Boolean(manifest.weekReport?.bundle?.patch),
+    hasBundle: Boolean(manifest.la?.bundle?.patch),
   })
 }
 
@@ -87,7 +87,7 @@ const profileManifest = {
   name: 'profile',
   private: true,
   dependencies: Object.fromEntries(packages.map(item => [item.name, item.file])),
-  weekReport: {
+  la: {
     profile: {
       version: appManifest.version,
       // 同一版本内插件包也会变化：构建指纹不同就重新播种 bundled profile

@@ -74,7 +74,7 @@ src/
 </details>
 
 构建时还会生成 `src-tauri/target/profile/`（Cordis profile：`package.json`
-`weekReport.profile.bundles` + `node_modules`，不入库）。
+`la.profile.bundles` + `node_modules`，不入库）。
 
 ## 插件开发
 
@@ -82,14 +82,14 @@ src/
 `lib/client.js` 和 `lib/node.js`，包自带 `cordis.patch.yml`。`pnpm profile:build` 会用
 `pnpm pack` 打包成 profile 依赖，再由 `pnpm install` 生成
 `src-tauri/target/profile/node_modules`。绘制 profile 时按 DSH 语义组合：
-空根 → 各 bundle 的 `weekReport.bundle.patch` → profile 的 `cordis.patch.yml`。
-画布 / 列 / 功能包同样是 bundle，profile 的 `weekReport.profile.bundles` 列出它们。
+空根 → 各 bundle 的 `la.bundle.patch` → profile 的 `cordis.patch.yml`。
+画布 / 列 / 功能包同样是 bundle，profile 的 `la.profile.bundles` 列出它们。
 Node 服务用真实 Cordis loader 按行里的包名从 profile 的 `node_modules` 解析并挂载；
 Tauri 窗口只打开服务地址。浏览器依赖 `vue` / `element-plus` / 图标已经由宿主 Vite
 构建进 `dist`，不再重复安装到 profile；profile 只包含 Cordis 插件包（约 150KB），
 避免安装/卸载时复制上万个无用文件。
 首次启动会复制到 `%APPDATA%/com.lu.lucky-apps/profile`，用户可直接改 profile。
-应用升级时按 `weekReport.profile.version` 覆盖随包核心包和系统依赖，同时保留用户
+应用升级时按 `la.profile.version` 覆盖随包核心包和系统依赖，同时保留用户
 自己安装的插件与 bundle；安装器会先结束旧的托盘进程，避免文件占用和多实例。
 浏览器侧 client bundle 构建为 IIFE，Vue / Element Plus / 图标使用宿主 `window` 上的同一份实例。
 运行时脚本与样式放入 `resources/js|css/`，由服务端 `/api/boot` 清单下发。

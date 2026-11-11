@@ -27,7 +27,7 @@ const GROUP_HINTS = {
   'component-canvas': '拖入自由画布的组件',
   'component-column': '表格单元格 / 列编辑组件',
   'component-feature': '侧边栏入口、页面与后台功能',
-  'component-other': '未声明 weekReport.kind 的组件包',
+  'component-other': '未声明 la.kind 的组件包',
 }
 
 async function readDisabled() {

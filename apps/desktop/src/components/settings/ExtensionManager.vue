@@ -320,7 +320,7 @@ async function handleToggle(resource) {
     </div>
 
     <p class="ext-note">
-      profile 由 <code>package.json</code> 的 <code>weekReport.profile.bundles</code> 组合：
+      profile 由 <code>package.json</code> 的 <code>la.profile.bundles</code> 组合：
       先叠加各 bundle 的 <code>cordis.patch.yml</code>，再叠加 profile 自己的
       <code>cordis.patch.yml</code>。
     </p>
@@ -356,7 +356,7 @@ async function handleToggle(resource) {
         </div>
 
         <p v-if="String(key).startsWith('component-')" class="group-note">
-          每个组件包提供 <code>weekReport.bundle.patch</code>，由 profile 组合后加载；保存后自动热加载。
+          每个组件包提供 <code>la.bundle.patch</code>，由 profile 组合后加载；保存后自动热加载。
         </p>
 
         <div class="ext-list">

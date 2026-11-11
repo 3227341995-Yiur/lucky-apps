@@ -26,9 +26,9 @@ pnpm tauri:build    # 打包安装程序
 
 ## 新增内置插件
 
-1. 在 `packages/extensions/<name>/` 创建标准包：`package.json`（`keywords: ["cordis", "lucky-app"]`、`weekReport.client.entry`、`kind`、`bundle.patch`）、`vite.config.ts`（`createExtensionConfig`）、`tsconfig.json`（extends 根 `tsconfig.base.json`）、`cordis.patch.yml`。插件依赖和版本由包自己的 `package.json` 声明。
+1. 在 `packages/extensions/<name>/` 创建标准包：`package.json`（`keywords: ["cordis", "lucky-app"]`、`la.client.entry`、`kind`、`bundle.patch`）、`tsdown.config.ts`（`clientConfig`）、`tsconfig.json`（extends 根 `tsconfig.base.json`）、`cordis.patch.yml`。插件依赖和版本由包自己的 `package.json` 声明。
 2. `src/index.ts` 导出 `definePlugin({ name, apply(ctx) { ctx.navigation.register(...) } })`。
-3. 需要 Node 能力时写 `src/node.ts`，用 `nodeHalf()` 或 `createExtensionConfig({ withNodeHalf: false })` 构建成 `lib/node.js`。
+3. 需要 Node 能力时写 `src/node.ts`，preset 自动构建成 `lib/node.js`；否则生成只登记 client bundle 的 stub。
 4. `pnpm plugins:build && pnpm profile:build` 验证。
 
 内置插件 `package.json` 必须声明 `keywords: ["cordis", "lucky-app"]`，与外部插件保持一致；设置中心的 npm 搜索只展示带该标签的包。

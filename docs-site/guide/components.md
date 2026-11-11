@@ -7,7 +7,7 @@
   "name": "my-widget",
   "version": "1.0.0",
   "keywords": ["cordis", "lucky-app"],
-  "weekReport": {
+  "la": {
     "client": { "entry": "./dist/my-widget.js" }
   }
 }
@@ -73,7 +73,7 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 
 每个插件是独立的 **Vue 3 + TypeScript** bundle 包，自己执行 `vite build`，产物为
 `lib/client.js`（浏览器）和 `lib/node.js`（Cordis loader 行）。包自带 `cordis.patch.yml`，
-`package.json` 声明 `weekReport.bundle.patch`；`pnpm profile:build` 会把包 `pnpm pack`
+`package.json` 声明 `la.bundle.patch`；`pnpm profile:build` 会把包 `pnpm pack`
 成 tarball，安装到 `src-tauri/target/profile/node_modules`（真实 pnpm profile，不是手工复制）。
 
 这和 DSH bundle 形态一致：画布 / 列 / 功能包都通过 Cordis loader 行挂载，
@@ -83,7 +83,7 @@ profile 结构：
 
 ```text
 src-tauri/target/profile/
-├─ package.json        weekReport.profile.bundles + 依赖
+├─ package.json        la.profile.bundles + 依赖
 ├─ cordis.yml          []（空根节点）
 ├─ cordis.patch.yml    用户 patch 层
 ├─ vendor/             pnpm pack 生成的包 tarball
@@ -94,8 +94,8 @@ src-tauri/target/profile/
    └─ 外部 Node 插件 ...
 ```
 
-组合顺序和 DSH 一致：空根 → 各 bundle 的 `weekReport.bundle.patch` →
-profile 的 `cordis.patch.yml`。内置 profile 的 `weekReport.profile.bundles` 列出
+组合顺序和 DSH 一致：空根 → 各 bundle 的 `la.bundle.patch` →
+profile 的 `cordis.patch.yml`。内置 profile 的 `la.profile.bundles` 列出
 `base`、画布包、列包、功能包和外部功能插件。
 
 用户 profile 在 `%APPDATA%\com.lu.lucky-apps\profile`，安装外部组件不需要重新打包应用。

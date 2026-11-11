@@ -9,15 +9,17 @@
     "./client": "./lib/client.js"
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "build": "tsdown",
+    "dev": "tsdown --watch"
   },
   "devDependencies": {
     "vite": "^8.3.5",
     "@vitejs/plugin-vue": "^6.0.10",
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
-    "@lucky-apps/plugin-api": "file:../../sdk/plugin-api"
+    "@lucky-apps/plugin-api": "^1.0.0",
+    "tsdown": "^0.22.14",
+    "@tsdown/css": "^0.23.7"
   },
   "module": "lib/node.js",
   "files": [
@@ -25,7 +27,7 @@
     "cordis.patch.yml",
     "README.md"
   ],
-  "weekReport": {
+  "la": {
     "client": {
       "entry": "./lib/client.js"
     },

@@ -28,13 +28,13 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
 
 1. 在目标 profile 中执行 `pnpm add <spec>`；
 2. 读取安装后包的 `package.json`；
-3. 包声明 `weekReport.bundle.patch` 时，自动把包名加入
-   `weekReport.profile.bundles`；
+3. 包声明 `la.bundle.patch` 时，自动把包名加入
+   `la.profile.bundles`；
 4. 外部 Vue + TypeScript 插件与 DSH bundle 一样自带 `cordis.patch.yml` 和 Node/client 两个 half；
 5. 没有 bundle 声明的包只作为普通依赖安装。
 
 它不会复制 `node_modules`，也不会手写一份固定配置。组件包可以自己决定构建产物在哪，只要 `package.json` 的
-`weekReport.client.entry` 指向它；发布到 npm 后直接写包名即可。
+`la.client.entry` 指向它；发布到 npm 后直接写包名即可。
 设置面板里的搜索安装框支持 npm（仅带 `lucky-app` 标签的包）、GitHub 仓库 URL、
 `github:owner/repo` 和本地目录。
 
@@ -52,7 +52,7 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
     ".": "./lib/node.js",
     "./client": "./lib/client.js"
   },
-  "weekReport": {
+  "la": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": { "entry": "./lib/client.js" },
     "kind": "feature"

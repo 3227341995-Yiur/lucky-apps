@@ -15,8 +15,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "build": "tsdown",
+    "dev": "tsdown --watch"
   },
   "devDependencies": {
     "@codemirror/lang-html": "^6.4.11",
@@ -32,9 +32,11 @@
     "vite": "^8.3.5",
     "vue": "^3.5.44",
     "vue-codemirror": "^6.1.1",
-    "@lucky-apps/plugin-api": "file:../../sdk/plugin-api"
+    "@lucky-apps/plugin-api": "^1.0.0",
+    "tsdown": "^0.22.14",
+    "@tsdown/css": "^0.23.7"
   },
-  "weekReport": {
+  "la": {
     "client": {
       "entry": "./lib/client.js"
     },

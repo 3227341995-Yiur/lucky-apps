@@ -24,7 +24,7 @@ test('seedProfile upgrades bundled packages and keeps user plugins', async () =>
     await writeJson(join(bundled, 'package.json'), {
       name: 'profile',
       dependencies: { 'base': 'file:./vendor/base.tgz', 'trash-bin': 'file:./vendor/trash.tgz' },
-      weekReport: { profile: { version: '2.0.1', bundles: ['base', 'trash-bin'] } },
+      la: { profile: { version: '2.0.1', bundles: ['base', 'trash-bin'] } },
     })
 
     await mkdir(join(target, 'node_modules', 'my-plugin'), { recursive: true })
@@ -44,14 +44,14 @@ test('seedProfile upgrades bundled packages and keeps user plugins', async () =>
         'my-plugin': 'link:../my-plugin',
         vue: '^3.5.0',
       },
-      weekReport: { profile: { version: '2.0.0', bundles: ['base', 'my-plugin'] } },
+      la: { profile: { version: '2.0.0', bundles: ['base', 'my-plugin'] } },
     })
 
     assert.equal(await seedProfile(bundled, target), 'upgraded')
 
     const manifest = JSON.parse(await readFile(join(target, 'package.json'), 'utf8'))
-    assert.equal(manifest.weekReport.profile.version, '2.0.1')
-    assert.deepEqual(manifest.weekReport.profile.bundles, ['base', 'trash-bin', 'my-plugin'])
+    assert.equal(manifest.la.profile.version, '2.0.1')
+    assert.deepEqual(manifest.la.profile.bundles, ['base', 'trash-bin', 'my-plugin'])
     assert.equal(manifest.dependencies['my-plugin'], 'link:../my-plugin')
     assert.equal(await readFile(join(target, 'node_modules', 'base', 'index.js'), 'utf8'), 'new')
     assert.equal(await readFile(join(target, 'node_modules', 'my-plugin', 'index.js'), 'utf8'), 'user')
@@ -77,7 +77,7 @@ test('seedProfile copies bundled profile on first run', async () => {
     await mkdir(bundled, { recursive: true })
     await writeJson(join(bundled, 'package.json'), {
       name: 'profile',
-      weekReport: { profile: { version: '2.0.1', bundles: [] } },
+      la: { profile: { version: '2.0.1', bundles: [] } },
     })
     assert.equal(await seedProfile(bundled, target), 'seeded')
     assert.ok(existsSync(join(target, 'package.json')))

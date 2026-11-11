@@ -16,7 +16,7 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
     "./client": "./lib/client.js"
   },
   "files": ["lib", "cordis.patch.yml", "README.md"],
-  "weekReport": {
+  "la": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": { "entry": "./lib/client.js" },
     "kind": "feature"
@@ -25,8 +25,8 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
 ```
 
 - `keywords` 必须包含 `cordis` 与 `lucky-app`。宿主安装面板只检索带 `lucky-app` 标签的 npm 包。
-- `weekReport.bundle.patch` 指向必须入库的 `cordis.patch.yml`；`lib/` 是构建产物，不入库。
-- `weekReport.kind` 使用 `feature` / `canvas` / `column`，决定插件出现在扩展中心的分类。
+- `la.bundle.patch` 指向必须入库的 `cordis.patch.yml`；`lib/` 是构建产物，不入库。
+- `la.kind` 使用 `feature` / `canvas` / `column`，决定插件出现在扩展中心的分类。
 - `files` 只包含运行时需要的文件，不要把源码、测试、截图打进包。
 
 ## 2. 依赖与版本
@@ -91,5 +91,5 @@ npm publish
 
 - 版本遵循 semver；破坏插件 API 或配置结构时升 major。
 - 发布前跑 `pnpm build` 与 `pnpm test`，确认 `lib/` 产物包含 `client.js`、`node.js` 和所需资源。
-- 宿主通过 `weekReport.profile.bundles` 升级内置插件，通过 npm 安装外部插件；不要手工复制 `node_modules`。
+- 宿主通过 `la.profile.bundles` 升级内置插件，通过 npm 安装外部插件；不要手工复制 `node_modules`。
 - 安装面板只搜索带 `lucky-app` 标签的包；本地目录、Git 仓库和直接包名安装不受限制。

@@ -91,10 +91,10 @@ export function uninstallProfilePlugin(profileDir: string, name: string): { name
   })
   const manifestPath = join(profileDir, 'package.json')
   const manifest = readJson(manifestPath)
-  manifest.weekReport ||= {}
-  manifest.weekReport.profile ||= {}
-  const bundles = manifest.weekReport.profile.bundles || []
-  manifest.weekReport.profile.bundles = bundles.filter(bundle => bundle !== name)
+  manifest.la ||= {}
+  manifest.la.profile ||= {}
+  const bundles = manifest.la.profile.bundles || []
+  manifest.la.profile.bundles = bundles.filter(bundle => bundle !== name)
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
   removeProfilePluginRow(profileDir, name)
   return { name }
@@ -119,14 +119,14 @@ function registerInstalledPackage(profileDir: string, spec: string, before: Reco
 
   const manifestPath = join(profileDir, 'package.json')
   const manifest = readJson(manifestPath)
-  manifest.weekReport ||= {}
-  manifest.weekReport.profile ||= {}
-  manifest.weekReport.profile.bundles ||= []
-  const hasBundle = Boolean(installed.weekReport?.bundle?.patch)
-  const hasNode = Boolean(installed.weekReport?.node)
-  const hasClient = Boolean(installed.weekReport?.client?.entry)
-  if (hasBundle && !manifest.weekReport.profile.bundles.includes(name)) {
-    manifest.weekReport.profile.bundles.push(name)
+  manifest.la ||= {}
+  manifest.la.profile ||= {}
+  manifest.la.profile.bundles ||= []
+  const hasBundle = Boolean(installed.la?.bundle?.patch)
+  const hasNode = Boolean(installed.la?.node)
+  const hasClient = Boolean(installed.la?.client?.entry)
+  if (hasBundle && !manifest.la.profile.bundles.includes(name)) {
+    manifest.la.profile.bundles.push(name)
   }
   if (hasNode && !hasBundle) addProfilePluginRow(profileDir, name)
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)

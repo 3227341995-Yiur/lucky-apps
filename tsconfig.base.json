@@ -12,10 +12,6 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "@lucky-apps/plugin-api": ["packages/sdk/plugin-api/src/index.ts"]
-    },
     "forceConsistentCasingInFileNames": true
   }
 }

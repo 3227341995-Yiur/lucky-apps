@@ -1,6 +1,6 @@
 /**
  * Cordis profile 组合，语义与 DSH 一致：
- * 空根 → 各 bundle 的 weekReport.bundle.patch → profile 的 cordis.patch.yml。
+ * 空根 → 各 bundle 的 la.bundle.patch → profile 的 cordis.patch.yml。
  * 这里只生成 Loader 行；真正的模块解析和插件挂载交给 @cordisjs/plugin-loader。
  */
 import { readFile, writeFile, readdir, mkdir, cp, access, rm } from 'node:fs/promises'
@@ -53,7 +53,7 @@ function applyPatch(rows: any[], patch: any): void {
 }
 
 function patchFilesOf(bundle: any): string[] {
-  const patch = bundle?.weekReport?.bundle?.patch
+  const patch = bundle?.la?.bundle?.patch
   if (Array.isArray(patch)) return patch
   return patch ? [patch] : []
 }
@@ -61,8 +61,8 @@ function patchFilesOf(bundle: any): string[] {
 /** 读取并组合 profile，返回 Loader 行 */
 export async function composeProfile(profileDir: string): Promise<{ manifest: any; bundles: string[]; rows: any[] }> {
   const manifest = await readJson(join(profileDir, 'package.json'))
-  const bundles = Array.isArray(manifest?.weekReport?.profile?.bundles)
-    ? manifest.weekReport.profile.bundles
+  const bundles = Array.isArray(manifest?.la?.profile?.bundles)
+    ? manifest.la.profile.bundles
     : []
 
   const rows = []
@@ -111,8 +111,8 @@ export async function composeProfile(profileDir: string): Promise<{ manifest: an
 const LEGACY_BROWSER_DEPS = ['vue', 'element-plus', '@element-plus/icons-vue']
 
 function mergeProfileManifest(bundled: any, installed: any): any {
-  const bundledBundles = bundled?.weekReport?.profile?.bundles || []
-  const installedBundles = installed?.weekReport?.profile?.bundles || []
+  const bundledBundles = bundled?.la?.profile?.bundles || []
+  const installedBundles = installed?.la?.profile?.bundles || []
   const bundles = [
     ...bundledBundles,
     ...installedBundles.filter(name => !bundledBundles.includes(name)),
@@ -128,12 +128,12 @@ function mergeProfileManifest(bundled: any, installed: any): any {
     ...installed,
     ...bundled,
     dependencies,
-    weekReport: {
-      ...installed?.weekReport,
-      ...bundled?.weekReport,
+    la: {
+      ...installed?.la,
+      ...bundled?.la,
       profile: {
-        ...installed?.weekReport?.profile,
-        ...bundled?.weekReport?.profile,
+        ...installed?.la?.profile,
+        ...bundled?.la?.profile,
         bundles,
       },
     },
@@ -144,7 +144,7 @@ function mergeProfileManifest(bundled: any, installed: any): any {
  * 应用升级后同步随包携带的 profile：
  * - 覆盖核心包和系统依赖；
  * - 保留用户自己安装的包与 bundle；
- * - 用 weekReport.profile.version 标记，避免每次启动都复制。
+ * - 用 la.profile.version 标记，避免每次启动都复制。
  */
 /** 只复制 manifest 里声明的包，避免安装目录里历史遗留的整套浏览器依赖被再次搬运。 */
 async function copyBundledModules(sourceDir: string, targetDir: string, bundled: any): Promise<void> {
@@ -204,12 +204,12 @@ async function pruneBundledModules(sourceDir: string, bundled: any): Promise<voi
 async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boolean> {
   const bundled = await readJson(join(sourceDir, 'package.json'))
   const installed = await readJson(join(targetDir, 'package.json'))
-  const bundledVersion = String(bundled?.weekReport?.profile?.version || '')
-  const installedVersion = String(installed?.weekReport?.profile?.version || '')
+  const bundledVersion = String(bundled?.la?.profile?.version || '')
+  const installedVersion = String(installed?.la?.profile?.version || '')
   if (!bundled || !installed || !bundledVersion) return false
   // 优先比较构建指纹：同一应用版本内插件包更新也要重新播种；老 profile 回退版本号比较。
-  const bundledBuild = String(bundled?.weekReport?.profile?.build || '')
-  const installedBuild = String(installed?.weekReport?.profile?.build || '')
+  const bundledBuild = String(bundled?.la?.profile?.build || '')
+  const installedBuild = String(installed?.la?.profile?.build || '')
   // bundled 有指纹时要求精确匹配：用户 profile 没有指纹（老版本）也必须重播
   const upToDate = bundledBuild
     ? bundledBuild === installedBuild
@@ -236,11 +236,11 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
   const merged = mergeProfileManifest(bundled, installed)
   // 曾随包分发、本次已移除的内置包：从依赖/bundles 中删掉并清理目录；
   // 用户自己安装的第三方插件（不在 managed 清单里）保持不动。
-  const prevManaged = Array.isArray(installed?.weekReport?.profile?.managed)
-    ? installed.weekReport.profile.managed
+  const prevManaged = Array.isArray(installed?.la?.profile?.managed)
+    ? installed.la.profile.managed
     : []
   const nextManaged = new Set(
-    Array.isArray(bundled?.weekReport?.profile?.managed) ? bundled.weekReport.profile.managed : [],
+    Array.isArray(bundled?.la?.profile?.managed) ? bundled.la.profile.managed : [],
   )
   // 旧 profile 没有 managed 清单：按历史内置包名做一次性迁移清理。
   const LEGACY_BUNDLED = new Set([
@@ -264,7 +264,7 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
     await rm(join(targetDir, 'node_modules', name), { recursive: true, force: true })
   }
   if (removed.length) {
-    merged.weekReport.profile.bundles = (merged.weekReport.profile.bundles || []).filter(
+    merged.la.profile.bundles = (merged.la.profile.bundles || []).filter(
       name => !removed.includes(name),
     )
   }

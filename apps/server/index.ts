@@ -2,7 +2,7 @@
  * 周报 Cordis Node 服务。
  *
  * 使用真实的 @cordisjs/plugin-loader 加载 profile：package.json 的
- * weekReport.profile.bundles → 各 bundle 的 weekReport.bundle.patch →
+ * la.profile.bundles → 各 bundle 的 la.bundle.patch →
  * profile 的 cordis.patch.yml。浏览器只负责显示和客户端插件 bundle。
  */
 import { pathToFileURL } from 'node:url'
@@ -115,7 +115,7 @@ export async function startServer(options: StartServerOptions = {}) {
     }
     await mountRows(currentProfile.rows)
 
-    // 包可以在 package.json 里自己声明 weekReport.client.entry，无需强制 index.js 或 Node half。
+    // 包可以在 package.json 里自己声明 la.client.entry，无需强制 index.js 或 Node half。
     const registerClientEntries = async () => {
       const manifestPath = join(profileDir, 'package.json')
       let manifest = {}
@@ -126,7 +126,7 @@ export async function startServer(options: StartServerOptions = {}) {
         if (!existsSync(pkgPath)) continue
         let pkg = {}
         try { pkg = JSON.parse(await readFile(pkgPath, 'utf8')) } catch { continue }
-        const entry = pkg.weekReport?.client?.entry
+        const entry = pkg.la?.client?.entry
         if (!entry) continue
         const id = pkg.name || dep
         if (ctx.clientModules.get(id)) continue
@@ -146,7 +146,7 @@ export async function startServer(options: StartServerOptions = {}) {
         if (!existsSync(pkgPath)) continue
         try {
           const pkg = JSON.parse(await readFile(pkgPath, 'utf8'))
-          module.kind = pkg.weekReport?.kind || 'component'
+          module.kind = pkg.la?.kind || 'component'
         } catch {}
       }
     }
