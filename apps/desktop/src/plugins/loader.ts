@@ -207,11 +207,48 @@ export async function installPlugin(spec, onEvent = () => {}) {
   return result
 }
 
-/** 卸载外部组件包（设置面板使用） */
-export async function uninstallPlugin(name) {
-  const result = await apiPost('/api/packages/extensions/remove', { name })
+/** 流式卸载外部组件包，进度与 pnpm 日志通过 NDJSON 返回 */
+export async function uninstallPluginStream(name, onEvent = () => {}) {
+  const response = await apiStream('/api/packages/extensions/remove', { name })
+  if (!response.ok) {
+    let detail = ''
+    try { detail = (await response.json()).error || '' } catch {}
+    throw new Error(detail || `卸载请求失败 (${response.status})`)
+  }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let result = null
+  let streamError = ''
+  const consume = (chunk) => {
+    buffer += chunk
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (const line of lines) {
+      if (!line.trim()) continue
+      let event
+      try { event = JSON.parse(line) } catch { continue }
+      if (event.type === 'error') streamError = event.error || '卸载失败'
+      else if (event.type === 'done') result = event.result
+      onEvent(event)
+    }
+  }
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    consume(decoder.decode(value, { stream: true }))
+  }
+  consume(decoder.decode())
+  if (streamError) throw new Error(streamError)
+  onEvent({ type: 'stage', stage: 'reload', progress: 92, message: '刷新扩展…' })
   await reloadExtensionComponents()
+  onEvent({ type: 'stage', stage: 'done', progress: 100, message: '卸载完成' })
   return result
+}
+
+/** 兼容旧调用：卸载并等待完成 */
+export async function uninstallPlugin(name) {
+  return uninstallPluginStream(name)
 }
 
 /** 监听服务端 profile 变化（轮询清单） */

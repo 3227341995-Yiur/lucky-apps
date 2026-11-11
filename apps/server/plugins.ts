@@ -100,6 +100,55 @@ export function uninstallProfilePlugin(profileDir: string, name: string): { name
   return { name }
 }
 
+/** 流式卸载：pnpm remove 失败时也会继续清 manifest 和 node_modules，保证能卸载成功 */
+export async function uninstallProfilePluginStream(
+  profileDir: string,
+  name: string,
+  emit: (event: any) => void,
+): Promise<{ name: string }> {
+  const target = String(name || '').trim()
+  if (!target) throw new Error('缺少要卸载的包名')
+  if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
+  prepareProfile(profileDir)
+  emit({ type: 'stage', stage: 'prepare', progress: 5, message: '准备卸载…' })
+  emit({ type: 'stage', stage: 'remove', progress: 15, message: `正在卸载 ${target}…` })
+
+  await new Promise<void>((resolvePromise) => {
+    const child: ChildProcess = spawn(
+      'pnpm',
+      ['remove', target, '--node-linker=hoisted', '--ignore-scripts', '--reporter=append-only'],
+      { cwd: profileDir, shell: process.platform === 'win32' },
+    )
+    streamChildLogs(child, emit)
+    child.on('error', (error) => {
+      emit({ type: 'log', stream: 'stderr', line: `pnpm remove 无法启动：${error.message}` })
+      resolvePromise()
+    })
+    child.on('close', (code) => {
+      if (code !== 0) {
+        emit({ type: 'log', stream: 'stderr', line: `pnpm remove 退出码 ${code}，继续手动清理` })
+      }
+      resolvePromise()
+    })
+  })
+
+  emit({ type: 'stage', stage: 'cleanup', progress: 75, message: '清理 profile 清单…' })
+  const manifestPath = join(profileDir, 'package.json')
+  const manifest = readJson(manifestPath)
+  manifest.la ||= {}
+  manifest.la.profile ||= {}
+  manifest.la.profile.bundles = (manifest.la.profile.bundles || []).filter(bundle => bundle !== target)
+  manifest.la.profile.managed = (manifest.la.profile.managed || []).filter(item => item !== target)
+  if (manifest.dependencies) delete manifest.dependencies[target]
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  removeProfilePluginRow(profileDir, target)
+  try { rmSync(join(profileDir, 'node_modules', target), { recursive: true, force: true }) } catch (error) {
+    emit({ type: 'log', stream: 'stderr', line: `清理 node_modules/${target} 失败：${error.message}` })
+  }
+  emit({ type: 'stage', stage: 'done', progress: 100, message: '卸载完成' })
+  return { name: target }
+}
+
 export interface InstallResult {
   name: string
   hasBundle: boolean
@@ -147,6 +196,20 @@ export function installProfilePlugin(profileDir: string, spec: string): InstallR
 }
 
 /** 流式安装：把 pnpm 输出和阶段进度写给 NDJSON 响应 */
+function streamChildLogs(child: ChildProcess, emit: (event: any) => void): () => string {
+  let tail = ''
+  const consume = (chunk: Buffer | string, stream: 'stdout' | 'stderr') => {
+    const text = chunk.toString()
+    tail = `${tail}${text}`.slice(-4000)
+    for (const line of text.split(/\r?\n/)) {
+      if (line.trim()) emit({ type: 'log', stream, line })
+    }
+  }
+  child.stdout?.on('data', chunk => consume(chunk, 'stdout'))
+  child.stderr?.on('data', chunk => consume(chunk, 'stderr'))
+  return () => tail
+}
+
 export async function installProfilePluginStream(profileDir: string, spec: string, emit: (event: any) => void): Promise<InstallResult> {
   if (!spec || !String(spec).trim()) throw new Error('请输入包名或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
@@ -160,20 +223,11 @@ export async function installProfilePluginStream(profileDir: string, spec: strin
       cwd: profileDir,
       shell: process.platform === 'win32',
     })
-    let tail = ''
-    const consume = (chunk: Buffer | string, stream: 'stdout' | 'stderr') => {
-      const text = chunk.toString()
-      tail = `${tail}${text}`.slice(-4000)
-      for (const line of text.split(/\r?\n/)) {
-        if (line.trim()) emit({ type: 'log', stream, line })
-      }
-    }
-    child.stdout?.on('data', chunk => consume(chunk, 'stdout'))
-    child.stderr?.on('data', chunk => consume(chunk, 'stderr'))
+    const tailText = streamChildLogs(child, emit)
     child.on('error', reject)
     child.on('close', (code) => {
       if (code === 0) return resolvePromise()
-      const detail = tail.trim().split(/\r?\n/).slice(-12).join('\n')
+      const detail = tailText().trim().split(/\r?\n/).slice(-12).join('\n')
       reject(new Error(detail || `pnpm add 退出码 ${code}`))
     })
   })

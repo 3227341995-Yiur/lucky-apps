@@ -2,7 +2,7 @@
 import { nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
-import { installPlugin, searchPlugins, uninstallPlugin } from '@/plugins/loader'
+import { installPlugin, searchPlugins, uninstallPluginStream } from '@/plugins/loader'
 import AppDialog from '@/components/common/AppDialog.vue'
 
 defineOptions({ name: 'ExtensionManager' })
@@ -55,6 +55,12 @@ const installStage = ref('')
 const installPercent = ref(0)
 const installLogs = ref([])
 const installError = ref('')
+const uninstallOpen = ref(false)
+const uninstallName = ref('')
+const uninstallStage = ref('')
+const uninstallPercent = ref(0)
+const uninstallLogs = ref([])
+const uninstallError = ref('')
 let searchTimer = null
 let installCloseTimer = null
 
@@ -201,6 +207,21 @@ async function handleInstall(specArg) {
   }
 }
 
+function handleUninstallEvent(event) {
+  if (event.type === 'stage') {
+    uninstallStage.value = event.message || uninstallStage.value
+    if (typeof event.progress === 'number') uninstallPercent.value = event.progress
+    return
+  }
+  if (event.type === 'log') {
+    uninstallLogs.value = [...uninstallLogs.value, event.line].slice(-300)
+    return
+  }
+  if (event.type === 'error') {
+    uninstallError.value = event.error || '卸载失败'
+  }
+}
+
 async function handleUninstall(resource) {
   const name = resource.package || resource.name
   try {
@@ -213,12 +234,26 @@ async function handleUninstall(resource) {
     return
   }
   removingName.value = name
+  uninstallName.value = name
+  uninstallStage.value = '准备卸载…'
+  uninstallPercent.value = 0
+  uninstallLogs.value = []
+  uninstallError.value = ''
+  uninstallOpen.value = true
   try {
-    await uninstallPlugin(name)
+    await uninstallPluginStream(name, handleUninstallEvent)
+    uninstallStage.value = '卸载完成'
+    uninstallPercent.value = 100
     ElMessage.success(`已卸载 ${name}`)
-    reloadApp()
+    installCloseTimer = setTimeout(() => {
+      uninstallOpen.value = false
+      reloadApp()
+    }, 800)
   } catch (error) {
-    ElMessage.error(`卸载失败：${error?.message || error}`)
+    const message = error?.message || String(error)
+    uninstallError.value = message
+    uninstallStage.value = '卸载失败'
+    ElMessage.error(`卸载失败：${message}`)
     removingName.value = ''
   }
 }
@@ -396,6 +431,33 @@ async function handleToggle(resource) {
         </div>
       </section>
     </template>
+
+    <AppDialog
+      v-model="uninstallOpen"
+      :title="`卸载 ${uninstallName}`"
+      subtitle="正在从 profile 移除插件包"
+      icon="Delete"
+      width="620px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="!removingName"
+    >
+      <div class="install-progress">
+        <div class="install-progress-head">
+          <span>{{ uninstallStage || '正在卸载…' }}</span>
+          <strong>{{ uninstallPercent }}%</strong>
+        </div>
+        <el-progress :percentage="uninstallPercent" :show-text="false" :stroke-width="7" />
+        <el-alert
+          v-if="uninstallError"
+          class="install-error"
+          type="error"
+          :title="uninstallError"
+          :closable="false"
+          show-icon
+        />
+        <pre v-if="uninstallLogs.length" class="install-log">{{ uninstallLogs.join('\n') }}</pre>
+      </div>
+    </AppDialog>
 
     <AppDialog
       v-model="installOpen"

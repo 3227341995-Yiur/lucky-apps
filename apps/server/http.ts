@@ -8,7 +8,7 @@ import { extname, join, normalize, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { installProfilePluginStream, uninstallProfilePlugin, searchRegistry } from './plugins.ts'
+import { installProfilePluginStream, uninstallProfilePluginStream, searchRegistry } from './plugins.ts'
 import { getAutostart, setAutostart } from './system.ts'
 
 const execFileAsync = promisify(execFile)
@@ -284,8 +284,21 @@ export async function createHttpServer({
           const name = String(body.name || '').trim()
           const bundled = await getBundledDeps()
           if (bundled.has(name)) return sendJson(res, 400, { error: '内置插件不能卸载' })
-          const result = uninstallProfilePlugin(profileDir, name)
-          return sendJson(res, 200, result)
+          res.writeHead(200, {
+            'content-type': 'application/x-ndjson; charset=utf-8',
+            'cache-control': 'no-store',
+          })
+          const emit = (event: any) => {
+            if (!res.writableEnded) res.write(`${JSON.stringify(event)}
+`)
+          }
+          try {
+            await uninstallProfilePluginStream(profileDir, name, emit)
+          } catch (error) {
+            emit({ type: 'error', error: error.message })
+          }
+          res.end()
+          return
         }
         if (pathname === '/api/health') {
           return sendJson(res, 200, { ok: true })
