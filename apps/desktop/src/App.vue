@@ -125,11 +125,8 @@ onMounted(async () => {
   try {
     const env = await apiGet('/api/env')
     const nodeMajor = Number(String(env?.node || '').split('.')[0]) || 0
-    const pnpmMajor = Number(String(env?.pnpm || '').split('.')[0]) || 0
     if (!env?.nodeOk || nodeMajor < (env?.requiredNode || 24)) {
       envIssue.value = { kind: 'node', ...env }
-    } else if (!env?.pnpmOk || pnpmMajor < (env?.requiredPnpm || 12)) {
-      envIssue.value = { kind: 'pnpm', ...env }
     }
   } catch {}
   offExtensionsChanged = pluginApi.events.on('extensions:components-reloaded', (result) => {
@@ -189,18 +186,9 @@ watch(
 <template>
   <div class="wr-app">
     <div v-if="envIssue" class="env-banner" role="alert">
-      <strong>{{ envIssue.kind === 'node' ? 'Node.js 版本不满足要求' : 'pnpm 不可用' }}</strong>
-      <span v-if="envIssue.kind === 'node'">
-        当前 {{ envIssue.node || '未检测到' }}，Lucky Apps 需要 v{{ envIssue.requiredNode }} 或更高版本。
-      </span>
-      <span v-else>
-        当前 {{ envIssue.pnpm || '未安装' }}，安装插件需要 pnpm {{ envIssue.requiredPnpm }} 或更高版本。
-      </span>
-      <a
-        :href="envIssue.kind === 'node' ? 'https://nodejs.org/zh-CN/download' : 'https://pnpm.io/zh/installation'"
-        target="_blank"
-        rel="noopener"
-      >去安装</a>
+      <strong>Node.js 版本不满足要求</strong>
+      <span>当前 {{ envIssue.node || '未检测到' }}，Lucky Apps 需要 v{{ envIssue.requiredNode }} 或更高版本。</span>
+      <a href="https://nodejs.org/zh-CN/download" target="_blank" rel="noopener">去安装</a>
     </div>
     <AppSidebar
       @settings="openSettings"
