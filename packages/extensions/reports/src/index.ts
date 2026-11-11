@@ -1,11 +1,11 @@
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 import ReportsSidebar from './ReportsSidebar.vue'
 import ReportsSettings from './ReportsSettings.vue'
 import ReportsOverlays from './ReportsOverlays.vue'
 import { createWeekReport } from './createReport'
 
 export default definePlugin({
-  name: 'reports',
+  name: '@lucky-apps/extension-reports',
   inject: ['navigation', 'settings', 'sidebar', 'overlay'],
   apply(ctx) {
     ctx.navigation.register({

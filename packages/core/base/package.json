@@ -1,7 +1,10 @@
 {
-  "name": "base",
+  "name": "@lucky-apps/base",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-app"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "private": false,
   "type": "module",
   "main": "lib/index.js",

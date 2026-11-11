@@ -70,6 +70,6 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
       name: my-widget
 ````
 
-Node half 登记 client bundle，浏览器 half 通过 `plugin-api` 注册组件或页面。
+Node half 登记 client bundle，浏览器 half 通过 `@lucky-apps/plugin-api` 注册组件或页面。
 
-外部项目通过 `plugin-api` 注册组件，不依赖宿主源码。
+外部项目通过 `@lucky-apps/plugin-api` 注册组件，不依赖宿主源码。

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useWeekReport } from 'plugin-api'
+import { useWeekReport } from '@lucky-apps/plugin-api'
 import { resolveDefaultValue } from '../config/defaultReportConfig.ts'
 import { evaluateJsExpression } from '../utils/expression.ts'
 import ElementWidget from './ElementWidget.vue'

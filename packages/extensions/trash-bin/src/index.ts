@@ -1,9 +1,9 @@
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 import TrashNavIcon from './TrashNavIcon.vue'
 import TrashPage from './TrashPage.vue'
 
 export default definePlugin({
-  name: 'trash-bin',
+  name: '@lucky-apps/extension-trash-bin',
   inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({

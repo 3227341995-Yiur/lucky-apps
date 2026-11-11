@@ -1,7 +1,10 @@
 {
-  "name": "cli",
+  "name": "@lucky-apps/cli",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-app"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "description": "Lucky Apps Cordis profile plugin CLI",
   "type": "module",
   "bin": {

@@ -1,5 +1,5 @@
 {
-  "name": "lucky-app",
+  "name": "lucky-apps",
   "version": "3.0.0",
   "keywords": [
     "cordis",
@@ -31,8 +31,7 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
     "packages:build": "tsdown",
-    "prepare": "lefthook install || true",
-    "lucky-app": "node packages/tooling/cli/bin.ts"
+    "prepare": "lefthook install || true"
   },
   "dependencies": {
     "@cordisjs/plugin-loader": "1.0.0-rc.9",

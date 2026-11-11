@@ -2,7 +2,7 @@
  * 周报外部组件 API。
  *
  * 外部组件项目直接从 npm 包 import，不再依赖 ctx.weekReport 或全局变量：
- *   import { definePlugin, components } from 'plugin-api'
+ *   import { definePlugin, components } from '@lucky-apps/plugin-api'
  */
 function resolveHost() {
   if (typeof globalThis === 'undefined') return null

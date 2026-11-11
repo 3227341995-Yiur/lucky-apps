@@ -5,4 +5,4 @@ import { createExtensionConfig } from '../build-preset'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig(createExtensionConfig({ name: 'rating-cell', root }))
+export default defineConfig(createExtensionConfig({ name: '@lucky-apps/extension-rating-cell', root }))

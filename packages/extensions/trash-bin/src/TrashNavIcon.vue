@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
-import { useWeekReport } from 'plugin-api'
+import { useWeekReport } from '@lucky-apps/plugin-api'
 
 defineOptions({ name: 'TrashNavIcon' })
 

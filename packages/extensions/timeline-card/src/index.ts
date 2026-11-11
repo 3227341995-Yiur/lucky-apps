@@ -1,8 +1,8 @@
 import TimelineCard from './TimelineCard.vue'
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 
 export default definePlugin({
-  name: 'timeline-card',
+  name: '@lucky-apps/extension-timeline-card',
   inject: ['components'],
   apply(ctx) {
     ctx.components.registerCanvas('TimelineCard', TimelineCard, {

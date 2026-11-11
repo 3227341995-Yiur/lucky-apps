@@ -4,7 +4,7 @@
  * 宿主 services/importExportService 的插件侧实现：
  * 解析与导出复用 io/utils 下的纯函数，备份导入/导出走宿主插件 API。
  */
-import { useWeekReport } from 'plugin-api'
+import { useWeekReport } from '@lucky-apps/plugin-api'
 import { parseImportFile as parseFile } from '../utils/importParsing'
 import {
   exportReport as exportReportWithApi,

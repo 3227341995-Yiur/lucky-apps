@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from 'plugin-api'
+import { useWeekReport } from '@lucky-apps/plugin-api'
 
 defineOptions({ name: 'TrashView' })
 

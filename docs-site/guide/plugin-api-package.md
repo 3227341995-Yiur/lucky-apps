@@ -1,13 +1,13 @@
 # 插件 API 包
 
-外部插件项目不直接访问宿主源码或全局变量，统一从 npm 包 `plugin-api` 导入：
+外部插件项目不直接访问宿主源码或全局变量，统一从 npm 包 `@lucky-apps/plugin-api` 导入：
 
 ```bash
-pnpm add plugin-api
+pnpm add @lucky-apps/plugin-api
 ```
 
 ```js
-import { definePlugin, components } from 'plugin-api'
+import { definePlugin, components } from '@lucky-apps/plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({
@@ -44,7 +44,7 @@ export default definePlugin({
 ## 侧边栏页面与设置面板
 
 ```js
-import { definePlugin, navigation, settings } from 'plugin-api'
+import { definePlugin, navigation, settings } from '@lucky-apps/plugin-api'
 import TrashPage from './TrashPage.vue'
 
 export default definePlugin({
@@ -92,7 +92,7 @@ packages/sdk/plugin-api/
 {
   "keywords": ["cordis", "lucky-app"],
   "dependencies": {
-    "plugin-api": "workspace:*"
+    "@lucky-apps/plugin-api": "workspace:*"
   }
 }
 ```

@@ -53,7 +53,7 @@ for (const dir of candidates) {
   packages.push({
     name: manifest.name,
     version: manifest.version,
-    file: `file:./vendor/${manifest.name}-${manifest.version}.tgz`,
+    file: `file:./vendor/${manifest.name.replace(/^@/, '').replace(/\//g, '-')}-${manifest.version}.tgz`,
     hasBundle: Boolean(manifest.weekReport?.bundle?.patch),
   })
 }
@@ -62,7 +62,7 @@ await mkdir(profileDir, { recursive: true })
 const bundleNames = packages
   .filter(item => item.hasBundle)
   .map(item => item.name)
-  .sort((a, b) => (a === 'base' ? -1 : b === 'base' ? 1 : a.localeCompare(b)))
+  .sort((a, b) => (a === '@lucky-apps/base' ? -1 : b === '@lucky-apps/base' ? 1 : a.localeCompare(b)))
 const appManifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 // Vue / Element Plus / 图标只用于浏览器端，已由主程序的 Vite 构建内联到 dist；
 // profile 里的 Node 插件不需要它们。之前重复携带整棵 EP 依赖树（1.1 万个文件、89MB），

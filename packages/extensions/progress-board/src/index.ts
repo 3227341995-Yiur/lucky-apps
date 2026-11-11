@@ -1,8 +1,8 @@
 import ProgressBoard from './ProgressBoard.vue'
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 
 export default definePlugin({
-  name: 'progress-board',
+  name: '@lucky-apps/extension-progress-board',
   inject: ['components'],
   apply(ctx) {
     ctx.components.registerCanvas('ProgressBoard', ProgressBoard, {

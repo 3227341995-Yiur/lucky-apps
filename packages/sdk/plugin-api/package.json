@@ -1,26 +1,33 @@
 {
-  "name": "plugin-api",
+  "name": "@lucky-apps/plugin-api",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-app"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "description": "Lucky Apps external component plugin API",
   "type": "module",
-  "main": "src/index.ts",
-  "module": "src/index.ts",
+  "main": "lib/index.js",
+  "module": "lib/index.js",
   "types": "index.d.ts",
   "exports": {
     ".": {
       "types": "./index.d.ts",
-      "default": "./src/index.ts"
+      "default": "./lib/index.js"
     }
   },
   "files": [
-    "src",
+    "lib",
     "index.d.ts",
     "README.md"
   ],
   "license": "MIT",
   "private": false,
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsdown"
   }
 }

@@ -51,7 +51,7 @@ base → home → reports → kpi-card → ... → trash-bin → 外部功能插
 `src/index.ts` 默认导出 Cordis 插件：
 
 ```ts
-import { definePlugin, components } from 'plugin-api'
+import { definePlugin, components } from '@lucky-apps/plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({

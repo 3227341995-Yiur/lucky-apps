@@ -1,7 +1,10 @@
 {
-  "name": "money-cell",
+  "name": "@lucky-apps/extension-money-cell",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-app"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",

@@ -21,7 +21,7 @@
 
 ```js
 // 入口名随意，由 package.json exports/main 指定
-import { definePlugin, components } from 'plugin-api'
+import { definePlugin, components } from '@lucky-apps/plugin-api'
 import KpiCard from './KpiCard.vue'
 
 export default definePlugin({

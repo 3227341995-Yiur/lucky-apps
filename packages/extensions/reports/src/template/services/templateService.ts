@@ -4,7 +4,7 @@
  * 宿主 services/templateService 的插件侧实现：模板 CRUD 走宿主插件 API，
  * 默认模板内容复用 template/config 下的内置文件。
  */
-import { useWeekReport } from 'plugin-api'
+import { useWeekReport } from '@lucky-apps/plugin-api'
 import defaultHtmlTemplate from '../config/default-html.html?raw'
 import defaultMarkdownTemplate from '../config/default-markdown.md?raw'
 

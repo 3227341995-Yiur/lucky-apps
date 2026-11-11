@@ -1,8 +1,8 @@
 import KpiCard from './KpiCard.vue'
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 
 export default definePlugin({
-  name: 'kpi-card',
+  name: '@lucky-apps/extension-kpi-card',
   inject: ['components'],
   apply(ctx) {
     ctx.components.registerCanvas('KpiCard', KpiCard, {

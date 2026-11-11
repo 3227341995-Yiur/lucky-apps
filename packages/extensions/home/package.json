@@ -1,7 +1,10 @@
 {
-  "name": "home",
+  "name": "@lucky-apps/extension-home",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-app"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",

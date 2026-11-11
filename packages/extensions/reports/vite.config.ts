@@ -5,7 +5,7 @@ import { createExtensionConfig, nodeHalf } from '../build-preset'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
-const base = createExtensionConfig({ name: 'reports', root, withNodeHalf: false })
+const base = createExtensionConfig({ name: '@lucky-apps/extension-reports', root, withNodeHalf: false })
 
 export default defineConfig({
   ...base,

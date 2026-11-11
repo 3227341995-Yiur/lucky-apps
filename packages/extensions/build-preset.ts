@@ -132,7 +132,7 @@ export function createExtensionConfig({ name, entry = 'src/index.ts', root = pro
     // 直接指向工作区源码：不依赖 node_modules 里 pnpm 为 workspace 包建的 junction
     resolve: {
       alias: {
-        'plugin-api': path.resolve(root, '../../sdk/plugin-api/src/index.ts'),
+        '@lucky-apps/plugin-api': path.resolve(root, '../../sdk/plugin-api/src/index.ts'),
       },
     },
     define: {

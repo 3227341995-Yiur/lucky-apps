@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useWeekReport } from 'plugin-api'
+import { useWeekReport } from '@lucky-apps/plugin-api'
 import ReportSection from './ReportSection.vue'
 import DateRangeField from './DateRangeField.vue'
 import ElementWidget from './ElementWidget.vue'

@@ -1,9 +1,9 @@
 import MoneyCell from './MoneyCell.vue'
 import MoneyCellSlot from './MoneyCell.cslot.vue'
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 
 export default definePlugin({
-  name: 'money-cell',
+  name: '@lucky-apps/extension-money-cell',
   inject: ['components'],
   apply(ctx) {
     ctx.components.registerColumn('MoneyCell', MoneyCell, {

@@ -1,9 +1,9 @@
 import UserCell from './UserCell.vue'
 import UserCellSlot from './UserCell.cslot.vue'
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 
 export default definePlugin({
-  name: 'user-cell',
+  name: '@lucky-apps/extension-user-cell',
   inject: ['components'],
   apply(ctx) {
     ctx.components.registerColumn('UserCell', UserCell, {

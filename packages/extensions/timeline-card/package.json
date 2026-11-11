@@ -1,7 +1,10 @@
 {
-  "name": "timeline-card",
+  "name": "@lucky-apps/extension-timeline-card",
   "version": "1.0.0",
-  "keywords": ["cordis", "lucky-app"],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",

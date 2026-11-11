@@ -1,8 +1,8 @@
-import { definePlugin } from 'plugin-api'
+import { definePlugin } from '@lucky-apps/plugin-api'
 import HomePage from './HomePage.vue'
 
 export default definePlugin({
-  name: 'home',
+  name: '@lucky-apps/extension-home',
   inject: ['navigation'],
   apply(ctx) {
     ctx.navigation.register({

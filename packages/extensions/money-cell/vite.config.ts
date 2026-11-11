@@ -5,4 +5,4 @@ import { createExtensionConfig } from '../build-preset'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig(createExtensionConfig({ name: 'money-cell', root }))
+export default defineConfig(createExtensionConfig({ name: '@lucky-apps/extension-money-cell', root }))

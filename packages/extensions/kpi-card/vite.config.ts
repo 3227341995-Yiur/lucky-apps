@@ -5,4 +5,4 @@ import { createExtensionConfig } from '../build-preset'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
-export default defineConfig(createExtensionConfig({ name: 'kpi-card', root }))
+export default defineConfig(createExtensionConfig({ name: '@lucky-apps/extension-kpi-card', root }))

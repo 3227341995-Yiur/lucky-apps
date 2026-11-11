@@ -43,3 +43,6 @@ packages/core/*/index.js
 packages/core/*/lib/*.js
 packages/core/*/*.mjs
 packages/core/*/lib/*.mjs
+
+# plugin-api npm build output
+packages/sdk/plugin-api/lib/
