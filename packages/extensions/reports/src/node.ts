@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 
-export const name = 'reports'
+export const name = '@lucky-apps/extension-reports'
 export const inject = ['clientModules']
 
 export async function apply(ctx) {

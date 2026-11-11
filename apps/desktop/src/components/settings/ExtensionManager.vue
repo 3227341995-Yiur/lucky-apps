@@ -518,11 +518,15 @@ async function handleToggle(resource) {
         </div>
       </div>
       <template #footer>
-        <span class="install-foot-hint">{{ installError ? '安装失败，检查上面的日志后可以重试。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+        <span class="install-foot-hint">{{ installError ? '安装失败，检查上面的日志后可以重试。' : installPercent === 100 ? '安装完成，可重新加载应用或关闭窗口。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+        <template v-if="installPercent === 100 && !installError">
+          <el-button @click="installOpen = false">关闭</el-button>
+          <el-button type="primary" @click="reloadApp">重新加载应用</el-button>
+        </template>
         <el-button
+          v-else
           type="primary"
           :loading="installing"
-          :disabled="installPercent === 100 && !installError"
           @click="handleInstall()"
         >
           <el-icon><Download /></el-icon><span>{{ installError ? '重试' : '安装' }}</span>
