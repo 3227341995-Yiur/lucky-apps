@@ -1,10 +1,6 @@
 {
   "name": "@lucky-apps/extension-home",
   "version": "1.0.0",
-  "keywords": [
-    "cordis",
-    "lucky-app"
-  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",
@@ -27,7 +23,8 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
-    "@element-plus/icons-vue": "^2.3.2"
+    "@element-plus/icons-vue": "^2.3.2",
+    "@lucky-apps/plugin-api": "file:../../sdk/plugin-api"
   },
   "weekReport": {
     "client": {
@@ -38,5 +35,9 @@
       "patch": "./cordis.patch.yml"
     }
   },
-  "description": "内置首页插件"
+  "description": "内置首页插件",
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ]
 }

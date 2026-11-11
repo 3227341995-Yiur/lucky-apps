@@ -1,10 +1,6 @@
 {
   "name": "@lucky-apps/extension-money-cell",
   "version": "1.0.0",
-  "keywords": [
-    "cordis",
-    "lucky-app"
-  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",
@@ -20,7 +16,8 @@
     "vite": "^8.3.5",
     "@vitejs/plugin-vue": "^6.0.10",
     "vue": "^3.5.44",
-    "element-plus": "^2.14.7"
+    "element-plus": "^2.14.7",
+    "@lucky-apps/plugin-api": "file:../../sdk/plugin-api"
   },
   "module": "lib/node.js",
   "files": [
@@ -36,5 +33,9 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
-  }
+  },
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ]
 }

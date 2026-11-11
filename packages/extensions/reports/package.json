@@ -1,10 +1,6 @@
 {
   "name": "@lucky-apps/extension-reports",
   "version": "1.0.0",
-  "keywords": [
-    "cordis",
-    "lucky-app"
-  ],
   "private": true,
   "type": "module",
   "main": "lib/node.js",
@@ -35,7 +31,8 @@
     "vditor": "^3.11.1",
     "vite": "^8.3.5",
     "vue": "^3.5.44",
-    "vue-codemirror": "^6.1.1"
+    "vue-codemirror": "^6.1.1",
+    "@lucky-apps/plugin-api": "file:../../sdk/plugin-api"
   },
   "weekReport": {
     "client": {
@@ -46,5 +43,9 @@
       "patch": "./cordis.patch.yml"
     }
   },
-  "description": "内置报表插件：工作台侧栏、列表、设计、模板、导入导出与数据设置"
+  "description": "内置报表插件：工作台侧栏、列表、设计、模板、导入导出与数据设置",
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ]
 }

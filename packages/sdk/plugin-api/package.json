@@ -1,10 +1,6 @@
 {
   "name": "@lucky-apps/plugin-api",
   "version": "1.0.0",
-  "keywords": [
-    "cordis",
-    "lucky-app"
-  ],
   "description": "Lucky Apps external component plugin API",
   "type": "module",
   "main": "lib/index.js",

@@ -46,3 +46,10 @@ packages/core/*/lib/*.mjs
 
 # plugin-api npm build output
 packages/sdk/plugin-api/lib/
+
+# bundle / client 包的 TS 编译入口
+packages/bundle/*/lib/*.js
+packages/bundle/*/lib/*.mjs
+packages/client/*/index.js
+packages/client/*/lib/*.js
+packages/client/*/lib/*.mjs

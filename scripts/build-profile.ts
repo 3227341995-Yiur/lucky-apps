@@ -33,7 +33,8 @@ await mkdir(vendorDir, { recursive: true })
 
 const candidates = [
   ...(await packageDirs(join(root, 'packages', 'extensions'))),
-  ...(await packageDirs(join(root, 'packages', 'core'))),
+  ...(await packageDirs(join(root, 'packages', 'bundle'))),
+  ...(await packageDirs(join(root, 'packages', 'client'))),
 ].filter(dir => !dir.endsWith('plugin-api'))
 
 const packages = []
@@ -45,11 +46,26 @@ for (const dir of candidates) {
     continue
   }
   console.log(`[profile] pack ${manifest.name}@${manifest.version}`)
-  execFileSync('pnpm', ['pack', '--pack-destination', vendorDir], {
-    cwd: dir,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  })
+  // Windows 上 pnpm 为 workspace 依赖建的 junction 可能无法遍历；pack 不需要 devDependencies。
+  const manifestPath = join(dir, 'package.json')
+  const originalText = await readFile(manifestPath, 'utf8')
+  let stripped = false
+  if (manifest.devDependencies?.['@lucky-apps/plugin-api']) {
+    const temp = { ...manifest, devDependencies: { ...manifest.devDependencies } }
+    delete temp.devDependencies['@lucky-apps/plugin-api']
+    await writeFile(manifestPath, `${JSON.stringify(temp, null, 2)}
+`)
+    stripped = true
+  }
+  try {
+    execFileSync('pnpm', ['pack', '--pack-destination', vendorDir], {
+      cwd: dir,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    })
+  } finally {
+    if (stripped) await writeFile(manifestPath, originalText)
+  }
   packages.push({
     name: manifest.name,
     version: manifest.version,
