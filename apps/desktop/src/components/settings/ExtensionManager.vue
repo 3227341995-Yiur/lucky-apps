@@ -62,7 +62,6 @@ const uninstallPercent = ref(0)
 const uninstallLogs = ref([])
 const uninstallError = ref('')
 let searchTimer = null
-let installCloseTimer = null
 
 function statusOf(resource) {
   return STATUS_META[resource.status] || STATUS_META.pending
@@ -129,6 +128,10 @@ function guardInstallClose(done) {
   if (!installing.value) done()
 }
 
+function guardUninstallClose(done) {
+  if (!removingName.value) done()
+}
+
 function handleInstallEvent(event) {
   if (event.type === 'stage') {
     installStage.value = event.message || installStage.value
@@ -183,7 +186,6 @@ async function handleInstall(specArg) {
   installLogs.value = []
   installPercent.value = 0
   installStage.value = '准备安装…'
-  clearTimeout(installCloseTimer)
   try {
     const result = await installPlugin(spec, handleInstallEvent)
     installStage.value = '安装完成'
@@ -191,11 +193,6 @@ async function handleInstall(specArg) {
     await rescan()
     installSpec.value = ''
     ElMessage.success(`已安装 ${result?.name || spec}${result?.hasBundle ? '，已加入 profile' : '（普通依赖）'}`)
-    installCloseTimer = setTimeout(() => {
-      installOpen.value = false
-      installQuery.value = ''
-      installResults.value = []
-    }, 1200)
   } catch (error) {
     const message = error?.message || String(error)
     installError.value = message
@@ -244,11 +241,8 @@ async function handleUninstall(resource) {
     await uninstallPluginStream(name, handleUninstallEvent)
     uninstallStage.value = '卸载完成'
     uninstallPercent.value = 100
+    removingName.value = ''
     ElMessage.success(`已卸载 ${name}`)
-    installCloseTimer = setTimeout(() => {
-      uninstallOpen.value = false
-      reloadApp()
-    }, 800)
   } catch (error) {
     const message = error?.message || String(error)
     uninstallError.value = message
@@ -438,8 +432,10 @@ async function handleToggle(resource) {
       subtitle="正在从 profile 移除插件包"
       icon="Delete"
       width="620px"
+      show-footer
       :close-on-click-modal="false"
       :close-on-press-escape="!removingName"
+      :before-close="guardUninstallClose"
     >
       <div class="install-progress">
         <div class="install-progress-head">
