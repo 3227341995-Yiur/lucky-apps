@@ -308,7 +308,13 @@ export async function createHttpServer({
 
       const clientMatch = /^\/client\/(.+)\/index\.js$/.exec(pathname)
       if (clientMatch && req.method === 'GET') {
-        const module = ctx.clientModules?.get?.(decodeURIComponent(clientMatch[1]))
+        const requested = decodeURIComponent(clientMatch[1])
+        const module = ctx.clientModules?.get?.(requested)
+          || ctx.clientModules?.list?.().find(item => (
+            item.id === requested
+            || item.package === requested
+            || String(item.package || '').split('/').pop() === requested
+          ))
         if (!module?.file) return sendJson(res, 404, { error: 'client module not found' })
         const data = await readFile(module.file)
         res.writeHead(200, {

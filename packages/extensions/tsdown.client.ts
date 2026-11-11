@@ -85,7 +85,7 @@ export function apply(ctx) {
     id: ${JSON.stringify(name)},
     package: ${JSON.stringify(name)},
     file: join(dirname(fileURLToPath(import.meta.url)), 'client.js'),
-    url: '/client/${name}/index.js'
+    url: '/client/${encodeURIComponent(name)}/index.js'
   })
 }
 

@@ -12,7 +12,7 @@ export async function apply(ctx) {
     id: name,
     package: name,
     file: join(dirname(fileURLToPath(import.meta.url)), 'client.js'),
-    url: '/client/reports/index.js',
+    url: `/client/${encodeURIComponent(name)}/index.js`,
   })
   applyDatabase(ctx)
 }
