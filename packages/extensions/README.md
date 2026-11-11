@@ -1,8 +1,9 @@
 # 内置插件包
 
-宿主自己的首页、周报列表、结构设计、模板设计、导入导出、回收站都以插件包形式放在这里；
+宿主的内置能力（首页、报表、回收站、画布与列组件）都以插件包形式放在这里；
 每个目录都是标准的 **Vue 3 + TypeScript** bundle 包，目录结构、入口文件名、构建工具由包自己决定。宿主只认 `package.json`：
 
+- `keywords`：必须是 `["cordis", "lucky-apps"]`，npm 搜索安装只展示带 `lucky-apps` 标签的包
 - `weekReport.bundle.patch`：bundle 的 `cordis.patch.yml`
 - `weekReport.client.entry`：浏览器组件 bundle
 - `weekReport.kind`：`canvas` / `column` / `feature`
@@ -30,7 +31,7 @@ packages/extensions/
 pnpm plugins:build
 ```
 
-共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。产物是 IIFE，`vue` / `element-plus` / 图标从宿主 `window` 取，共用同一份实例。
+共用 `packages/extensions/build-preset.ts`，输出 `lib/client.js` 和 `lib/node.js`。依赖和版本由各包自己的 `package.json` 声明；`handlebars` 由 `reports` 插件 external 到宿主全局实例，全应用共用一份。
 
 ## profile
 
@@ -41,7 +42,7 @@ base → home → reports → kpi-card → ... → trash-bin → 外部功能插
 ```
 
 功能插件（kind: feature）的页面和后台能力注册为导航/设置面板；
-列组件（column）与画布组件（canvas）由「设置 → 周报组件」统一维护。
+列组件（column）与画布组件（canvas）由内置 `reports` 插件的「设置 → 周报」统一维护。
 
 组合顺序与 DSH 一致：空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
 

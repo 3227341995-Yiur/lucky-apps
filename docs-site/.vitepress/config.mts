@@ -2,10 +2,11 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   lang: 'zh-CN',
-  title: '周报开发文档',
+  title: 'Lucky Apps 开发文档',
   description: '插件、外部组件与二次开发 API',
   base: '/docs/',
-  outDir: '../apps/desktop/dist/docs',
+  // 输出到 Vite publicDir：开发服务器直接可访问 /docs/，构建时随 public 复制进 dist/docs
+  outDir: '../apps/desktop/public/docs',
   cleanUrls: false,
   appearance: true,
   lastUpdated: true,
@@ -24,15 +25,21 @@ export default defineConfig({
         ]
       },
       {
-        text: '扩展',
+        text: '插件开发',
         items: [
+          { text: '插件规范', link: '/guide/standards' },
           { text: '外部组件', link: '/guide/components' },
           { text: '插件 API 包', link: '/guide/plugin-api-package' },
-          { text: '安装外部组件', link: '/guide/plugin-cli' },
+          { text: '安装与发布', link: '/guide/plugin-cli' },
           { text: '插件脚本', link: '/guide/plugins' },
+          { text: '启动加载动画', link: '/guide/loading' }
+        ]
+      },
+      {
+        text: '内置插件参考（reports）',
+        items: [
           { text: '列扩展', link: '/guide/columns' },
           { text: '模板设计器', link: '/guide/template-designer' },
-          { text: '启动加载动画', link: '/guide/loading' },
           { text: '画布设计器', link: '/guide/report-designer' }
         ]
       },

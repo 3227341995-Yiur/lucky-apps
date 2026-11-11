@@ -4,7 +4,7 @@
  * 与宿主 utils/reportExport + services/importExportService 的单份/批量导出保持一致；
  * 模板与新区块通过宿主插件 API 读取，渲染逻辑保留在插件内。
  */
-import Handlebars from 'handlebars'
+import { getHandlebars } from '../../handlebars.ts'
 import { renderLayoutHtml } from './layoutRender.ts'
 import { formatDate } from './date.ts'
 
@@ -47,7 +47,7 @@ export function downloadTextFile(filename, content, mime = 'text/plain') {
 
 function renderTemplate(report, templateString) {
   const cleanTemplate = templateString.replace(/^#\s*(?:HTML|Markdown)\s+Template[^\n]*\n/i, '')
-  return Handlebars.compile(cleanTemplate)(report)
+  return getHandlebars().compile(cleanTemplate)(report)
 }
 
 /** 与宿主 getTemplateForType 一致：优先该类型默认模板，其次该类型最新模板 */

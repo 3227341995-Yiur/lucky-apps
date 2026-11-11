@@ -35,8 +35,8 @@ coverage
 
 *.tsbuildinfo
 
-# VitePress 构建产物（直接输出到 apps/desktop/dist/docs）
-public/docs
+# VitePress 构建产物（输出到 apps/desktop/public/docs，Vite 构建时复制进 dist/docs）
+apps/desktop/public/docs
 
 # 核心包从 TS 编译出的发布入口
 packages/core/*/index.js

@@ -1,4 +1,4 @@
-# 安装外部组件（CLI）
+# 安装与发布
 
 外部组件不是靠手写 profile 配置安装的，使用安装命令：
 
@@ -35,7 +35,8 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
 
 它不会复制 `node_modules`，也不会手写一份固定配置。组件包可以自己决定构建产物在哪，只要 `package.json` 的
 `weekReport.client.entry` 指向它；发布到 npm 后直接写包名即可。
-设置面板里的搜索安装框同样支持 npm、GitHub 仓库 URL、`github:owner/repo` 和本地目录。
+设置面板里的搜索安装框支持 npm（仅带 `lucky-apps` 标签的包）、GitHub 仓库 URL、
+`github:owner/repo` 和本地目录。
 
 ## 包要求
 
@@ -45,6 +46,7 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
 {
   "name": "my-widget",
   "type": "module",
+  "keywords": ["cordis", "lucky-apps"],
   "main": "lib/node.js",
   "exports": {
     ".": "./lib/node.js",
@@ -57,6 +59,9 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
   }
 }
 ```
+
+`keywords` 必须包含 `cordis` 与 `lucky-apps`。设置面板的 npm 搜索只返回带 `lucky-apps`
+标签的包；本地目录、Git 仓库与直接包名安装不走这个过滤。
 
 ````yaml
 # cordis.patch.yml

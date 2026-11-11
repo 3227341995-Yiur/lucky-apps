@@ -1,6 +1,7 @@
 {
   "name": "client-modules",
   "version": "1.0.0",
+  "keywords": ["cordis", "lucky-apps"],
   "private": false,
   "type": "module",
   "main": "index.js",

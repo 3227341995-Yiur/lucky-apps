@@ -12,6 +12,10 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "plugin-api": ["packages/sdk/plugin-api/src/index.ts"]
+    },
     "forceConsistentCasingInFileNames": true
   }
 }

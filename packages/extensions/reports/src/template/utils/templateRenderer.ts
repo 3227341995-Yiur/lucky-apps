@@ -1,7 +1,7 @@
 /**
  * Handlebars 模板渲染器
  */
-import Handlebars from 'handlebars'
+import { getHandlebars } from '../../handlebars'
 
 /**
  * 渲染报告 - 直接使用报告数据
@@ -15,7 +15,7 @@ export function renderReport(report, templateString) {
   try {
     // 只去掉旧式模板注释行（# Markdown Template），保留正文的 # 标题
     const cleanTemplate = templateString.replace(/^#\s*(?:HTML|Markdown)\s+Template[^\n]*\n/i, '')
-    const compiler = Handlebars.compile(cleanTemplate)
+    const compiler = getHandlebars().compile(cleanTemplate)
     return compiler(report)
   } catch (e) {
     console.error('Handlebars 渲染失败:', e)

@@ -2,6 +2,8 @@
 
 Lucky Apps 支持在不重新构建客户端的前提下扩展样式、插件脚本和 Vue 组件。所有扩展都放在应用资源目录中，保存后即时生效。
 
+宿主本身不绑定业务功能：首页、报表、回收站以及画布 / 列组件都是 `packages/extensions/*` 里的内置插件，和外部插件走同一套 Cordis profile 与生命周期，可以在扩展中心停用。
+
 ## 三种扩展方式
 
 | 方式 | 目录 | 生效方式 |
@@ -24,7 +26,7 @@ Cordis Node 服务（server/）
   └─ 静态托管 dist 与运行时资源
         │  /client/<name>/index.js
         ▼
-浏览器 client bundle（IIFE，Vue / Element Plus 用宿主 window 实例）
+浏览器 client bundle（IIFE）
 ```
 
 - 启动：Tauri 启动 Node 服务 → 等待服务返回地址 → WebView 打开该地址。
@@ -34,8 +36,9 @@ Cordis Node 服务（server/）
 ::: warning 与 DSH 的差异
 DSH 是纯 Node 进程 + Web 前端；这里是 Tauri 窗口 + Node 服务。
 profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复用 DSH app-boot。
-`profile` 是真实 pnpm 项目：组件包先 `pnpm pack` 成 tarball，和 `vue` /
-`element-plus` 一起由 `pnpm install` 安装到 `src-tauri/target/profile/node_modules`。
+`profile` 是真实 pnpm 项目：插件包先 `pnpm pack` 成 tarball，由 `pnpm install`
+安装到 `src-tauri/target/profile/node_modules`。`vue` / `element-plus` 由宿主 Vite
+直接构建进前端 `dist`，不重复安装进 profile。
 :::
 
 ## 装配顺序
@@ -52,4 +55,6 @@ profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复
 
 ## API 版本
 
-当前 API 版本为 **2**，入口是 `window.weekReport`。完整字段参考见 [API 参考](/guide/api)。
+当前 API 版本为 **2**，入口是 `window.weekReport`。`reports` / `templates` / `config`
+命名空间由内置 `reports` 插件提供，其余导航、设置、组件、事件、命令等属于宿主能力。
+完整字段参考见 [API 参考](/guide/api)。

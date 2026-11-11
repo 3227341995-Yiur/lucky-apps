@@ -78,6 +78,11 @@ function selectReport(report) {
   api.ui.selectReport(report.id)
 }
 
+// 只在报表视图可见时高亮当前报表；切到其他功能页后取消选中
+function isActive(report) {
+  return api.ui.isReportsVisible() && api.ui.currentReportId() === report.id
+}
+
 async function removeReport(report) {
   try {
     await ElMessageBox.confirm(
@@ -143,6 +148,7 @@ onBeforeUnmount(() => off?.())
             v-for="report in group.reports"
             :key="report.id"
             class="report-row"
+            :class="{ active: isActive(report) }"
             role="button"
             tabindex="0"
             @click="selectReport(report)"

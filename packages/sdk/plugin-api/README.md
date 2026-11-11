@@ -1,6 +1,6 @@
 # plugin-api
 
-周报外部组件项目的官方 API 包。组件项目直接 import，不需要访问 `ctx.weekReport` 或全局变量。
+Lucky Apps 外部插件项目的官方 API 包。插件项目直接 import，不需要访问宿主源码或全局变量。
 
 ```js
 import { definePlugin, components } from 'plugin-api'

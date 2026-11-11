@@ -5,7 +5,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import ReportEditor from '@/components/ReportEditor.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import { useReports } from '@/composables/useReports'
-import { pluginApi } from '@/plugins/api'
+import { pluginApi, setActiveView } from '@/plugins/api'
 import { getNavItemComponent, listNavItems, listOverlays } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
 import { emit as emitAppEvent } from '@/utils/eventBus'
@@ -157,6 +157,12 @@ watch(
 watch(
   () => state.currentId,
   (id) => { if (id != null) activePluginPage.value = null },
+)
+
+watch(
+  activePluginPage,
+  id => setActiveView(id),
+  { immediate: true },
 )
 
 watch(

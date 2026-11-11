@@ -1,6 +1,7 @@
 {
   "name": "user-cell",
   "version": "1.0.0",
+  "keywords": ["cordis", "lucky-apps"],
   "private": true,
   "type": "module",
   "main": "lib/node.js",
@@ -17,8 +18,7 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "vue": "^3.5.44",
     "element-plus": "^2.14.7",
-    "@element-plus/icons-vue": "^2.3.2",
-    "plugin-api": "workspace:*"
+    "@element-plus/icons-vue": "^2.3.2"
   },
   "module": "lib/node.js",
   "files": [

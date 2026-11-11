@@ -12,6 +12,7 @@
  *   events    系统事件
  *   extensions 扩展资源状态
  */
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { cordis } from '@/plugins/cordis'
 import {
@@ -76,6 +77,14 @@ const API_VERSION = 2
 // UI 委托：App 启动时注入
 // ============================================================
 let uiImpl = {}
+
+// 当前宿主视图：null 表示报表编辑器，其他值为插件页面 id。
+// 报表侧栏用它判断是否还应该高亮选中行（切到别的功能就取消选中）。
+const activeView = ref(null)
+
+export function setActiveView(view) {
+  activeView.value = view || null
+}
 
 function registerUi(impl = {}) {
   uiImpl = { ...uiImpl, ...impl }
@@ -312,6 +321,8 @@ export const pluginApi = {
     selectReport: id => callUi('selectReport', id),
     /** 当前打开的周报 id（无则 null） */
     currentReportId: () => useReports().state.currentId ?? null,
+    /** 报表编辑器/报表页是否可见；切到其他插件页时为 false */
+    isReportsVisible: () => activeView.value === null || activeView.value === 'reports',
     toast(message, type = 'info') {
       const fn = ElMessage[type]
       if (typeof fn === 'function') fn(message)

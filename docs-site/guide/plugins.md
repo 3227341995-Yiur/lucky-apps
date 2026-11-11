@@ -9,7 +9,7 @@ const api = window.weekReport
 api.ui.toast('插件已加载', 'success')
 
 const off = api.events.on('report:created', report => {
-  api.ui.toast(`新建周报：${report.title}`)
+  api.ui.toast(`新建报表：${report.title}`)
 })
 
 api.commands.register('my-plugin.refresh', async payload => {
@@ -29,12 +29,12 @@ api.commands.register('my-plugin.refresh', async payload => {
 
 ## 事件
 
-通过 `events.on` 订阅，返回取消订阅函数。
+通过 `events.on` 订阅，返回取消订阅函数。`report:*` 事件由内置 `reports` 插件触发。
 
 | 事件 | 触发时机 |
 | --- | --- |
-| `report:created` | 新建周报 |
-| `report:updated` | 保存周报 |
+| `report:created` | 新建报表 |
+| `report:updated` | 保存报表 |
 | `report:deleted` | 移入回收站 |
 | `report:restored` | 从回收站恢复 |
 | `report:purged` | 彻底删除 |

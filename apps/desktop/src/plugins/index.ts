@@ -27,7 +27,10 @@ async function installGlobalModules() {
   window.Vue = await import('vue')
   window.ElementPlus = await import('element-plus')
   window.ElementPlusIconsVue = await import('@element-plus/icons-vue')
-  window.Handlebars = await import('handlebars')
+  // 全局只保留一份 Handlebars 实例；reports 插件 external 后复用它，
+  // resources/js/registerHelper.js 注册的 helper 对模板预览/导出同时生效。
+  const handlebars = await import('handlebars')
+  window.Handlebars = handlebars.default || handlebars
   window.VditorModule = await import('vditor')
 }
 

@@ -6,8 +6,7 @@
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 import { readFile, writeFile, rm } from 'node:fs/promises'
-import { transform } from 'esbuild'
-import type { Plugin } from 'vite'
+import { build as viteBuild, type Plugin } from 'vite'
 
 function cssInjectedByJs(name: string): Plugin {
   return {
@@ -36,45 +35,56 @@ function cssInjectedByJs(name: string): Plugin {
   }
 }
 
-// 包可在 src/node-extra.js 里挂自己的 Node 能力（如周报插件的数据库），
-// 构建时原样复制到 lib/node-extra.js，由生成的 node half 动态加载。
-function writeNodeHalf(name: string, root?: string): Plugin {
+// 需要真实 Node 能力的包：用 Vite（ESM library 模式）把 src/node.ts 构建成 lib/node.js。
+export function nodeHalf(root = process.cwd()): Plugin {
+  return {
+    name: 'lucky-apps-node-half',
+    apply: 'build',
+    async closeBundle() {
+      await viteBuild({
+        configFile: false,
+        logLevel: 'warn',
+        build: {
+          outDir: path.resolve(root, 'lib'),
+          emptyOutDir: false,
+          minify: false,
+          target: 'node22',
+          ssr: true,
+          lib: {
+            entry: path.resolve(root, 'src', 'node.ts'),
+            formats: ['esm'],
+            fileName: () => 'node.js',
+          },
+          rollupOptions: { external: [/^node:/] },
+        },
+      })
+    },
+  }
+}
+
+// 普通组件包没有 Node half：生成一个只登记 client bundle 的 loader 行。
+function writeNodeHalf(name: string): Plugin {
   return {
     name: 'lucky-apps-package-node-half',
     apply: 'build',
     async writeBundle(options) {
       const outDir = options.dir
       if (!outDir) return
-      const extraSource = root ? path.join(root, 'src', 'node-extra.ts') : ''
-      if (extraSource) {
-        // node_modules 里不能 strip .ts，插件 Node half 的附加能力编译后再发布
-        const source = await readFile(extraSource, 'utf8').catch(() => '')
-        if (source) {
-          const { code } = await transform(source, { loader: 'ts', format: 'esm', target: 'node22' })
-          await writeFile(path.join(outDir, 'node-extra.js'), code)
-        }
-      }
       await writeFile(
         path.join(outDir, 'node.js'),
         `import { dirname, join } from 'node:path'
-import { existsSync } from 'node:fs'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 export const name = ${JSON.stringify(name)}
 export const inject = ['clientModules']
 
-export async function apply(ctx) {
+export function apply(ctx) {
   ctx.clientModules.register({
     id: ${JSON.stringify(name)},
     package: ${JSON.stringify(name)},
     file: join(dirname(fileURLToPath(import.meta.url)), 'client.js'),
     url: '/client/${name}/index.js'
   })
-  const extra = join(dirname(fileURLToPath(import.meta.url)), 'node-extra.js')
-  if (existsSync(extra)) {
-    const mod = await import(pathToFileURL(extra).href)
-    await mod.apply?.(ctx)
-  }
 }
 
 export default { name, inject, apply }
@@ -84,13 +94,21 @@ export default { name, inject, apply }
   }
 }
 
-export function createExtensionConfig({ name, entry = 'src/index.ts', root = process.cwd() }: {
+export function createExtensionConfig({ name, entry = 'src/index.ts', root = process.cwd(), withNodeHalf = true }: {
   name: string
   entry?: string
   root?: string
+  /** false 时由包自己用 nodeHalf() 构建 src/node.ts */
+  withNodeHalf?: boolean
 }) {
   return {
-    plugins: [vue(), cssInjectedByJs(name), writeNodeHalf(name, root)],
+    plugins: [vue(), cssInjectedByJs(name), ...(withNodeHalf ? [writeNodeHalf(name)] : [])],
+    // 直接指向工作区源码：不依赖 node_modules 里 pnpm 为 workspace 包建的 junction
+    resolve: {
+      alias: {
+        'plugin-api': path.resolve(root, '../../sdk/plugin-api/src/index.ts'),
+      },
+    },
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
       __VUE_OPTIONS_API__: 'true',

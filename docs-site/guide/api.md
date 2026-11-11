@@ -1,6 +1,7 @@
 # API 参考
 
-全部能力都挂在 `window.weekReport` 下，API 版本为 2。
+全部能力都挂在 `window.weekReport` 下，API 版本为 2。`reports` / `templates` / `config`
+命名空间由内置 `reports` 插件提供；卸载该插件后这些命名空间不可用。
 
 | 命名空间 | 方法 |
 | --- | --- |
@@ -15,12 +16,12 @@
 | `components` | `register` · `list` · `has` |
 | `extensions` | `list` · `errors` |
 
-## 周报结构
+## 报表结构
 
 ```js
 {
   id: 1762312345678001,
-  title: '工作周报 - 2026-11-02 ~ 2026-11-08',
+  title: '工作报表 - 2026-11-02 ~ 2026-11-08',
   dateRange: ['2026-11-02', '2026-11-08'],
   sections: [
     {

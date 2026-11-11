@@ -1,6 +1,7 @@
 {
   "name": "plugin-api",
   "version": "1.0.0",
+  "keywords": ["cordis", "lucky-apps"],
   "description": "Lucky Apps external component plugin API",
   "type": "module",
   "main": "src/index.ts",

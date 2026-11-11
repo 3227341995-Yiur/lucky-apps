@@ -1,23 +1,37 @@
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { DatabaseSync } from 'node:sqlite'
+import { mkdirSync } from 'node:fs'
+import { homedir } from 'node:os'
+
+export const name = 'reports'
+export const inject = ['clientModules']
+
+export async function apply(ctx) {
+  ctx.clientModules.register({
+    id: name,
+    package: name,
+    file: join(dirname(fileURLToPath(import.meta.url)), 'client.js'),
+    url: '/client/reports/index.js',
+  })
+  applyDatabase(ctx)
+}
+
+export default { name, inject, apply }
+
 /**
- * 周报插件自带的 Node 端 SQLite 服务（reports-database）。
+ * 周报插件 Node half：登记 client bundle + 自带 SQLite 服务（reports-database）。
  *
  * 数据库归周报能力所有：周报插件被卸载/未加载时，宿主不保留任何周报数据层。
  * 浏览器通过 /api/db/* RPC 调用 ctx.database。
  */
-import { DatabaseSync } from 'node:sqlite'
-import { mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { homedir } from 'node:os'
-
-export const name = 'reports-database'
-
 function dbPath() {
   if (process.env.WR_DB_PATH) return process.env.WR_DB_PATH
   const appData = process.env.APPDATA || join(homedir(), 'AppData', 'Roaming')
   return join(appData, 'com.lu.lucky-apps', 'lucky_apps.db')
 }
 
-export function apply(ctx) {
+function applyDatabase(ctx) {
   const file = dbPath()
   mkdirSync(dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
@@ -67,5 +81,3 @@ export function apply(ctx) {
 
   ctx.on('dispose', () => db.close())
 }
-
-export default { name, apply }

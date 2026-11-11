@@ -1,6 +1,7 @@
 {
   "name": "lucky-apps",
   "version": "3.0.0",
+  "keywords": ["cordis", "lucky-apps"],
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.16.1",
@@ -8,8 +9,8 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm -C apps/desktop exec vite",
-    "build": "pnpm -C apps/desktop exec vite build && pnpm docs:build",
+    "dev": "pnpm docs:build && pnpm -C apps/desktop exec vite",
+    "build": "pnpm docs:build && pnpm -C apps/desktop exec vite build",
     "docs:dev": "vitepress dev docs-site",
     "docs:build": "vitepress build docs-site",
     "preview": "pnpm -C apps/desktop exec vite preview",

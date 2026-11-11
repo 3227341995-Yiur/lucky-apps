@@ -128,6 +128,9 @@ export const ui = {
   selectReport(id) {
     return requireHost().ui.selectReport(id)
   },
+  isReportsVisible() {
+    return requireHost().ui.isReportsVisible()
+  },
   openSettings() {
     return requireHost().ui.openSettings()
   },
