@@ -5,7 +5,7 @@ import { useTheme } from '@/composables/useTheme'
 import { branding, setBranding } from '@/composables/useBranding'
 import { apiGet, apiPost } from '@/services/rpc'
 import { useExtensions } from '@/composables/useExtensions'
-import { buildIconPayload } from '@/utils/appIcon'
+import { buildIconPayload, imageFileToDataUrl } from '@/utils/appIcon'
 
 import AppDialog from '@/components/common/AppDialog.vue'
 import { getSettingsSectionComponent, listSettingsSections } from '@/plugins/registry'
@@ -119,6 +119,37 @@ async function toggleAutostart(value) {
     ElMessage.error(`设置开机自启动失败：${error?.message || error}`)
   } finally {
     autostartLoading.value = false
+  }
+}
+
+const brandIconInput = ref<HTMLInputElement | null>(null)
+const brandIconBusy = ref(false)
+
+function pickBrandIcon() {
+  brandIconInput.value?.click()
+}
+
+async function onBrandIconFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过 10MB')
+    return
+  }
+  brandIconBusy.value = true
+  try {
+    branding.icon = await imageFileToDataUrl(file)
+    ElMessage.success('图标已载入，点击「保存品牌」生效')
+  } catch (error) {
+    ElMessage.error(`读取图片失败：${error?.message || error}`)
+  } finally {
+    brandIconBusy.value = false
   }
 }
 
@@ -286,11 +317,25 @@ async function handleCopyResources() {
                 <el-input v-model="branding.name" maxlength="40" />
               </label>
               <label class="loading-field">
-                <span>程序图标 URL</span>
-                <el-input v-model="branding.icon" placeholder="https://… 或 data:image/…（建议方形）" />
+                <span>程序图标</span>
+                <div class="brand-icon-row">
+                  <el-input
+                    v-model="branding.icon"
+                    class="brand-icon-input"
+                    placeholder="图片 URL，或点击右侧本地上传"
+                  />
+                  <el-button :loading="brandIconBusy" @click="pickBrandIcon">本地上传</el-button>
+                </div>
               </label>
             </div>
-            <p class="hint">会同步修改窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标（exe 需重启后生效）。</p>
+            <input
+              ref="brandIconInput"
+              class="brand-icon-file"
+              type="file"
+              accept="image/*"
+              @change="onBrandIconFile"
+            />
+            <p class="hint">支持本地上传或图片 URL，建议使用方形图片。会同步修改窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标（exe 需重启后生效）。</p>
             <el-button type="primary" plain @click="saveBranding">保存品牌</el-button>
           </div>
 
@@ -1151,6 +1196,21 @@ async function handleCopyResources() {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.brand-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.brand-icon-file {
+  display: none;
 }
 
 </style>
