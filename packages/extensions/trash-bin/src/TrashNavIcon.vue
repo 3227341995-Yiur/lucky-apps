@@ -10,7 +10,7 @@ let off = null
 
 async function refresh() {
   try {
-    const stats = await ctx.weekReport.reports.stats()
+    const stats = await ctx.get('weekReport').reports.stats()
     count.value = Math.max(0, Number(stats?.trash) || 0)
   } catch {}
 }

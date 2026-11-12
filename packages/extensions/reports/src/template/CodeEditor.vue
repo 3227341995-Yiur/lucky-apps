@@ -26,12 +26,12 @@ const modelValue = defineModel({
 })
 
 const ctx = inject('cordis')
-const resolvedTheme = ref(ctx.theme.get().resolved)
+const resolvedTheme = ref(ctx.get('theme').get().resolved)
 let offTheme = null
 
 onMounted(() => {
-  offTheme = ctx.theme.onChange((theme) => {
-    resolvedTheme.value = theme?.resolved || ctx.theme.get().resolved
+  offTheme = ctx.get('theme').onChange((theme) => {
+    resolvedTheme.value = theme?.resolved || ctx.get('theme').get().resolved
   })
 })
 

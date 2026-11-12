@@ -7,7 +7,7 @@ import ElementWidget from '../designer/components/ElementWidget.vue'
 import { formatDateRange } from '../reportExport'
 
 const ctx = inject('cordis')
-const hasComponent = name => ctx.components.has(name)
+const hasComponent = name => ctx.get('components').has(name)
 
 defineOptions({ name: 'ReportPage' })
 

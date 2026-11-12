@@ -4,7 +4,7 @@ import { createRow } from '../designer/config/defaultReportConfig'
 import { computed , inject } from 'vue'
 
 const ctx = inject('cordis')
-const extensionVersion = computed(() => ctx.extensions.version?.value ?? 0)
+const extensionVersion = computed(() => ctx.get('extensions').version?.value ?? 0)
 
 defineOptions({ name: 'ReportSection' })
 

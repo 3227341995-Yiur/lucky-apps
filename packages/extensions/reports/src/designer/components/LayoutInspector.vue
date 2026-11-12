@@ -26,7 +26,7 @@ const emit = defineEmits([
   'align-element',
 ])
 
-const componentOptions = computed(() => ctx.components.listColumns())
+const componentOptions = computed(() => ctx.get('components').listColumns())
 const elComponents = computed(() => getAllElComponents())
 const elPropsText = ref('{}')
 const elPropsError = ref('')

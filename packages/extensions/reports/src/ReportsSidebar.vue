@@ -80,7 +80,7 @@ function selectReport(report) {
 
 // 只在报表视图可见时高亮当前报表；切到其他功能页后取消选中
 function isActive(report) {
-  return (ctx.ui.activeView?.value === 'reports') && weekReportApi.ui.currentReportId() === report.id
+  return (ctx.get('ui').activeView?.value === 'reports') && weekReportApi.ui.currentReportId() === report.id
 }
 
 async function removeReport(report) {

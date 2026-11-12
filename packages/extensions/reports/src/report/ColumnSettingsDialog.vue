@@ -5,7 +5,7 @@ import { Plus, ArrowDown } from '@element-plus/icons-vue'
 import { cloneConfig } from '../designer/config/defaultReportConfig'
 
 const ctx = inject('cordis')
-const extensionVersion = computed(() => ctx.extensions.version?.value ?? 0)
+const extensionVersion = computed(() => ctx.get('extensions').version?.value ?? 0)
 import { toPascalCase } from '../naming'
 
 defineOptions({ name: 'ColumnSettingsDialog' })
@@ -26,7 +26,7 @@ const selectedIndex = ref(0)
 const attrsError = ref('')
 const showAttrs = ref(false)
 
-const componentOptions = computed(() => ctx.components.listColumns())
+const componentOptions = computed(() => ctx.get('components').listColumns())
 const columns = computed(() => draft.value?.columns || [])
 const selectedColumn = computed(() => columns.value[selectedIndex.value] || null)
 
@@ -72,7 +72,7 @@ const propIssue = computed(() => {
 const slotName = computed(() => {
   void extensionVersion.value
   const component = selectedColumn.value?.component
-  if (!component || !ctx.components.hasColumnSlot(component)) return null
+  if (!component || !ctx.get('components').hasColumnSlot(component)) return null
   return `${toPascalCase(component)}ColumnModifySlot`
 })
 
@@ -134,7 +134,7 @@ function moveColumn(index, delta) {
 }
 
 function parseAttrs(column) {
-  if (!column || (column.component && ctx.components.hasColumnSlot(column.component))) return true
+  if (!column || (column.component && ctx.get('components').hasColumnSlot(column.component))) return true
   if (column.attrsText === undefined) return true
   try {
     const value = JSON.parse(column.attrsText || '{}')
@@ -176,7 +176,7 @@ function handleSave() {
 
 // 同步 attrs 文本（外部插槽列由插槽组件自行编辑，不显示 JSON）
 watch(selectedColumn, (column) => {
-  if (column && !(column.component && ctx.components.hasColumnSlot(column.component))) {
+  if (column && !(column.component && ctx.get('components').hasColumnSlot(column.component))) {
     column.attrsText = JSON.stringify(column.attrs || {}, null, 2)
   }
 })

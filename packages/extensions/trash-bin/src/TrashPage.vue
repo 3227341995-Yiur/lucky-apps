@@ -35,7 +35,7 @@ function weekOf(report) {
 async function loadTrash() {
   trashLoading.value = true
   try {
-    items.value = await ctx.weekReport.reports.trashed({ limit: 200, offset: 0 })
+    items.value = await ctx.get('weekReport').reports.trashed({ limit: 200, offset: 0 })
   } catch (error) {
     ElMessage.error(error?.message || '加载回收站失败')
   } finally {
@@ -52,9 +52,9 @@ onBeforeUnmount(() => off?.())
 
 async function handleRestore(report) {
   try {
-    await ctx.weekReport.reports.restore(report.id)
+    await ctx.get('weekReport').reports.restore(report.id)
     ElMessage.success(`已恢复「${report.title}」`)
-    await ctx.weekReport.ui.selectReport(report.id)
+    await ctx.get('weekReport').ui.selectReport(report.id)
   } catch (error) {
     ElMessage.error(error?.message || '恢复失败')
   }
@@ -71,7 +71,7 @@ async function handlePurge(report) {
     return
   }
   try {
-    await ctx.weekReport.reports.purge(report.id)
+    await ctx.get('weekReport').reports.purge(report.id)
     ElMessage.success('已彻底删除')
     await loadTrash()
   } catch (error) {
@@ -90,7 +90,7 @@ async function handleEmpty() {
     return
   }
   try {
-    const count = await ctx.weekReport.reports.emptyTrash()
+    const count = await ctx.get('weekReport').reports.emptyTrash()
     ElMessage.success(`已清空回收站，共删除 ${count} 份周报`)
     await loadTrash()
   } catch (error) {
@@ -113,7 +113,7 @@ async function handleEmpty() {
         </div>
 
         <div class="header-actions">
-          <el-button text @click="ctx.navigation.open('reports')">
+          <el-button text @click="ctx.get('navigation').open('reports')">
             <el-icon><ArrowLeft /></el-icon>
             <span>返回周报</span>
           </el-button>

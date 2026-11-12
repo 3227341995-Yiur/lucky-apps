@@ -431,7 +431,7 @@ function updateElModel(element, value) {
         >
           <component
             :is="element.component"
-            v-if="ctx.components.has(element.component)"
+            v-if="ctx.get('components').has(element.component)"
             v-bind="element.props || {}"
           />
           <span v-else class="element-custom-empty">外部组件不可用：{{ element.component || '未选择' }}</span>

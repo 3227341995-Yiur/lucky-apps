@@ -11,7 +11,7 @@ import { setReportCtx } from './ctx'
 
 export default {
   name: '@lucky-apps/extension-reports',
-  inject: ['navigation', 'settings', 'sidebar', 'overlay'],
+  inject: ['navigation', 'settings', 'sidebar', 'overlay', 'db', 'extensions', 'ui'],
   async apply(ctx) {
     setReportCtx(ctx)
     // 数据库/表结构归周报插件所有；插件未加载时宿主不保留周报数据层。

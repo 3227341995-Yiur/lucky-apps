@@ -73,7 +73,7 @@ const sectionBoxStyle = computed(() => ({
 
 const columns = computed(() => props.section?.columns || [])
 const customReady = computed(() => (
-  props.element.type === 'component' && ctx.components.has(props.element.component)
+  props.element.type === 'component' && ctx.get('components').has(props.element.component)
 ))
 
 const sampleRows = computed(() => {

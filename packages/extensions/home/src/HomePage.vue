@@ -50,13 +50,13 @@ const quickActions = [
 async function reload() {
   try {
     const [list, nextStats] = await Promise.all([
-      ctx.weekReport.reports.list({ limit: 300, offset: 0 }),
-      ctx.weekReport.reports.stats(),
+      ctx.get('weekReport').reports.list({ limit: 300, offset: 0 }),
+      ctx.get('weekReport').reports.stats(),
     ])
     reports.value = list || []
     stats.value = { ...stats.value, ...(nextStats || {}) }
   } catch (error) {
-    ctx.ui.toast?.(`加载首页失败：${error?.message || error}`, 'error')
+    ctx.get('ui').toast?.(`加载首页失败：${error?.message || error}`, 'error')
   }
 }
 
@@ -64,7 +64,7 @@ watch(weekReport, async (report) => {
   weekDetail.value = null
   if (!report) return
   try {
-    weekDetail.value = await ctx.weekReport.reports.get(report.id)
+    weekDetail.value = await ctx.get('weekReport').reports.get(report.id)
   } catch {
     weekDetail.value = null
   }
@@ -73,25 +73,25 @@ watch(weekReport, async (report) => {
 async function createReport() {
   try {
     const range = getWeekRange(new Date())
-    const report = await ctx.weekReport.reports.create({
+    const report = await ctx.get('weekReport').reports.create({
       title: `周报 ${range[0].slice(5)} ~ ${range[1].slice(5)}`,
       dateRange: range,
     })
-    await ctx.weekReport.ui.selectReport(report.id)
+    await ctx.get('weekReport').ui.selectReport(report.id)
   } catch (error) {
-    ctx.ui.toast?.(`新建周报失败：${error?.message || error}`, 'error')
+    ctx.get('ui').toast?.(`新建周报失败：${error?.message || error}`, 'error')
   }
 }
 
 function openReport(id) {
-  ctx.weekReport.ui.selectReport(id)
+  ctx.get('weekReport').ui.selectReport(id)
 }
 
 function onQuick(action) {
   if (action === 'create') createReport()
-  else if (action === 'io') ctx.navigation.open('data-io')
-  else if (action === 'designer') ctx.weekReport.ui.openDesigner()
-  else if (action === 'settings') ctx.ui.openSettings()
+  else if (action === 'io') ctx.get('navigation').open('data-io')
+  else if (action === 'designer') ctx.get('weekReport').ui.openDesigner()
+  else if (action === 'settings') ctx.get('ui').openSettings()
 }
 
 function rangeText(dateRange) {
@@ -132,7 +132,7 @@ onBeforeUnmount(() => off?.())
               打开本周周报
             </el-button>
             <el-button v-else type="primary" @click="createReport">新建本周周报</el-button>
-            <el-button text @click="ctx.weekReport.ui.openDesigner()">
+            <el-button text @click="ctx.get('weekReport').ui.openDesigner()">
               <el-icon><MagicStick /></el-icon>
               <span>画布设计</span>
             </el-button>

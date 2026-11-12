@@ -34,7 +34,7 @@ async function loadStats() {
 async function load() {
   loading.value = true
   try {
-    const list = await ctx.extensions.list()
+    const list = await ctx.get('extensions').list()
     resources.value = (list || []).filter(item => item.kind === 'component')
   } catch (error) {
     ElMessage.error(`读取组件失败：${error?.message || error}`)
@@ -46,7 +46,7 @@ async function load() {
 async function toggle(resource) {
   let enabled
   try {
-    enabled = await ctx.extensions.toggle(resource.id)
+    enabled = await ctx.get('extensions').toggle(resource.id)
   } catch (error) {
     ElMessage.error(`保存设置失败：${error?.message || error}`)
     return
@@ -67,7 +67,7 @@ async function toggle(resource) {
 async function rescan() {
   loading.value = true
   try {
-    await ctx.extensions.rescan()
+    await ctx.get('extensions').rescan()
     await load()
     ElMessage.success('已重新扫描组件')
   } catch (error) {

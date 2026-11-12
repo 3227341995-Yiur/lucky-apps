@@ -20,12 +20,12 @@ const { state } = reports
 watch(
   () => state.currentReport?.title,
   (title) => {
-    const name = ctx.branding.get().name || 'Lucky Apps'
+    const name = ctx.get('branding').get().name || 'Lucky Apps'
     document.title = title ? `${title} · ${name}` : name
   },
   { immediate: true },
 )
-onBeforeUnmount(() => { document.title = ctx.branding.get().name || 'Lucky Apps' })
+onBeforeUnmount(() => { document.title = ctx.get('branding').get().name || 'Lucky Apps' })
 
 const copySettings = ref({ enabled: true, defaultType: 'html' })
 const copyTypes = ref([

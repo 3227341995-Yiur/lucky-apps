@@ -8,12 +8,12 @@ import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
 // ponytail: 只暴露 resolvedTheme，编辑器/预览用到其余主题能力时再补
 export function useTheme() {
   const ctx = inject('cordis')
-  const resolvedTheme = ref(ctx.theme.get().resolved)
+  const resolvedTheme = ref(ctx.get('theme').get().resolved)
   let off = null
 
   onMounted(() => {
-    off = ctx.theme.onChange((theme) => {
-      resolvedTheme.value = theme?.resolved || ctx.theme.get().resolved
+    off = ctx.get('theme').onChange((theme) => {
+      resolvedTheme.value = theme?.resolved || ctx.get('theme').get().resolved
     })
   })
 

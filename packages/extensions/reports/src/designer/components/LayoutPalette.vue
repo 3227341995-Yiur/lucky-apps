@@ -25,7 +25,7 @@ const layoutWidgets = WIDGETS
   .filter(widget => widget.type !== 'section')
   .map(widget => ({ ...widget, kind: 'element' }))
 
-const externalWidgets = computed(() => ctx.components.listCanvas()
+const externalWidgets = computed(() => ctx.get('components').listCanvas()
   .filter(item => item.source !== 'builtin')
   .map(item => ({
     kind: 'component',
