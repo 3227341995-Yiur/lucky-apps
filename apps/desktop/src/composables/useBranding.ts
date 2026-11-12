@@ -1,5 +1,5 @@
 /**
- * 程序品牌：名称与图标。可由设置界面或外部插件通过 weekReport.branding 修改。
+ * 程序品牌：名称与图标。可由设置界面或外部插件通过 @lucky-apps/plugin-api branding 修改。
  */
 import { reactive } from 'vue'
 import { emit } from '@/utils/eventBus'

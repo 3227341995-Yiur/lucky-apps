@@ -2,11 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
-import AppDialog from '@/components/common/AppDialog.vue'
-import CodeEditor from '@/components/CodeEditor.vue'
-import { cloneConfig } from '@/config/defaultReportConfig'
-import { listColumnComponents, hasColumnSlot, extensionVersion } from '@/plugins/registry'
-import { toPascalCase } from '@/plugins/naming'
+import { cloneConfig } from '../designer/config/defaultReportConfig'
+import { useHost } from '../host'
+
+const api = useHost()
+const extensionVersion = computed(() => api.extensions.version?.value ?? 0)
+import { toPascalCase } from '../naming'
 
 defineOptions({ name: 'ColumnSettingsDialog' })
 
@@ -26,7 +27,7 @@ const selectedIndex = ref(0)
 const attrsError = ref('')
 const showAttrs = ref(false)
 
-const componentOptions = computed(() => listColumnComponents())
+const componentOptions = computed(() => api.components.listColumns())
 const columns = computed(() => draft.value?.columns || [])
 const selectedColumn = computed(() => columns.value[selectedIndex.value] || null)
 
@@ -72,7 +73,7 @@ const propIssue = computed(() => {
 const slotName = computed(() => {
   void extensionVersion.value
   const component = selectedColumn.value?.component
-  if (!component || !hasColumnSlot(component)) return null
+  if (!component || !api.components.hasColumnSlot(component)) return null
   return `${toPascalCase(component)}ColumnModifySlot`
 })
 
@@ -134,7 +135,7 @@ function moveColumn(index, delta) {
 }
 
 function parseAttrs(column) {
-  if (!column || (column.component && hasColumnSlot(column.component))) return true
+  if (!column || (column.component && api.components.hasColumnSlot(column.component))) return true
   if (column.attrsText === undefined) return true
   try {
     const value = JSON.parse(column.attrsText || '{}')
@@ -176,7 +177,7 @@ function handleSave() {
 
 // 同步 attrs 文本（外部插槽列由插槽组件自行编辑，不显示 JSON）
 watch(selectedColumn, (column) => {
-  if (column && !(column.component && hasColumnSlot(column.component))) {
+  if (column && !(column.component && api.components.hasColumnSlot(column.component))) {
     column.attrsText = JSON.stringify(column.attrs || {}, null, 2)
   }
 })

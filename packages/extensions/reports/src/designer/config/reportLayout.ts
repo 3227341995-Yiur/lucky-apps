@@ -10,7 +10,7 @@
  *
  * 报表中只保存 page + elements（layout），数据表结构复用 report.sections。
  */
-import layoutDefaults from './defaults/layout-defaults.json'
+import layoutDefaults from './defaults/layout-defaults.json' with { type: 'json' }
 import { generateId } from '../utils/idGenerator.ts'
 import {
   DEFAULT_REPORT_CONFIG,

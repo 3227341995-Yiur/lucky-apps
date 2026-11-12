@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { Delete, CopyDocument, Plus, Setting } from '@element-plus/icons-vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from '../../host.ts'
 import CodeEditor from './CodeEditor.vue'
 import { PAGE_PRESETS } from '../config/reportLayout.ts'
 import { getAllElComponents, getElWidget } from '../utils/elementPlusWidgets.ts'

@@ -5,9 +5,9 @@
  * 兼容旧格式：早期 localStorage 中保存的是 JS 对象字面量字符串，
  * 迁移时原样入库，这里做一次兼容解析（不用于新数据）。
  */
-import { loadConfig, saveConfig, clearConfig } from '@/services/database'
-import { cloneConfig } from '@/config/defaultReportConfig'
-import { normalizeLayoutConfig, createDefaultLayout } from '@/config/reportLayout'
+import { loadConfig, saveConfig, clearConfig } from './database'
+import { cloneConfig } from './designer/config/defaultReportConfig'
+import { normalizeLayoutConfig, createDefaultLayout } from './designer/config/reportLayout'
 
 /**
  * 解析配置文本：优先 JSON，失败时兼容旧 JS 字面量

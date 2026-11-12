@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from '../host.ts'
 import LayoutPalette from './components/LayoutPalette.vue'
 import LayoutCanvas from './components/LayoutCanvas.vue'
 import LayoutInspector from './components/LayoutInspector.vue'

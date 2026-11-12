@@ -1,8 +1,7 @@
 import MoneyCell from './MoneyCell.vue'
 import MoneyCellSlot from './MoneyCell.cslot.vue'
-import { definePlugin } from '@lucky-apps/plugin-api'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-money-cell',
   inject: ['components'],
   apply(ctx) {
@@ -14,4 +13,4 @@ export default definePlugin({
       value: 'money-cell',
     })
   },
-})
+}

@@ -1,21 +1,33 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import ReportPage from '@/components/report/ReportPage.vue'
-import { useReports } from '@/composables/useReports'
-import { debounce } from '@/utils/debounce'
-import { getCopySettings, renderCopyContent } from '@/utils/reportExport'
-import { getTemplateTypes } from '@/services/templateService'
-import { events } from '@/utils/eventBus'
-import { formatDateTime } from '@/utils/date'
-import { createDefaultLayout, extractLayout, normalizeReportLayout } from '@/config/reportLayout'
+import ReportPage from './report/ReportPage.vue'
+import { useReports } from './useReports'
+import { debounce } from './template/utils/debounce'
+import { getCopySettings, renderCopyContent } from './reportExport'
+import { getTemplateTypes } from './template/services/templateService'
+import { events } from './events'
+import { formatDateTime } from './designer/utils/date'
+import { createDefaultLayout, extractLayout, normalizeReportLayout } from './designer/config/reportLayout'
+import { openReportsDialog } from './dialogs'
+import { useHost } from './host'
 
 defineOptions({ name: 'ReportEditor' })
 
-const emit = defineEmits(['open-import-export', 'open-design'])
 
+const hostApi = useHost()
 const reports = useReports()
 const { state } = reports
+
+watch(
+  () => state.currentReport?.title,
+  (title) => {
+    const name = hostApi.branding.get().name || 'Lucky Apps'
+    document.title = title ? `${title} · ${name}` : name
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => { document.title = hostApi.branding.get().name || 'Lucky Apps' })
 
 const copySettings = ref({ enabled: true, defaultType: 'html' })
 const copyTypes = ref([
@@ -208,8 +220,8 @@ async function moveToTrash() {
 
 function handleCommand(command) {
   if (command === 'trash') moveToTrash()
-  else if (command === 'design') emit('open-design')
-  else if (command === 'io') emit('open-import-export')
+  else if (command === 'design') openReportsDialog('designer')
+  else if (command === 'io') openReportsDialog('io')
 }
 </script>
 
@@ -261,7 +273,7 @@ function handleCommand(command) {
           <span>复制画布</span>
         </el-button>
 
-        <el-button class="editor-action" type="primary" @click="emit('open-import-export', 'export')">
+        <el-button class="editor-action" type="primary" @click="openReportsDialog('io')">
           <el-icon><Download /></el-icon>
           <span>导出</span>
         </el-button>

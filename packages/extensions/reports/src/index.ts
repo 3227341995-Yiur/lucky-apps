@@ -1,19 +1,27 @@
-import { definePlugin } from '@lucky-apps/plugin-api'
+import ReportsPage from './ReportEditor.vue'
 import ReportsSidebar from './ReportsSidebar.vue'
 import ReportsSettings from './ReportsSettings.vue'
 import ReportsOverlays from './ReportsOverlays.vue'
 import { createWeekReport } from './createReport'
+import { weekReportApi } from './api'
+import { ensureDatabase } from './database'
+import { useReports } from './useReports'
+import { openReportsDialog } from './dialogs'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-reports',
   inject: ['navigation', 'settings', 'sidebar', 'overlay'],
-  apply(ctx) {
+  async apply(ctx) {
+    // 数据库/表结构归周报插件所有；插件未加载时宿主不保留周报数据层。
+    await ensureDatabase()
+    ctx.provide('weekReport', weekReportApi)
+
     ctx.navigation.register({
       id: 'reports',
       label: '周报',
       icon: 'Document',
       order: 10,
-      hostView: 'report-editor',
+      component: ReportsPage,
     })
     ctx.sidebar.registerRailAction({
       id: 'reports-create',
@@ -39,5 +47,25 @@ export default definePlugin({
       order: 60,
       component: ReportsSettings,
     })
+
+    const onKeydown = (event) => {
+      const ctrl = event.ctrlKey || event.metaKey
+      if (ctrl && !event.shiftKey && event.key.toLowerCase() === 'n') {
+        event.preventDefault()
+        createWeekReport()
+      } else if (ctrl && !event.shiftKey && event.key.toLowerCase() === 'p') {
+        event.preventDefault()
+        openReportsDialog('template')
+      } else if (ctrl && event.shiftKey && event.key.toLowerCase() === 'e') {
+        event.preventDefault()
+        openReportsDialog('io')
+      }
+    }
+    ctx.effect(() => {
+      window.addEventListener('keydown', onKeydown)
+      return () => window.removeEventListener('keydown', onKeydown)
+    })
+
+    useReports().init()
   },
-})
+}

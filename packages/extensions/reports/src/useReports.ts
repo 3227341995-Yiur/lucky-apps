@@ -6,7 +6,9 @@
  */
 import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { pluginApi } from '@/plugins/api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { createReport as createReportRow, removeReport, restoreReport as restoreReportRow, purgeReport as purgeReportRow, emptyTrashReports } from './reports'
+import { events } from './events'
 import {
   loadAllReports,
   loadDeletedReports,
@@ -15,20 +17,19 @@ import {
   getReportStats,
   getRecentReports,
   saveReport,
-} from '@/services/database'
-import { ensureDefaultTemplate } from '@/services/templateService'
-import { getReportConfig } from '@/services/reportConfigService'
-import { evaluateJsExpression } from '@/utils/expression'
+} from './database'
+import { ensureDefaultTemplate } from './template/services/templateService'
+import { getReportConfig } from './reportConfigService'
+import { evaluateJsExpression } from './designer/utils/expression'
 import {
   createSectionsFromConfig,
   createRow,
   normalizeReportConfig,
   cloneConfig,
-} from '@/config/defaultReportConfig'
-import { extractLayout } from '@/config/reportLayout'
-import { extensionState } from '@/plugins/registry'
-import { generateId } from '@/utils/idGenerator'
-import { getWeekRange } from '@/utils/date'
+} from './designer/config/defaultReportConfig'
+import { extractLayout } from './designer/config/reportLayout'
+import { generateId } from './designer/utils/idGenerator'
+import { getWeekRange } from './designer/utils/date'
 
 const state = reactive({
   initialized: false,
@@ -193,7 +194,7 @@ async function createReport() {
     fallbackTitle,
   )
 
-  const report = await pluginApi.reports.create({
+  const report = await createReportRow({
     id: generateId(),
     title,
     dateRange: [start, end],
@@ -243,7 +244,7 @@ async function saveCurrent() {
 async function deleteReport(id) {
   ignoredSaveIds.add(id)
   try {
-    await pluginApi.reports.remove(id)
+    await removeReport(id)
   } catch (error) {
     ignoredSaveIds.delete(id)
     throw error
@@ -255,7 +256,7 @@ async function refreshStats() {
     const dbStats = await getReportStats()
     state.stats = {
       ...dbStats,
-      extensions: extensionState.resources.filter(item => item.enabled).length,
+      extensions: useHost().extensions.list().filter(item => item.enabled).length,
     }
   } catch (error) {
     console.error('[reports] 刷新统计失败:', error)
@@ -281,7 +282,7 @@ async function loadTrash() {
 
 async function restoreReport(id) {
   ignoredSaveIds.delete(id)
-  await pluginApi.reports.restore(id)
+  await restoreReportRow(id)
   await loadReports(false)
   await loadTrash()
   await refreshStats()
@@ -289,13 +290,13 @@ async function restoreReport(id) {
 }
 
 async function purgeReport(id) {
-  await pluginApi.reports.purge(id)
+  await purgeReportRow(id)
   await loadTrash()
   await refreshStats()
 }
 
 async function emptyTrash() {
-  const count = await pluginApi.reports.emptyTrash()
+  const count = await emptyTrashReports()
   await loadTrash()
   await refreshStats()
   return count
@@ -366,20 +367,13 @@ async function init() {
     await Promise.all([loadReports(false), refreshStats(), loadRecent()])
 
     if (!subscribed) {
-      pluginApi.events.on('report:changed', (payload) => {
+      events.on('report:changed', (payload) => {
         handleReportChanged(payload).catch(error => console.error('[reports] 刷新失败:', error))
       })
       subscribed = true
     }
 
-    pluginApi.registerUi({
-      selectReport,
-      openSettings: () => callUiHook('openSettings'),
-      openImportExport: () => callUiHook('openImportExport'),
-      openDesigner: () => callUiHook('openDesigner'),
-      openTemplates: () => callUiHook('openTemplates'),
-      navigate: id => callUiHook('navigate', id),
-    })
+
 
     state.initialized = true
   } catch (error) {
@@ -388,15 +382,6 @@ async function init() {
   } finally {
     state.initializing = false
   }
-}
-
-// App 可注册额外的 UI 钩子（设置/导入导出/设计器/模板），插件通过 API 触发
-let uiHooks = {}
-function registerUiHooks(hooks) {
-  uiHooks = { ...uiHooks, ...hooks }
-}
-function callUiHook(name, ...args) {
-  return uiHooks[name]?.(...args)
 }
 
 const counts = computed(() => ({
@@ -428,7 +413,6 @@ export function useReports() {
     emptyTrash,
     setView,
     applyConfigToCurrent,
-    registerUiHooks,
   }
 }
 

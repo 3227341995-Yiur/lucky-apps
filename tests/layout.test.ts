@@ -9,8 +9,8 @@ import {
   layoutBottom,
   normalizeLayoutConfig,
   renderLayoutHtml,
-} from '../apps/desktop/src/config/reportLayout.ts'
-import { DEFAULT_REPORT_CONFIG } from '../apps/desktop/src/config/defaultReportConfig.ts'
+} from '../packages/extensions/reports/src/designer/config/reportLayout.ts'
+import { DEFAULT_REPORT_CONFIG } from '../packages/extensions/reports/src/designer/config/defaultReportConfig.ts'
 
 const sections = [
   {

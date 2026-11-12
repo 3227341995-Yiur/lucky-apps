@@ -22,3 +22,13 @@ export function renderReport(report, templateString) {
     return `<div class="render-error">渲染错误: ${e.message}</div>`
   }
 }
+
+export function renderHtml(report, templateString) {
+  return renderReport(report, templateString)
+}
+
+export function renderMarkdown(report, templateString) {
+  return renderReport(report, templateString)
+}
+
+export default { renderReport, renderHtml, renderMarkdown }

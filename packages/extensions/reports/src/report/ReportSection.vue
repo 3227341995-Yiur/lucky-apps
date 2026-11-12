@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Plus, Setting, Delete } from '@element-plus/icons-vue'
-import MarkdownEditor from '@/components/editors/MarkdownEditor.vue'
-import { createRow } from '@/config/defaultReportConfig'
-import { extensionVersion } from '@/plugins/registry'
+import { createRow } from '../designer/config/defaultReportConfig'
+import { computed } from 'vue'
+import { useHost } from '../host'
+
+const api = useHost()
+const extensionVersion = computed(() => api.extensions.version?.value ?? 0)
 
 defineOptions({ name: 'ReportSection' })
 

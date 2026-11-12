@@ -2,27 +2,16 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
-import ReportEditor from '@/components/ReportEditor.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
-import { useReports } from '@/composables/useReports'
-import { pluginApi, setActiveView } from '@/plugins/api'
+import { pluginApi, registerUi, setActiveView } from '@/plugins/api'
 import { getNavItemComponent, listNavItems, listOverlays } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
-import { emit as emitAppEvent } from '@/utils/eventBus'
 import { apiGet } from '@/services/rpc'
-
-const reports = useReports()
-const { state } = reports
 
 const showSettings = ref(false)
 const envIssue = ref<any>(null)
 const activePluginPage = ref(null)
 const overlays = computed(() => listOverlays())
-
-const activeHostView = computed(() => {
-  const item = activePluginPage.value ? listNavItems().find(entry => entry.id === activePluginPage.value) : null
-  return item?.hostView || ''
-})
 
 const pluginPageComponent = computed(() => (
   activePluginPage.value ? getNavItemComponent(activePluginPage.value) : null
@@ -35,36 +24,12 @@ function closeDialogs() {
 
 function openPluginPage(item) {
   closeDialogs()
-  // 原周报行为：未选中任何周报时，周报 icon 点击无功能
-  if (item.hostView === 'report-editor' && !state.currentReport) return
   activePluginPage.value = item.id
-}
-
-function openWelcomePage() {
-  return navigateTo('home')
-}
-
-function openReportsPage() {
-  return navigateTo('reports')
 }
 
 function navigateTo(id) {
   if (!id) return false
   const alias = id === 'welcome' ? 'home' : id
-  // 程序化返回“周报”（如回收站按钮）：有打开的周报回编辑器，否则打开最近一份
-  if (alias === 'reports') {
-    closeDialogs()
-    if (state.currentReport) {
-      activePluginPage.value = 'reports'
-      return true
-    }
-    const latest = state.reports?.[0]
-    if (latest) {
-      reports.selectReport(latest.id)
-      return true
-    }
-    return navigateTo('home')
-  }
   const item = listNavItems().find(entry => entry.id === alias)
   if (!item) return false
   openPluginPage(item)
@@ -76,52 +41,8 @@ function openSettings() {
   showSettings.value = true
 }
 
-function openReportsDialog(name) {
-  closeDialogs()
-  emitAppEvent('reports:open-dialog', name)
-  return true
-}
-
-function openTemplates() {
-  return openReportsDialog('template')
-}
-
-function openImportExport() {
-  return openReportsDialog('io')
-}
-
-function openDesigner() {
-  return openReportsDialog('designer')
-}
-
-async function handleCreate() {
-  activePluginPage.value = null
-  try {
-    await reports.createReport()
-  } catch (error) {
-    ElMessage.error(`新建周报失败: ${error?.message || error}`)
-  }
-}
-
-
-function handleKeydown(event) {
-  const ctrl = event.ctrlKey || event.metaKey
-  if (ctrl && !event.shiftKey && event.key.toLowerCase() === 'p') {
-    event.preventDefault()
-    openTemplates()
-  }
-  if (ctrl && event.shiftKey && event.key.toLowerCase() === 'e') {
-    event.preventDefault()
-    openImportExport()
-  }
-  if (ctrl && !event.shiftKey && event.key.toLowerCase() === 'n') {
-    event.preventDefault()
-    handleCreate()
-  }
-}
-
 onMounted(async () => {
-  document.addEventListener('keydown', handleKeydown)
+  registerUi({ navigate: navigateTo, openSettings })
   try {
     const env = await apiGet('/api/env')
     const nodeMajor = Number(String(env?.node || '').split('.')[0]) || 0
@@ -136,31 +57,20 @@ onMounted(async () => {
       ElMessage.success(`外部组件已热更新（${result.loaded} 个）`)
     }
   })
-  reports.registerUiHooks({
-    openSettings,
-    openImportExport,
-    openDesigner,
-    openTemplates,
-    navigate: navigateTo,
-  })
-  await reports.init()
-  if (!activePluginPage.value && !state.currentReport) {
+  if (!activePluginPage.value) {
     const home = listNavItems().find(item => item.id === 'home') || listNavItems()[0]
     if (home) activePluginPage.value = home.id
   }
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleKeydown)
   offExtensionsChanged?.()
 })
 
 watch(
   () => branding.name,
-  () => {
-    const title = state.currentReport?.title
-    document.title = title ? `${title} · ${branding.name}` : branding.name
-  },
+  () => { document.title = branding.name },
+  { immediate: true },
 )
 
 watch(
@@ -174,21 +84,8 @@ watch(
 )
 
 watch(
-  () => state.currentId,
-  (id) => { if (id != null) activePluginPage.value = null },
-)
-
-watch(
   activePluginPage,
   id => setActiveView(id),
-  { immediate: true },
-)
-
-watch(
-  () => state.currentReport?.title,
-  (title) => {
-    document.title = title ? `${title} · ${branding.name}` : branding.name
-  },
   { immediate: true },
 )
 </script>
@@ -203,7 +100,6 @@ watch(
     <AppSidebar
       @settings="openSettings"
       :active-plugin-page="activePluginPage"
-      :report-open="!!state.currentReport"
       @open-plugin-page="openPluginPage"
     />
 
@@ -212,22 +108,11 @@ watch(
         :is="pluginPageComponent"
         v-if="activePluginPage && pluginPageComponent"
         class="plugin-page-host"
-      />
-      <ReportEditor
-        v-else-if="state.currentReport"
-        :key="state.currentReport.id"
-        @open-import-export="openImportExport"
-        @open-design="openDesigner()"
       />    </main>
 
     <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
 
-    <SettingsDialog
-      v-model="showSettings"
-      @open-import-export="openImportExport"
-      @open-templates="openTemplates"
-      @open-designer="openDesigner()"
-    />
+    <SettingsDialog v-model="showSettings" />
   </div>
 </template>
 

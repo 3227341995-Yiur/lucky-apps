@@ -1,49 +1,26 @@
 /**
- * 宿主能力实现，通过 __ModuleLoader__ 的静态模块 `@lucky-apps/plugin-api` 暴露，
+ * 宿主能力 API：通过 __ModuleLoader__ 的静态模块 `@lucky-apps/plugin-api` 暴露，
  * client bundle 里 require 同一个模块实例；不挂 window 全局。
  *
- * 注意：reports / templates / config / data 仍由宿主实现，属于待迁移到
- * reports 插件的历史业务接口。
+ * 只包含宿主通用能力。周报业务 API（reports/templates/config/data）由
+ * reports 插件自己提供，通过其 ctx 服务暴露。
  */
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { cordis } from '@/plugins/cordis'
-import {
-  loadAllReports,
-  loadAllReportsFull,
-  loadDeletedReports,
-  getReportById,
-  saveReport,
-  deleteReportById,
-  restoreReportById,
-  deleteReportPermanently,
-  emptyTrash,
-  getReportStats,
-  getDataVersion,
-} from '@/services/database'
-import {
-  getAllTemplates,
-  getTemplateById,
-  getDefaultTemplate,
-  saveTemplate,
-  deleteTemplate,
-  setDefaultTemplate,
-} from '@/services/templateService'
-import {
-  getReportConfig,
-  saveReportConfig,
-  resetReportConfig,
-  hasCustomReportConfig,
-} from '@/services/reportConfigService'
-import { createBackup, exportBackupFile, importData } from '@/services/importExportService'
-import { getCopySettings as readCopySettings, saveCopySettings as writeCopySettings } from '@/utils/reportExport'
-import { generateId } from '@/utils/idGenerator'
+import { dbExecute, dbSelect } from '@/services/rpc'
 import { events } from '@/utils/eventBus'
 import { useTheme } from '@/composables/useTheme'
 import { branding, setBranding } from '@/composables/useBranding'
 import { useExtensions } from '@/composables/useExtensions'
-import { useReports } from '@/composables/useReports'
 import {
+  registerComponent,
+  registerColumnSlot,
+  listComponents,
+  listColumnComponents,
+  listCanvasComponents,
+  hasComponent,
+  hasColumnSlot,
   registerNavItem,
   listNavItems,
   registerSettingsSection,
@@ -54,36 +31,30 @@ import {
   listRailActions,
   registerOverlay,
   listOverlays,
-  registerComponent,
-  registerColumnSlot,
-  listComponents,
-  listColumnComponents,
-  listCanvasComponents,
-  hasComponent,
   extensionState,
+  extensionVersion,
 } from '@/plugins/registry'
 
 const VERSION = '3.0.0'
 const API_VERSION = 2
 
 // ============================================================
-// UI 委托：App 启动时注入
+// UI 委托：App 启动时注入（导航 / 打开设置）
 // ============================================================
 let uiImpl = {}
 
-// 当前宿主视图：null 表示报表编辑器，其他值为插件页面 id。
-// 报表侧栏用它判断是否还应该高亮选中行（切到别的功能就取消选中）。
+// 当前激活的插件页 id（null = 没有插件页）
 const activeView = ref(null)
 
 export function setActiveView(view) {
   activeView.value = view || null
 }
 
-function registerUi(impl = {}) {
+export function registerUi(impl = {}) {
   uiImpl = { ...uiImpl, ...impl }
 }
 
-async function callUi(name, ...args) {
+function callUi(name, ...args) {
   if (typeof uiImpl[name] !== 'function') return false
   return uiImpl[name](...args)
 }
@@ -108,77 +79,6 @@ async function runCommand(id, ...args) {
   const command = commandMap.get(id)
   if (!command) throw new Error(`命令不存在: ${id}`)
   return command.handler(...args)
-}
-
-// ============================================================
-// 搜索缓存
-// ============================================================
-let searchCache = null
-let searchCacheVersion = -1
-
-async function searchReports() {
-  const version = getDataVersion()
-  if (!searchCache || searchCacheVersion !== version) {
-    searchCache = await loadAllReportsFull()
-    searchCacheVersion = version
-  }
-  return searchCache
-}
-
-// ============================================================
-// 周报 CRUD / 回收站
-// ============================================================
-async function createReport(data = {}) {
-  const report = {
-    id: data.id || generateId(),
-    title: data.title || '未命名周报',
-    dateRange: data.dateRange || [],
-    sections: data.sections || [],
-    layout: data.layout || null,
-  }
-  await saveReport(report)
-  events.emit('report:created', report)
-  events.emit('report:changed', { type: 'created', report })
-  return report
-}
-
-async function updateReport(report) {
-  if (!report?.id) throw new Error('update 缺少 report.id')
-  await saveReport(report)
-  events.emit('report:updated', report)
-  events.emit('report:changed', { type: 'updated', report })
-  return report
-}
-
-async function removeReport(id) {
-  const changed = await deleteReportById(id)
-  if (!changed) throw new Error('周报不存在或已在回收站')
-  events.emit('report:deleted', { id })
-  events.emit('report:changed', { type: 'deleted', id })
-  return true
-}
-
-async function restoreReport(id) {
-  const changed = await restoreReportById(id)
-  if (!changed) throw new Error('回收站中未找到该周报')
-  events.emit('report:restored', { id })
-  events.emit('report:changed', { type: 'restored', id })
-  return true
-}
-
-async function purgeReport(id) {
-  const changed = await deleteReportPermanently(id)
-  if (!changed) throw new Error('回收站中未找到该周报')
-  events.emit('report:purged', { id })
-  events.emit('report:changed', { type: 'purged', id })
-  return true
-}
-
-async function emptyTrashReports() {
-  const count = await emptyTrash()
-  events.emit('report:trash-emptied', { count })
-  events.emit('report:changed', { type: 'trash-emptied', count })
-  return count
 }
 
 // ============================================================
@@ -211,51 +111,12 @@ export const pluginApi = {
     on: events.on,
     once: events.once,
     off: events.off,
+    emit: events.emit,
   },
-  registerUi,
-  reports: {
-    /** 轻量分页列表（不含 sections） */
-    list: params => loadAllReports(params),
-    /** 回收站列表 */
-    trashed: params => loadDeletedReports(params),
-    /** 单条全量（含 sections） */
-    get: id => getReportById(id),
-    create: createReport,
-    update: updateReport,
-    remove: removeReport,
-    restore: restoreReport,
-    purge: purgeReport,
-    emptyTrash: emptyTrashReports,
-    /** 全量周报（含 sections），供插件搜索 */
-    search: searchReports,
-    stats: getReportStats,
-  },
-  templates: {
-    list: getAllTemplates,
-    get: getTemplateById,
-    getDefault: getDefaultTemplate,
-    save: saveTemplate,
-    remove: deleteTemplate,
-    setDefault: setDefaultTemplate,
-  },
-  config: {
-    get: getReportConfig,
-    set: saveReportConfig,
-    reset: resetReportConfig,
-    isCustomized: hasCustomReportConfig,
-  },
-  data: {
-    /** 生成全量备份对象（不下载） */
-    createBackup,
-    /** 生成并下载全量备份文件 */
-    exportBackup: exportBackupFile,
-    /** 执行导入：parsed 为解析后的备份对象，options 控制导入范围 */
-    importBackup: (parsed, options) => importData(parsed, options),
-    /** 复制周报设置（与宿主复制流程共用同一份 DB 配置） */
-    copySettings: {
-      get: readCopySettings,
-      save: writeCopySettings,
-    },
+  /** 通用 SQL RPC，业务查询归插件自己写 */
+  db: {
+    select: dbSelect,
+    execute: dbExecute,
   },
   components: {
     /** @deprecated 使用 registerColumn / registerCanvas */
@@ -264,13 +125,11 @@ export const pluginApi = {
       scope: 'column',
       source: 'plugin',
     }),
-    /** 注册列组件（表格单元格） */
     registerColumn: (name, component, meta) => registerComponent(name, component, {
       ...meta,
       scope: 'column',
       source: 'plugin',
     }),
-    /** 注册画布组件（自由画布拖拽） */
     registerCanvas: (name, component, meta) => registerComponent(name, component, {
       ...meta,
       scope: 'canvas',
@@ -281,11 +140,12 @@ export const pluginApi = {
     listColumns: listColumnComponents,
     listCanvas: listCanvasComponents,
     has: hasComponent,
+    hasColumnSlot,
   },
   navigation: {
     register: registerNavItem,
     list: listNavItems,
-    /** 统一跳转：welcome / reports / 外部 nav id */
+    /** 统一跳转：welcome / 插件 nav id */
     open: id => callUi('navigate', id),
   },
   settings: {
@@ -310,21 +170,15 @@ export const pluginApi = {
     list: listCommands,
   },
   ui: {
-    /** 选中并打开一条周报 */
-    selectReport: id => callUi('selectReport', id),
-    /** 当前打开的周报 id（无则 null） */
-    currentReportId: () => useReports().state.currentId ?? null,
-    /** 报表编辑器/报表页是否可见；切到其他插件页时为 false */
-    isReportsVisible: () => activeView.value === null || activeView.value === 'reports',
+    /** 当前激活的插件页 id（Vue ref） */
+    activeView,
+    navigate: id => callUi('navigate', id),
+    openSettings: () => callUi('openSettings'),
     toast(message, type = 'info') {
       const fn = ElMessage[type]
       if (typeof fn === 'function') fn(message)
       else ElMessage(String(message))
     },
-    openSettings: () => callUi('openSettings'),
-    openImportExport: () => callUi('openImportExport'),
-    openDesigner: () => callUi('openDesigner'),
-    openTemplates: () => callUi('openTemplates'),
   },
   branding: {
     get: () => ({ ...branding }),
@@ -339,6 +193,8 @@ export const pluginApi = {
     toggle: id => extensionTools().toggleResource(id),
     rescan: () => extensionTools().rescan(),
     reload: () => extensionTools().hotReloadComponents(),
+    /** 组件注册表版本（Vue ref），注册项变化时递增 */
+    version: extensionVersion,
     get errors() {
       return [...extensionState.errors]
     },

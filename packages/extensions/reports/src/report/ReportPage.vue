@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import ReportSection from '@/components/report/ReportSection.vue'
-import ColumnSettingsDialog from '@/components/report/ColumnSettingsDialog.vue'
-import DateRangeField from '@/components/common/DateRangeField.vue'
-import ElementWidget from '@/components/designer/ElementWidget.vue'
-import { hasComponent } from '@/plugins/registry'
-import { formatDateRange } from '@/utils/reportExport'
+import ReportSection from './ReportSection.vue'
+import ColumnSettingsDialog from './ColumnSettingsDialog.vue'
+import DateRangeField from '../designer/components/DateRangeField.vue'
+import ElementWidget from '../designer/components/ElementWidget.vue'
+import { useHost } from '../host'
+import { formatDateRange } from '../reportExport'
+
+const api = useHost()
+const hasComponent = name => api.components.has(name)
 
 defineOptions({ name: 'ReportPage' })
 

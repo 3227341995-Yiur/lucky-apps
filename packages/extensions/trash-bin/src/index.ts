@@ -1,8 +1,7 @@
-import { definePlugin } from '@lucky-apps/plugin-api'
 import TrashNavIcon from './TrashNavIcon.vue'
 import TrashPage from './TrashPage.vue'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-trash-bin',
   inject: ['navigation'],
   apply(ctx) {
@@ -14,4 +13,4 @@ export default definePlugin({
       component: TrashPage,
     })
   },
-})
+}

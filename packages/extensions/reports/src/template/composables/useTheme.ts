@@ -4,7 +4,7 @@
  * 模板预览只需要 resolvedTheme：从宿主 api.theme 同步，跟随宿主主题切换。
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from '../../host.ts'
 
 // ponytail: 只暴露 resolvedTheme，编辑器/预览用到其余主题能力时再补
 export function useTheme() {

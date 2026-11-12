@@ -1,7 +1,6 @@
 import ProgressBoard from './ProgressBoard.vue'
-import { definePlugin } from '@lucky-apps/plugin-api'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-progress-board',
   inject: ['components'],
   apply(ctx) {
@@ -11,4 +10,4 @@ export default definePlugin({
       description: '项目进度看板',
     })
   },
-})
+}

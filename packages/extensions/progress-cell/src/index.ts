@@ -1,8 +1,7 @@
 import ProgressCell from './ProgressCell.vue'
 import ProgressCellSlot from './ProgressCell.cslot.vue'
-import { definePlugin } from '@lucky-apps/plugin-api'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-progress-cell',
   inject: ['components'],
   apply(ctx) {
@@ -14,4 +13,4 @@ export default definePlugin({
       value: 'progress-cell',
     })
   },
-})
+}

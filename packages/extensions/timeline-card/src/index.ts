@@ -1,7 +1,6 @@
 import TimelineCard from './TimelineCard.vue'
-import { definePlugin } from '@lucky-apps/plugin-api'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-timeline-card',
   inject: ['components'],
   apply(ctx) {
@@ -11,4 +10,4 @@ export default definePlugin({
       description: '节点时间线',
     })
   },
-})
+}

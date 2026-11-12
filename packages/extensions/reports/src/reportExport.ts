@@ -2,10 +2,10 @@
  * 周报导出共享工具
  * 抽取自 App.vue 的 copyContent / exportWeekly，供单份复制、单份导出、批量导出复用
  */
-import { renderHtml, renderMarkdown } from '@/utils/templateRenderer'
-import { getTemplateForType } from '@/services/templateService'
-import { getSetting, setSetting } from '@/services/database'
-import { renderLayoutHtml } from '@/config/reportLayout'
+import { renderHtml, renderMarkdown } from './template/utils/templateRenderer'
+import { getTemplateForType } from './template/services/templateService'
+import { getSetting, setSetting } from './database'
+import { renderLayoutHtml } from './designer/config/reportLayout'
 
 /**
  * 格式化日期范围显示

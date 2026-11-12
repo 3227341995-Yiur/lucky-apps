@@ -8,13 +8,10 @@ defineOptions({ name: 'AppSidebar' })
 
 const props = defineProps({
   activePluginPage: { type: String, default: null },
-  /** 周报编辑器是否打开：此时“周报”icon 保持选中 */
-  reportOpen: { type: Boolean, default: false },
 })
 
 function isRailActive(item) {
-  if (props.activePluginPage === item.id) return true
-  return item.id === 'reports' && !props.activePluginPage && props.reportOpen
+  return props.activePluginPage === item.id
 }
 
 const emit = defineEmits(['settings', 'open-plugin-page'])
@@ -61,27 +58,12 @@ const railActions = computed(() => listRailActions())
           :show-after="500"
         >
           <button
-            v-if="item.hostView !== 'report-editor'"
             type="button"
             class="rail-item"
             :title="item.label"
             :aria-label="item.label"
             :class="{ active: isRailActive(item) }"
             @click="emit('open-plugin-page', item)"
-          >
-            <component :is="item.iconComponent" v-if="item.iconComponent" />
-            <span v-else-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
-            <el-icon v-else :size="18"><component :is="item.icon || 'Grid'" /></el-icon>
-          </button>
-          <!-- 周报 icon 不响应点击：只有侧栏列表选中周报后才高亮（原版行为） -->
-          <button
-            v-else
-            type="button"
-            class="rail-item rail-static"
-            :title="item.label"
-            :aria-label="item.label"
-            :aria-disabled="true"
-            :class="{ active: isRailActive(item) }"
           >
             <component :is="item.iconComponent" v-if="item.iconComponent" />
             <span v-else-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>

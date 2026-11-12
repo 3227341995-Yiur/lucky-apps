@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from '../host.ts'
 import {
   exportBackupFile,
   exportReport,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from './host.ts'
 import ImportExportDialog from './io/ImportExportDialog.vue'
 import TemplateDesignerDialog from './template/TemplateDesignerDialog.vue'
 import ReportStructureDesigner from './designer/ReportStructureDesigner.vue'

@@ -14,8 +14,8 @@ lucky-apps plugin list --user
 lucky-apps plugin remove my-widget --user
 ```
 
-`add` 会在 profile 里执行 `pnpm add`，读取包的 `weekReport.bundle.patch`，
-自动把包名加入 `weekReport.profile.bundles`。不是手写配置，也不是复制 node_modules。
+`add` 会在 profile 里执行 `pnpm add`，读取包的 `la.bundle.patch`，
+自动把包名加入 `la.profile.bundles`。不是手写配置，也不是复制 node_modules。
 
 组件包需要先构建好（`pnpm build`，产物在包内 `lib/`）。本地目录安装会使用 pnpm 的
 本地依赖；发布到 npm 后直接写包名即可。

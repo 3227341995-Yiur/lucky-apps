@@ -1,7 +1,6 @@
 import KpiCard from './KpiCard.vue'
-import { definePlugin } from '@lucky-apps/plugin-api'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-kpi-card',
   inject: ['components'],
   apply(ctx) {
@@ -11,4 +10,4 @@ export default definePlugin({
       description: 'KPI 指标卡',
     })
   },
-})
+}

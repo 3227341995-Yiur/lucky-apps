@@ -174,7 +174,7 @@ export async function run(argv) {
       console.log(`  ${name}  ${version}`)
     }
     console.log('bundles:')
-    for (const name of manifest.weekReport?.profile?.bundles || []) console.log(`  ${name}`)
+    for (const name of manifest.la?.profile?.bundles || []) console.log(`  ${name}`)
     return
   }
 
@@ -193,21 +193,21 @@ export async function run(argv) {
     if (installed?.name) name = installed.name
     if (!installed) throw new Error(`安装后找不到包: ${name}`)
 
-    const hasBundle = Boolean(installed.weekReport?.bundle?.patch)
-    const hasNode = Boolean(installed.weekReport?.node)
-    const hasClient = Boolean(installed.weekReport?.client?.entry)
+    const hasBundle = Boolean(installed.la?.bundle?.patch)
+    const hasNode = Boolean(installed.la?.node)
+    const hasClient = Boolean(installed.la?.client?.entry)
     const manifest = readProfile(profileDir)
-    manifest.weekReport ||= {}
-    manifest.weekReport.profile ||= {}
-    manifest.weekReport.profile.bundles ||= []
-    if (hasBundle && !manifest.weekReport.profile.bundles.includes(name)) {
-      manifest.weekReport.profile.bundles.push(name)
+    manifest.la ||= {}
+    manifest.la.profile ||= {}
+    manifest.la.profile.bundles ||= []
+    if (hasBundle && !manifest.la.profile.bundles.includes(name)) {
+      manifest.la.profile.bundles.push(name)
     }
     if (hasNode && !hasBundle) addProfilePluginRow(profileDir, name)
     writeProfile(profileDir, manifest)
     console.log(`[lucky-apps] installed ${name}`)
     if (!hasBundle && !hasNode && !hasClient) {
-      console.warn('[lucky-apps] 包没有 weekReport.node / client 声明，只作为普通依赖安装')
+      console.warn('[lucky-apps] 包没有 la.node / la.client 声明，只作为普通依赖安装')
     }
     return
   }
@@ -217,8 +217,8 @@ export async function run(argv) {
     prepareProfile(profileDir)
     pnpm(['remove', spec, '--node-linker=hoisted'], profileDir)
     const manifest = readProfile(profileDir)
-    const bundles = manifest.weekReport?.profile?.bundles || []
-    manifest.weekReport.profile.bundles = bundles.filter(name => name !== spec)
+    const bundles = manifest.la?.profile?.bundles || []
+    manifest.la.profile.bundles = bundles.filter(name => name !== spec)
     writeProfile(profileDir, manifest)
     removeProfilePluginRow(profileDir, spec)
     console.log(`[lucky-apps] removed ${spec}`)

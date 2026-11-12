@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from './host.ts'
 import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSettings' })

@@ -1,7 +1,6 @@
-import { definePlugin } from '@lucky-apps/plugin-api'
 import HomePage from './HomePage.vue'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-home',
   inject: ['navigation'],
   apply(ctx) {
@@ -13,4 +12,4 @@ export default definePlugin({
       component: HomePage,
     })
   },
-})
+}

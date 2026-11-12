@@ -2,7 +2,7 @@ import { pluginApi } from '@/plugins/api'
 import { cordis } from '@/plugins/cordis'
 
 export const name = 'luckyApps'
-export const inject = ['database', 'theme']
+export const inject = ['theme']
 
 export function apply(ctx) {
   ctx.provide('luckyApps', pluginApi)

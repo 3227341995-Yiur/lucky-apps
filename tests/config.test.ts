@@ -9,8 +9,8 @@ import {
   normalizeReportConfig,
   resolveDefaultValue,
   createSectionsFromConfig,
-} from '../apps/desktop/src/config/defaultReportConfig.ts'
-import { formatDate, getWeekRange, isDateInRange } from '../apps/desktop/src/utils/date.ts'
+} from '../packages/extensions/reports/src/designer/config/defaultReportConfig.ts'
+import { formatDate, getWeekRange, isDateInRange } from '../packages/extensions/reports/src/designer/utils/date.ts'
 
 test('空配置回退到系统默认结构', () => {
   const config = normalizeReportConfig([])

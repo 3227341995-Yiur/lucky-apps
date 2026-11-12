@@ -13,7 +13,7 @@
  * 旧数据里的 moment().format('YYYY-MM-DD') 仍会在 resolveDefaultValue 中
  * 兼容为 today。
  */
-import reportDefaults from './defaults/report-config.json'
+import reportDefaults from './defaults/report-config.json' with { type: 'json' }
 import { generateId } from '../utils/idGenerator.ts'
 import { formatDate } from '../utils/date.ts'
 

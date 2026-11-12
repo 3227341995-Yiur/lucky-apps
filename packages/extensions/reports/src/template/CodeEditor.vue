@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from '../host.ts'
 import { Codemirror } from 'vue-codemirror'
 import { basicSetup } from 'codemirror'
 import { EditorView } from '@codemirror/view'

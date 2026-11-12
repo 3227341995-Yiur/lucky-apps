@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { useHost } from '../../host.ts'
 import { SECTION_PRESETS } from '../config/defaultReportConfig.ts'
 import { WIDGETS } from '../config/reportLayout.ts'
 import { getAllElComponents, getElComponentLabel, getElWidget } from '../utils/elementPlusWidgets.ts'

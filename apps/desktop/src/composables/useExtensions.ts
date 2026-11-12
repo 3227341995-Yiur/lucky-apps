@@ -11,7 +11,7 @@ import {
   getPluginsPath,
   DISABLED_EXTENSIONS_KEY,
 } from '@/plugins/loader'
-import { getSetting, setSetting } from '@/services/database'
+import { getSetting, setSetting } from '@/services/settings'
 
 const GROUP_LABELS = {
   style: '样式表',

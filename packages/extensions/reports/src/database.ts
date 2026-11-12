@@ -6,7 +6,7 @@
  * - 任何写操作递增 dataVersion，插件搜索缓存据此失效
  * - config 存 JSON 字符串；meta 存系统设置与迁移标记
  */
-import { dbSelect, dbExecute } from '@/services/rpc'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS reports (
@@ -44,11 +44,13 @@ CREATE TABLE IF NOT EXISTS templates (
 `
 
 export const database = {
-  select: dbSelect,
-  execute: dbExecute,
+  select: (sql, params) => useHost().db.select(sql, params),
+  execute: (sql, params) => useHost().db.execute(sql, params),
 }
 
-await initDatabase()
+export async function ensureDatabase() {
+  await initDatabase()
+}
 
 export async function initDatabase() {
   try {

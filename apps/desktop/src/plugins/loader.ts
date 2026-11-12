@@ -14,7 +14,7 @@ import {
 } from '@/plugins/registry'
 import { mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
 import { instantiateModule } from '@/plugins/modules'
-import { getSetting } from '@/services/database'
+import { getSetting } from '@/services/settings'
 import { emit } from '@/utils/eventBus'
 
 export const DISABLED_EXTENSIONS_KEY = 'extensions.disabled'

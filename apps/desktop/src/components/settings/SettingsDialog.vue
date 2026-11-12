@@ -24,7 +24,6 @@ defineOptions({ name: 'SettingsDialog' })
 
 const visible = defineModel({ type: Boolean, default: false })
 
-const emit = defineEmits(['open-import-export', 'open-templates', 'open-designer'])
 
 const { themeMode, labels, setTheme } = useTheme()
 const { copyResourcesPath } = useExtensions()

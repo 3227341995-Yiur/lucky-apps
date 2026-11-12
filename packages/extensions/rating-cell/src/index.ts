@@ -1,8 +1,7 @@
 import RatingCell from './RatingCell.vue'
 import RatingCellSlot from './RatingCell.cslot.vue'
-import { definePlugin } from '@lucky-apps/plugin-api'
 
-export default definePlugin({
+export default {
   name: '@lucky-apps/extension-rating-cell',
   inject: ['components'],
   apply(ctx) {
@@ -14,4 +13,4 @@ export default definePlugin({
       value: 'rating-cell',
     })
   },
-})
+}
