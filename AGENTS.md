@@ -22,7 +22,7 @@ docs-site             VitePress 开发文档
 - 插件是标准的 Vue 3 + Vite + TypeScript 包：想用什么依赖就在自己的 `package.json` 里声明，随便 import，由 Vite 正常打包。
 - 插件依赖和版本由插件自己的 `package.json` 声明，构建配置由插件自己决定；宿主不锁定依赖版本。
 - 禁止引用宿主源码内部别名 `@/...`（宿主不是插件的依赖），需要宿主能力请走 `ctx` 服务；宿主 UI 组件从 `@lucky-apps/client-ui` 导入（构建标 external，运行时由宿主 staticModules 提供），不要在插件里复制 `AppDialog` 等系统组件。
-- 插件生命周期走 Cordis：`apply(ctx)` 内用 `ctx.navigation` / `ctx.settings` / `ctx.components`；Node half 在 `src/node.ts`（构建成 JS 后随包发布）。
+- 插件生命周期走 Cordis：`apply(ctx)` 内用 `ctx.navigation` / `ctx.settings` / `ctx.components`；清理定时器、监听、子进程用 `ctx.effect(() => cleanup)`，或让 `apply` 返回清理函数。Cordis 4 不派发 `dispose` 事件，`ctx.on('dispose')` 不会执行。Node half 在 `src/node.ts`（构建成 JS 后随包发布）。
 - App 与 `packages/**` 共用同一版本号（lockstep）：发布前跑 `pnpm version:sync <version>`，会同步 apps、packages、Tauri/Cargo 与 README。
 - 数据库等业务数据层归插件所有（`packages/extensions/reports` 的 `reports-database`），宿主不持有。
 - 插件 `cordis.patch.yml` 必须入库；构建产物 `lib/` 不入库。

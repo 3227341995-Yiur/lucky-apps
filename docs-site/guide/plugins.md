@@ -28,7 +28,7 @@ const ElementPlus = window.__ModuleLoader__.require('element-plus')
 ## Cordis 插件
 
 样式和组件包由 Cordis 管理生命周期；热加载时先 dispose 再重新挂载。
-插件在 `apply(ctx)` 里注册能力，在 `ctx.on('dispose')` 里释放资源。
+插件在 `apply(ctx)` 里注册能力；需要手动清理时用 `ctx.effect(() => () => cleanup())`，或者让 `apply` 直接返回清理函数。Cordis 4 没有 `dispose` 事件，不要用 `ctx.on('dispose')`。
 
 ## 事件
 
@@ -41,7 +41,7 @@ export default {
     const off = ctx.on('report:changed', report => {
       console.log(report)
     })
-    ctx.on('dispose', () => off())
+    ctx.effect(() => () => off())
   },
 }
 ```
@@ -70,7 +70,7 @@ export default {
       console.log(stats, payload)
     }, { title: '刷新我的数据' })
 
-    ctx.on('dispose', () => dispose())
+    ctx.effect(() => () => dispose())
   },
 }
 ```

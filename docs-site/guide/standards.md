@@ -47,7 +47,7 @@ export default {
   apply(ctx) {
     const timer = setInterval(sync, 1000)
     const off = ctx.on('report:changed', refresh)
-    ctx.on('dispose', () => {
+    ctx.effect(() => () => {
       clearInterval(timer)
       off()
     })
@@ -55,7 +55,7 @@ export default {
 }
 ```
 
-- `apply(ctx)` 只做注册与启动；所有定时器、事件订阅、文件监听、子进程、本地 HTTP 服务都要在 `ctx.on('dispose')` 中释放。
+- `apply(ctx)` 只做注册与启动；所有定时器、事件订阅、文件监听、子进程、本地 HTTP 服务都要用 `ctx.effect(() => cleanup)`（或由 `apply` 返回清理函数）释放。Cordis 4 不派发 `dispose` 事件，`ctx.on('dispose')` 不会执行。
 - 反复 `apply` 必须幂等：先关闭旧实例，再创建新实例。
 - 插件自己拉起的常驻进程（例如 nginx）遵守“插件加载即启动、插件卸载即停止”；宿主进程退出时同步清理，宿主被强杀时用独立 watchdog 收尾。
 - 不要依赖插件 `apply` 的执行顺序；需要其他服务时声明 `inject`。

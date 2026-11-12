@@ -79,5 +79,5 @@ function applyDatabase(ctx) {
     },
   })
 
-  ctx.on('dispose', () => db.close())
+  ctx.effect(() => () => db.close())
 }

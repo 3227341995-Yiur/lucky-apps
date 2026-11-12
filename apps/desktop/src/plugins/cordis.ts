@@ -15,9 +15,9 @@ export async function mountCordisPlugin(name, setup) {
 
   const plugin = {
     name,
+    // Cordis 会收集 apply 返回的清理函数，fiber.dispose 时执行。
     async apply(ctx) {
-      const dispose = await setup(ctx)
-      if (typeof dispose === 'function') ctx.on('dispose', dispose)
+      return await setup(ctx)
     },
   }
 
