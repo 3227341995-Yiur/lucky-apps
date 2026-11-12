@@ -61,7 +61,8 @@ test('seedProfile upgrades bundled packages and keeps user plugins', async () =>
     assert.ok(existsSync(join(target, 'vendor', 'base.tgz')))
     assert.equal(existsSync(join(target, 'node_modules', '.modules.yaml')), false)
     assert.equal(existsSync(join(target, 'node_modules', '.pnpm-workspace-state-v1.json')), false)
-    assert.equal(existsSync(join(target, 'node_modules', '.pnpm')), false)
+    // 用户插件链接指向 .pnpm，升级必须保留它
+    assert.equal(await readFile(join(target, 'node_modules', '.pnpm', 'lock.yaml'), 'utf8'), 'old')
 
     assert.equal(await seedProfile(bundled, target), false)
   } finally {

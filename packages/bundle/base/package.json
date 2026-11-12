@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/base",
-  "version": "3.2.6",
+  "version": "3.2.7",
   "private": false,
   "type": "module",
   "main": "lib/index.js",

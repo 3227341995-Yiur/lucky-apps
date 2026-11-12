@@ -9,6 +9,7 @@ import {
   setExtensionResources,
   updateExtensionResource,
   addExtensionError,
+  clearExtensionErrors,
   markExtensionsChanged,
   resetPluginRegistries,
   extensionState,
@@ -92,8 +93,8 @@ async function loadBrowserComponent(item) {
     updateExtensionResource(item.id, { status: 'loaded', error: '' })
     return true
   } catch (error) {
+    // 资源卡片已经展示该错误，不再往全局错误列表重复写一份。
     updateExtensionResource(item.id, { status: 'error', error: error.message })
-    addExtensionError(`客户端组件加载失败 ${item.package || item.name}: ${error.message}`)
     return false
   }
 }
@@ -124,6 +125,7 @@ async function mountScriptResource(item) {
 
 /** 加载全部扩展资源（样式 / 脚本 / client bundle） */
 export async function loadExtensionResources() {
+  clearExtensionErrors()
   const resources = await scanExtensionResources()
   const disabledList = await getSetting(DISABLED_EXTENSIONS_KEY, [])
   const disabled = new Set(Array.isArray(disabledList) ? disabledList : [])
@@ -164,6 +166,7 @@ export async function syncExtensionResource(item, enabled) {
 
 /** 重新读取服务端 profile 并热加载 client bundle */
 async function performReloadExtensionComponents() {
+  clearExtensionErrors()
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
   // 正常注册项随 fiber dispose 撤销；全量重载时再兜底清一次，消除竞态残留。
   await unmountCordisPlugins('component:')
@@ -237,6 +240,7 @@ export function syncExtensionComponents() {
  * 安装/卸载其它插件时，当前页面和已有插件的模块状态保持不动。
  */
 async function performSyncExtensionComponents() {
+  clearExtensionErrors()
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
   const payload = await apiGet('/api/boot')
   applyBoot(payload)

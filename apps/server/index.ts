@@ -122,6 +122,9 @@ export async function startServer(options: StartServerOptions = {}) {
 
     // 包可以在 package.json 里自己声明 la.client.entry，无需强制 index.js 或 Node half。
     const registerClientEntries = async () => {
+      if (!ctx.clientModules) {
+        throw new Error('clientModules 服务未注册：profile 里的 @lucky-apps/client-modules 未加载')
+      }
       const manifestPath = join(profileDir, 'package.json')
       let manifest = {}
       try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')) } catch {}

@@ -280,8 +280,15 @@ export function updateExtensionResource(id, patch) {
 }
 
 export function addExtensionError(message) {
-  extensionState.errors = [...extensionState.errors, message]
-  console.error('[extensions]', message)
+  const text = String(message || '').trim()
+  if (!text || extensionState.errors.includes(text)) return
+  extensionState.errors = [...extensionState.errors, text]
+  console.error('[extensions]', text)
+}
+
+/** 每次重新加载前清空旧错误，避免同一错误在多次热更新后重复堆积。 */
+export function clearExtensionErrors() {
+  extensionState.errors = []
 }
 
 export function markExtensionsReady() {

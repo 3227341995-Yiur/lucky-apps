@@ -3,7 +3,7 @@
  * 空根 → 各 bundle 的 la.bundle.patch → profile 的 cordis.patch.yml。
  * 这里只生成 Loader 行；真正的模块解析和插件挂载交给 @cordisjs/plugin-loader。
  */
-import { readFile, writeFile, readdir, mkdir, cp, access, rm } from 'node:fs/promises'
+import { readFile, writeFile, readdir, mkdir, cp, access, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { load as parseYaml } from 'js-yaml'
 
@@ -165,10 +165,17 @@ async function copyBundledModules(sourceDir: string, targetDir: string, bundled:
   await mkdir(targetModules, { recursive: true })
   for (const name of Object.keys(bundled?.dependencies || {})) {
     const from = join(sourceModules, name)
+    const to = join(targetModules, name)
     try {
       await access(from)
-      await cp(from, join(targetModules, name), { recursive: true, force: true })
-    } catch {}
+      if (!(await stat(from)).isDirectory()) continue
+      // 目标可能是旧 pnpm 的 junction/symlink：先删掉再复制真实目录，
+      // 否则 cp 会写进已失效的链接目标，升级后 bundle 解析不到。
+      await rm(to, { recursive: true, force: true })
+      await cp(from, to, { recursive: true, force: true, dereference: true })
+    } catch (error) {
+      console.warn(`[profile] 复制 bundle 失败 ${name}:`, error.message)
+    }
   }
 }
 
@@ -239,7 +246,7 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
   for (const name of ['.modules.yaml', '.pnpm-workspace-state-v1.json']) {
     await rm(join(targetDir, 'node_modules', name), { force: true })
   }
-  await rm(join(targetDir, 'node_modules', '.pnpm'), { recursive: true, force: true })
+  // 保留 .pnpm：用户安装的外部插件链接都指向它，删掉会让整个 profile 失效。
   for (const name of LEGACY_BROWSER_DEPS) {
     if (!bundled?.dependencies?.[name]) {
       await rm(join(targetDir, 'node_modules', name), { recursive: true, force: true })
