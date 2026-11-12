@@ -12,10 +12,9 @@ import {
   markExtensionsChanged,
   extensionState,
 } from '@/plugins/registry'
-import { mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
+import { cordis, mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
 import { instantiateModule } from '@/plugins/modules'
 import { getSetting } from '@/services/settings'
-import { emit } from '@/utils/eventBus'
 
 export const DISABLED_EXTENSIONS_KEY = 'extensions.disabled'
 
@@ -178,7 +177,7 @@ export async function reloadExtensionComponents() {
     else failed += 1
   }
   markExtensionsChanged()
-  emit('extensions:components-reloaded', { loaded, failed, total: loaded + failed })
+  cordis.emit('extensions/components-reloaded', { loaded, failed, total: loaded + failed })
   return { loaded, failed, total: loaded + failed }
 }
 

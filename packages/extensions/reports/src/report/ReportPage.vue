@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch , inject } from 'vue'
 import ReportSection from './ReportSection.vue'
 import ColumnSettingsDialog from './ColumnSettingsDialog.vue'
 import DateRangeField from '../designer/components/DateRangeField.vue'
 import ElementWidget from '../designer/components/ElementWidget.vue'
-import { useHost } from '../host'
 import { formatDateRange } from '../reportExport'
 
-const api = useHost()
-const hasComponent = name => api.components.has(name)
+const ctx = inject('cordis')
+const hasComponent = name => ctx.components.has(name)
 
 defineOptions({ name: 'ReportPage' })
 

@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 
 defineOptions({ name: 'TrashView' })
 
-const api = useHost()
+const ctx = inject('cordis')
 const items = ref([])
 const trashLoading = ref(false)
 let off = null
@@ -36,7 +35,7 @@ function weekOf(report) {
 async function loadTrash() {
   trashLoading.value = true
   try {
-    items.value = await api.reports.trashed({ limit: 200, offset: 0 })
+    items.value = await ctx.weekReport.reports.trashed({ limit: 200, offset: 0 })
   } catch (error) {
     ElMessage.error(error?.message || '加载回收站失败')
   } finally {
@@ -46,16 +45,16 @@ async function loadTrash() {
 
 onMounted(() => {
   loadTrash()
-  off = api.events.on('report:changed', loadTrash)
+  off = ctx.on('report:changed', loadTrash)
 })
 
 onBeforeUnmount(() => off?.())
 
 async function handleRestore(report) {
   try {
-    await api.reports.restore(report.id)
+    await ctx.weekReport.reports.restore(report.id)
     ElMessage.success(`已恢复「${report.title}」`)
-    await api.ui.selectReport(report.id)
+    await ctx.weekReport.ui.selectReport(report.id)
   } catch (error) {
     ElMessage.error(error?.message || '恢复失败')
   }
@@ -72,7 +71,7 @@ async function handlePurge(report) {
     return
   }
   try {
-    await api.reports.purge(report.id)
+    await ctx.weekReport.reports.purge(report.id)
     ElMessage.success('已彻底删除')
     await loadTrash()
   } catch (error) {
@@ -91,7 +90,7 @@ async function handleEmpty() {
     return
   }
   try {
-    const count = await api.reports.emptyTrash()
+    const count = await ctx.weekReport.reports.emptyTrash()
     ElMessage.success(`已清空回收站，共删除 ${count} 份周报`)
     await loadTrash()
   } catch (error) {
@@ -114,7 +113,7 @@ async function handleEmpty() {
         </div>
 
         <div class="header-actions">
-          <el-button text @click="api.navigation.open('reports')">
+          <el-button text @click="ctx.navigation.open('reports')">
             <el-icon><ArrowLeft /></el-icon>
             <span>返回周报</span>
           </el-button>

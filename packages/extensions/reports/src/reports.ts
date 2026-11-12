@@ -12,7 +12,7 @@ import {
   getDataVersion,
 } from './database'
 import { generateId } from './designer/utils/idGenerator'
-import { events } from './events'
+import { reportCtx } from './ctx'
 
 export async function createReport(data = {}) {
   const report = {
@@ -23,47 +23,47 @@ export async function createReport(data = {}) {
     layout: data.layout || null,
   }
   await saveReport(report)
-  events.emit('report:created', report)
-  events.emit('report:changed', { type: 'created', report })
+  reportCtx().emit('report:created', report)
+  reportCtx().emit('report:changed', { type: 'created', report })
   return report
 }
 
 export async function updateReport(report) {
   if (!report?.id) throw new Error('update 缺少 report.id')
   await saveReport(report)
-  events.emit('report:updated', report)
-  events.emit('report:changed', { type: 'updated', report })
+  reportCtx().emit('report:updated', report)
+  reportCtx().emit('report:changed', { type: 'updated', report })
   return report
 }
 
 export async function removeReport(id) {
   const changed = await deleteReportById(id)
   if (!changed) throw new Error('周报不存在或已在回收站')
-  events.emit('report:deleted', { id })
-  events.emit('report:changed', { type: 'deleted', id })
+  reportCtx().emit('report:deleted', { id })
+  reportCtx().emit('report:changed', { type: 'deleted', id })
   return true
 }
 
 export async function restoreReport(id) {
   const changed = await restoreReportById(id)
   if (!changed) throw new Error('回收站中未找到该周报')
-  events.emit('report:restored', { id })
-  events.emit('report:changed', { type: 'restored', id })
+  reportCtx().emit('report:restored', { id })
+  reportCtx().emit('report:changed', { type: 'restored', id })
   return true
 }
 
 export async function purgeReport(id) {
   const changed = await deleteReportPermanently(id)
   if (!changed) throw new Error('回收站中未找到该周报')
-  events.emit('report:purged', { id })
-  events.emit('report:changed', { type: 'purged', id })
+  reportCtx().emit('report:purged', { id })
+  reportCtx().emit('report:changed', { type: 'purged', id })
   return true
 }
 
 export async function emptyTrashReports() {
   const count = await emptyTrashRows()
-  events.emit('report:trash-emptied', { count })
-  events.emit('report:changed', { type: 'trash-emptied', count })
+  reportCtx().emit('report:trash-emptied', { count })
+  reportCtx().emit('report:changed', { type: 'trash-emptied', count })
   return count
 }
 

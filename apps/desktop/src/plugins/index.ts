@@ -23,10 +23,9 @@ import {
 } from '@/plugins/registry'
 import { loadExtensionResources, startExtensionWatcher } from '@/plugins/loader'
 import { installModuleRegistry } from '@/plugins/modules'
-import pluginApi from '@/plugins/api'
 
 async function installGlobalModules() {
-  installModuleRegistry(pluginApi)
+  installModuleRegistry()
 }
 
 function installBuiltinComponents(app) {

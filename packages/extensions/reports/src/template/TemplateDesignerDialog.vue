@@ -1,7 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { weekReportApi } from '../api'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useHost } from '../host.ts'
 import TemplateListPane from './TemplateListPane.vue'
 import TemplateEditorPane from './TemplateEditorPane.vue'
 import TemplatePreviewPane from './TemplatePreviewPane.vue'
@@ -20,7 +20,7 @@ import {
 
 defineOptions({ name: 'TemplateDesigner' })
 
-const api = useHost()
+const ctx = inject('cordis')
 // ponytail: 插件侧不再广播 template:copy-settings，宿主复制流程直接读取同一份设置
 const emit = () => {}
 
@@ -79,7 +79,7 @@ function applyTemplate(template) {
 
 async function refreshTemplateTypes() {
   try {
-    const [types, settings] = await Promise.all([getTemplateTypes(), api.data.copySettings.get()])
+    const [types, settings] = await Promise.all([getTemplateTypes(), weekReportApi.data.copySettings.get()])
     templateTypes.value = types
     copyEnabled.value = settings.enabled
     const fallback = types[0]?.value || 'html'
@@ -88,7 +88,7 @@ async function refreshTemplateTypes() {
       : fallback
     if (nextType !== copyDefaultType.value) copyDefaultType.value = nextType
     if (nextType !== settings.defaultType) {
-      await api.data.copySettings.save({ defaultType: nextType })
+      await weekReportApi.data.copySettings.save({ defaultType: nextType })
     }
   } catch (error) {
     console.warn('[TemplateDesigner] 加载模板类型失败:', error)
@@ -97,14 +97,14 @@ async function refreshTemplateTypes() {
 
 async function handleCopyEnabledChange(value) {
   copyEnabled.value = Boolean(value)
-  await api.data.copySettings.save({ enabled: copyEnabled.value })
+  await weekReportApi.data.copySettings.save({ enabled: copyEnabled.value })
   emit('template:copy-settings')
 }
 
 async function handleCopyDefaultTypeChange(value) {
   if (!value) return
   copyDefaultType.value = value
-  await api.data.copySettings.save({ defaultType: value })
+  await weekReportApi.data.copySettings.save({ defaultType: value })
   emit('template:copy-settings')
 }
 
@@ -141,7 +141,7 @@ async function refreshTemplates(preferredId = currentId.value) {
 async function loadReports() {
   loadingReports.value = true
   try {
-    reports.value = await api.reports.list({ limit: 500, offset: 0 })
+    reports.value = await weekReportApi.reports.list({ limit: 500, offset: 0 })
   } catch (error) {
     console.error('[TemplateDesigner] 加载周报列表失败:', error)
     reports.value = []
@@ -182,7 +182,7 @@ watch(selectedReportId, async (id) => {
   }
   loadingSections.value = true
   try {
-    const report = await api.reports.get(id)
+    const report = await weekReportApi.reports.get(id)
     if (seq !== sectionSeq) return
     sections.value = report?.sections || []
   } catch (error) {

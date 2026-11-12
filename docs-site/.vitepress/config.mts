@@ -29,7 +29,7 @@ export default defineConfig({
         items: [
           { text: '插件规范', link: '/guide/standards' },
           { text: '外部组件', link: '/guide/components' },
-          { text: '插件 API 包', link: '/guide/plugin-api-package' },
+          { text: '插件能力（ctx 服务）', link: '/guide/plugin-api-package' },
           { text: '安装与发布', link: '/guide/plugin-cli' },
           { text: '插件脚本', link: '/guide/plugins' },
           { text: '启动加载动画', link: '/guide/loading' }

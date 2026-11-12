@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { computed, onBeforeUnmount, onMounted, ref, watch , inject } from 'vue'
 import { formatDate, formatDateTime, getWeekRange, isDateInRange } from './utils/date'
 
 defineOptions({ name: 'HomePage' })
 
-const api = useHost()
+const ctx = inject('cordis')
 
 const now = new Date()
 const weekRange = getWeekRange(now)
@@ -51,13 +50,13 @@ const quickActions = [
 async function reload() {
   try {
     const [list, nextStats] = await Promise.all([
-      api.reports.list({ limit: 300, offset: 0 }),
-      api.reports.stats(),
+      ctx.weekReport.reports.list({ limit: 300, offset: 0 }),
+      ctx.weekReport.reports.stats(),
     ])
     reports.value = list || []
     stats.value = { ...stats.value, ...(nextStats || {}) }
   } catch (error) {
-    api.ui.toast?.(`加载首页失败：${error?.message || error}`, 'error')
+    ctx.ui.toast?.(`加载首页失败：${error?.message || error}`, 'error')
   }
 }
 
@@ -65,7 +64,7 @@ watch(weekReport, async (report) => {
   weekDetail.value = null
   if (!report) return
   try {
-    weekDetail.value = await api.reports.get(report.id)
+    weekDetail.value = await ctx.weekReport.reports.get(report.id)
   } catch {
     weekDetail.value = null
   }
@@ -74,25 +73,25 @@ watch(weekReport, async (report) => {
 async function createReport() {
   try {
     const range = getWeekRange(new Date())
-    const report = await api.reports.create({
+    const report = await ctx.weekReport.reports.create({
       title: `周报 ${range[0].slice(5)} ~ ${range[1].slice(5)}`,
       dateRange: range,
     })
-    await api.ui.selectReport(report.id)
+    await ctx.weekReport.ui.selectReport(report.id)
   } catch (error) {
-    api.ui.toast?.(`新建周报失败：${error?.message || error}`, 'error')
+    ctx.ui.toast?.(`新建周报失败：${error?.message || error}`, 'error')
   }
 }
 
 function openReport(id) {
-  api.ui.selectReport(id)
+  ctx.weekReport.ui.selectReport(id)
 }
 
 function onQuick(action) {
   if (action === 'create') createReport()
-  else if (action === 'io') api.navigation.open('data-io')
-  else if (action === 'designer') api.ui.openDesigner()
-  else if (action === 'settings') api.ui.openSettings()
+  else if (action === 'io') ctx.navigation.open('data-io')
+  else if (action === 'designer') ctx.weekReport.ui.openDesigner()
+  else if (action === 'settings') ctx.ui.openSettings()
 }
 
 function rangeText(dateRange) {
@@ -110,7 +109,7 @@ let off = null
 
 onMounted(() => {
   reload()
-  off = api.events.on('report:changed', reload)
+  off = ctx.on('report:changed', reload)
 })
 
 onBeforeUnmount(() => off?.())
@@ -133,7 +132,7 @@ onBeforeUnmount(() => off?.())
               打开本周周报
             </el-button>
             <el-button v-else type="primary" @click="createReport">新建本周周报</el-button>
-            <el-button text @click="api.ui.openDesigner()">
+            <el-button text @click="ctx.weekReport.ui.openDesigner()">
               <el-icon><MagicStick /></el-icon>
               <span>画布设计</span>
             </el-button>

@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
-import { pluginApi, registerUi, setActiveView } from '@/plugins/api'
+import { cordis } from '@/plugins/cordis'
 import { getNavItemComponent, listNavItems, listOverlays } from '@/plugins/registry'
 import { branding } from '@/composables/useBranding'
 import { apiGet } from '@/services/rpc'
@@ -42,7 +42,7 @@ function openSettings() {
 }
 
 onMounted(async () => {
-  registerUi({ navigate: navigateTo, openSettings })
+  cordis.ui.bind({ navigate: navigateTo, openSettings })
   try {
     const env = await apiGet('/api/env')
     const nodeMajor = Number(String(env?.node || '').split('.')[0]) || 0
@@ -50,7 +50,7 @@ onMounted(async () => {
       envIssue.value = { kind: 'node', ...env }
     }
   } catch {}
-  offExtensionsChanged = pluginApi.events.on('extensions:components-reloaded', (result) => {
+  offExtensionsChanged = cordis.on('extensions/components-reloaded', (result) => {
     if (result.failed > 0) {
       ElMessage.warning(`外部组件热更新：成功 ${result.loaded} 个，失败 ${result.failed} 个（见设置 → 扩展）`)
     } else {
@@ -85,7 +85,7 @@ watch(
 
 watch(
   activePluginPage,
-  id => setActiveView(id),
+  id => cordis.ui.setActiveView(id),
   { immediate: true },
 )
 </script>

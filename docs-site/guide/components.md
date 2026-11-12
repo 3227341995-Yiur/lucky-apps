@@ -21,23 +21,23 @@
 
 ```js
 // 入口名随意，由 package.json exports/main 指定
-import { definePlugin, components } from '@lucky-apps/plugin-api'
 import KpiCard from './KpiCard.vue'
 
-export default definePlugin({
+export default {
   name: 'kpi-card',
-  apply() {
-    components.registerCanvas('KpiCard', KpiCard, {
+  inject: ['components'],
+  apply(ctx) {
+    ctx.components.registerCanvas('KpiCard', KpiCard, {
       value: 'kpi-card',
       description: 'KPI 指标卡'
     })
   }
-})
+}
 ```
 
 - 画布组件用 `components.registerCanvas`，表格列组件用 `components.registerColumn`，列属性插槽用 `components.registerColumnSlot`。
 - 侧边栏入口/页面用 `navigation.register`，和画布组件、列组件是不同扩展类型。仓库的 `trash-bin` 就是一个独立功能组件包：注册左侧回收站入口和完整页面，样式与内置版一致。
-- 设置面板入口用 `settings.register`；程序名称/图标用 `branding.set`（界面部分）。桌面端的窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标由设置中心「程序名称与图标」统一写入，exe 图标重启应用后生效。
+- 设置面板入口用 `settings.register`；程序名称/图标用 `ctx.branding.set`。桌面端的窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标由设置中心「程序名称与图标」统一写入，exe 图标重启应用后生效。
 - 包由 Cordis 或 manifest client 入口管理生命周期，热加载时先 dispose 再重新挂载。
 
 ## 组件内部直接 import

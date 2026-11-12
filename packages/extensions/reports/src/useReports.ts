@@ -6,9 +6,8 @@
  */
 import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { reportCtx } from './ctx'
 import { createReport as createReportRow, removeReport, restoreReport as restoreReportRow, purgeReport as purgeReportRow, emptyTrashReports } from './reports'
-import { events } from './events'
 import {
   loadAllReports,
   loadDeletedReports,
@@ -256,7 +255,7 @@ async function refreshStats() {
     const dbStats = await getReportStats()
     state.stats = {
       ...dbStats,
-      extensions: useHost().extensions.list().filter(item => item.enabled).length,
+      extensions: reportCtx().extensions.list().filter(item => item.enabled).length,
     }
   } catch (error) {
     console.error('[reports] 刷新统计失败:', error)
@@ -367,7 +366,7 @@ async function init() {
     await Promise.all([loadReports(false), refreshStats(), loadRecent()])
 
     if (!subscribed) {
-      events.on('report:changed', (payload) => {
+      reportCtx().on('report:changed', (payload) => {
         handleReportChanged(payload).catch(error => console.error('[reports] 刷新失败:', error))
       })
       subscribed = true

@@ -27,7 +27,7 @@ pnpm tauri:build    # 打包安装程序
 ## 新增内置插件
 
 1. 在 `packages/extensions/<name>/` 创建标准包：`package.json`（`keywords: ["cordis", "lucky-app"]`、`la.client.entry`、`kind`、`bundle.patch`）、`tsdown.config.ts`（`clientConfig`）、`tsconfig.json`（extends 根 `tsconfig.base.json`）、`cordis.patch.yml`。插件依赖和版本由包自己的 `package.json` 声明。
-2. `src/index.ts` 导出 `definePlugin({ name, apply(ctx) { ctx.navigation.register(...) } })`。
+2. `src/index.ts` 导出普通 Cordis 插件对象 `{ name, inject, apply(ctx) { ctx.navigation.register(...) } }`。
 3. 需要 Node 能力时写 `src/node.ts`，preset 自动构建成 `lib/node.js`；否则生成只登记 client bundle 的 stub。
 4. `pnpm plugins:build && pnpm profile:build` 验证。
 

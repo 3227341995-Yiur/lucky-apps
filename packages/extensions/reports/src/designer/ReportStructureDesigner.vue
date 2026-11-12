@@ -1,8 +1,8 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { weekReportApi } from '../api'
+import { computed, onBeforeUnmount, onMounted, ref, watch , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
-import { useHost } from '../host.ts'
 import LayoutPalette from './components/LayoutPalette.vue'
 import LayoutCanvas from './components/LayoutCanvas.vue'
 import LayoutInspector from './components/LayoutInspector.vue'
@@ -23,7 +23,7 @@ defineOptions({ name: 'ReportStructureDesigner' })
 
 const visible = defineModel({ type: Boolean, default: false })
 
-const api = useHost()
+const ctx = inject('cordis')
 
 // ponytail: 独立弹窗恒为编辑态，保留原模板里的 isView 分支不动
 const isView = computed(() => false)
@@ -127,8 +127,8 @@ watch(preview, (value) => {
 })
 
 async function loadCurrentReport() {
-  const id = api.ui.currentReportId()
-  currentReport.value = id ? await api.reports.get(id).catch(() => null) : null
+  const id = weekReportApi.ui.currentReportId()
+  currentReport.value = id ? await weekReportApi.reports.get(id).catch(() => null) : null
 }
 
 async function loadDraft() {
@@ -318,7 +318,7 @@ async function handleSave() {
 
 async function handleApply() {
   if (isView.value) return
-  const reportId = api.ui.currentReportId()
+  const reportId = weekReportApi.ui.currentReportId()
   if (!reportId) {
     ElMessage.warning('请先在左侧选择周报')
     return
@@ -335,7 +335,7 @@ async function handleApply() {
   }
   try {
     const config = normalizeLayoutConfig(draft.value)
-    const report = await api.reports.get(reportId)
+    const report = await weekReportApi.reports.get(reportId)
     if (!report) throw new Error('周报不存在或已删除')
     const oldSections = report.sections || []
     // 同 type 的区块保留原有数据行，新区块生成一行默认数据（与原 applyConfigToCurrent 一致）
@@ -347,7 +347,7 @@ async function handleApply() {
       }
     })
     report.layout = extractLayout(config)
-    await api.reports.update(report)
+    await weekReportApi.reports.update(report)
     visible.value = false
     ElMessage.success('结构已应用并保存')
   } catch (error) {

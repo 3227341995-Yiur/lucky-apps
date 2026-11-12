@@ -6,7 +6,7 @@
  * - 任何写操作递增 dataVersion，插件搜索缓存据此失效
  * - config 存 JSON 字符串；meta 存系统设置与迁移标记
  */
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
+import { reportCtx } from './ctx'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS reports (
@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS templates (
 `
 
 export const database = {
-  select: (sql, params) => useHost().db.select(sql, params),
-  execute: (sql, params) => useHost().db.execute(sql, params),
+  select: (sql, params) => reportCtx().db.select(sql, params),
+  execute: (sql, params) => reportCtx().db.execute(sql, params),
 }
 
 export async function ensureDatabase() {

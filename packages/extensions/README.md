@@ -51,23 +51,22 @@ base → home → reports → kpi-card → ... → trash-bin → 外部功能插
 `src/index.ts` 默认导出 Cordis 插件：
 
 ```ts
-import { definePlugin, components } from '@lucky-apps/plugin-api'
 import KpiCard from './KpiCard.vue'
 
-export default definePlugin({
+export default {
   name: 'kpi-card',
   apply() {
     components.registerCanvas('KpiCard', KpiCard, {
       value: 'kpi-card',
       icon: 'TrendCharts',
       description: 'KPI 指标卡'
-    })
+    }
   }
-})
+}
 ```
 
-- 画布组件：`components.registerCanvas`
-- 表格列组件：`components.registerColumn`
-- 列属性插槽：`components.registerColumnSlot`
+- 画布组件：`ctx.components.registerCanvas`
+- 表格列组件：`ctx.components.registerColumn`
+- 列属性插槽：`ctx.components.registerColumnSlot`
 
 组件内部可以直接 import Vue、Element Plus、npm 包、`.vue`、less/scss，由包自己的 Vite 编译。

@@ -283,9 +283,6 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -310,9 +307,6 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -334,9 +328,6 @@ importers:
 
   packages/extensions/money-cell:
     devDependencies:
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -358,9 +349,6 @@ importers:
 
   packages/extensions/progress-board:
     devDependencies:
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -382,9 +370,6 @@ importers:
 
   packages/extensions/progress-cell:
     devDependencies:
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -406,9 +391,6 @@ importers:
 
   packages/extensions/rating-cell:
     devDependencies:
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -445,9 +427,6 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -481,9 +460,6 @@ importers:
 
   packages/extensions/timeline-card:
     devDependencies:
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -508,9 +484,6 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -535,9 +508,6 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
-      '@lucky-apps/plugin-api':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -556,8 +526,6 @@ importers:
       vue:
         specifier: ^3.5.44
         version: 3.5.44(typescript@5.9.3)
-
-  packages/sdk/plugin-api: {}
 
   packages/tooling/cli:
     dependencies:
@@ -1288,9 +1256,6 @@ packages:
 
   '@lezer/markdown@1.8.1':
     resolution: {integrity: sha512-M5YmEcKWO4mJ45Y1hECwqyu8cLv25EiXOK554PVOvDOWOP0olwelHHQUWr9sjF+d1bENVhy0nfJ8E57XZUTiXg==}
-
-  '@lucky-apps/plugin-api@1.0.0':
-    resolution: {integrity: sha512-9oVCKQm4uR61fLd+rQBembkbtD+yMuceQtvx8fdtYvkNLl4gfI/fL8/Cbx4CvFtJZN59ESwu3kHcuf1Pyy3JEA==, tarball: https://registry.npmjs.org/@lucky-apps/plugin-api/-/plugin-api-1.0.0.tgz}
 
   '@marijn/find-cluster-break@1.0.4':
     resolution: {integrity: sha512-Wy0V7+SGUjnF9/TkiM1hKVDPj7jKXduPNboMVtHTA8dySMURWqfg/JZ9E2Sq8JgSJmkl7k7Qe9FLeMSrSraWmQ==}
@@ -4375,8 +4340,6 @@ snapshots:
     dependencies:
       '@lezer/common': 1.5.5
       '@lezer/highlight': 1.2.5
-
-  '@lucky-apps/plugin-api@1.0.0': {}
 
   '@marijn/find-cluster-break@1.0.4': {}
 

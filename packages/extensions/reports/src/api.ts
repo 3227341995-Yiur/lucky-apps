@@ -2,11 +2,10 @@
  * 周报插件对外 API（由插件自己提供，宿主不再实现）。
  *
  * 通过 ctx.provide('weekReport', ...) 挂到 Cordis，组件和外部插件都走这里。
- * 宿主能力（主题、品牌、扩展状态、事件总线等）从 @lucky-apps/plugin-api 取。
+ * 宿主能力（主题、品牌、扩展状态、事件总线等）从 Cordis ctx 服务取。
  */
 import { ElMessage } from 'element-plus'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
-import { events } from './events'
+import { reportCtx } from './ctx'
 import {
   createReport,
   updateReport,
@@ -43,9 +42,8 @@ import { openReportsDialog } from './dialogs'
 
 export const weekReportApi = {
   events: {
-    on: events.on,
-    once: events.once,
-    off: events.off,
+    on: (event, listener) => reportCtx().on(event, listener),
+    emit: (event, ...args) => reportCtx().emit(event, ...args),
   },
   reports: {
     /** 轻量分页列表（不含 sections） */
@@ -90,13 +88,13 @@ export const weekReportApi = {
   ui: {
     selectReport: async (id) => {
       const report = await useReports().selectReport(id)
-      useHost().navigation.open('reports')
+      reportCtx().navigation.open('reports')
       return report
     },
     currentReportId: () => useReports().state.currentId ?? null,
     /** 宿主当前激活页是不是周报页 */
-    isReportsVisible: () => useHost().ui.activeView?.value === 'reports',
-    openSettings: () => useHost().ui.openSettings(),
+    isReportsVisible: () => reportCtx().ui.activeView?.value === 'reports',
+    openSettings: () => reportCtx().ui.openSettings(),
     openImportExport: () => openReportsDialog('io'),
     openDesigner: () => openReportsDialog('designer'),
     openTemplates: () => openReportsDialog('template'),

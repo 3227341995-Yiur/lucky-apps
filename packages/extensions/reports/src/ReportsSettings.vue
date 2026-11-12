@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { weekReportApi } from './api'
+import { computed, onMounted, ref , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useHost } from './host.ts'
 import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSettings' })
 
-const api = useHost()
+const ctx = inject('cordis')
 const resources = ref([])
 const loading = ref(false)
 const stats = ref({ reports: 0, workItems: 0, trash: 0, templates: 0 })
@@ -27,14 +27,14 @@ function statusOf(resource) {
 
 async function loadStats() {
   try {
-    stats.value = { ...stats.value, ...(await api.reports.stats()) }
+    stats.value = { ...stats.value, ...(await weekReportApi.reports.stats()) }
   } catch {}
 }
 
 async function load() {
   loading.value = true
   try {
-    const list = await api.extensions.list()
+    const list = await ctx.extensions.list()
     resources.value = (list || []).filter(item => item.kind === 'component')
   } catch (error) {
     ElMessage.error(`读取组件失败：${error?.message || error}`)
@@ -46,7 +46,7 @@ async function load() {
 async function toggle(resource) {
   let enabled
   try {
-    enabled = await api.extensions.toggle(resource.id)
+    enabled = await ctx.extensions.toggle(resource.id)
   } catch (error) {
     ElMessage.error(`保存设置失败：${error?.message || error}`)
     return
@@ -67,7 +67,7 @@ async function toggle(resource) {
 async function rescan() {
   loading.value = true
   try {
-    await api.extensions.rescan()
+    await ctx.extensions.rescan()
     await load()
     ElMessage.success('已重新扫描组件')
   } catch (error) {
@@ -93,7 +93,7 @@ async function resetConfig() {
     return
   }
   try {
-    await api.config.reset()
+    await weekReportApi.config.reset()
     ElMessage.success('已恢复系统默认结构')
   } catch (error) {
     ElMessage.error(`恢复默认结构失败：${error?.message || error}`)

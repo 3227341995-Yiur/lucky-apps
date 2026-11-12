@@ -1,24 +1,23 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref , inject } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
-import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 
 defineOptions({ name: 'TrashNavIcon' })
 
-const api = useHost()
+const ctx = inject('cordis')
 const count = ref(0)
 let off = null
 
 async function refresh() {
   try {
-    const stats = await api.reports.stats()
+    const stats = await ctx.weekReport.reports.stats()
     count.value = Math.max(0, Number(stats?.trash) || 0)
   } catch {}
 }
 
 onMounted(() => {
   refresh()
-  off = api.events.on('report:changed', refresh)
+  off = ctx.on('report:changed', refresh)
 })
 
 onBeforeUnmount(() => off?.())

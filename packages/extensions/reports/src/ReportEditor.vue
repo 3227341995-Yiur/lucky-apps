@@ -1,33 +1,31 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ReportPage from './report/ReportPage.vue'
 import { useReports } from './useReports'
 import { debounce } from './template/utils/debounce'
 import { getCopySettings, renderCopyContent } from './reportExport'
 import { getTemplateTypes } from './template/services/templateService'
-import { events } from './events'
 import { formatDateTime } from './designer/utils/date'
 import { createDefaultLayout, extractLayout, normalizeReportLayout } from './designer/config/reportLayout'
 import { openReportsDialog } from './dialogs'
-import { useHost } from './host'
 
 defineOptions({ name: 'ReportEditor' })
 
 
-const hostApi = useHost()
+const ctx = inject('cordis')
 const reports = useReports()
 const { state } = reports
 
 watch(
   () => state.currentReport?.title,
   (title) => {
-    const name = hostApi.branding.get().name || 'Lucky Apps'
+    const name = ctx.branding.get().name || 'Lucky Apps'
     document.title = title ? `${title} · ${name}` : name
   },
   { immediate: true },
 )
-onBeforeUnmount(() => { document.title = hostApi.branding.get().name || 'Lucky Apps' })
+onBeforeUnmount(() => { document.title = ctx.branding.get().name || 'Lucky Apps' })
 
 const copySettings = ref({ enabled: true, defaultType: 'html' })
 const copyTypes = ref([
@@ -154,7 +152,7 @@ onMounted(() => {
   if (viewportRef.value) resizeObserver.observe(viewportRef.value)
   fitPage()
   loadCopyOptions()
-  offCopySettings = events.on('template:copy-settings', loadCopyOptions)
+  offCopySettings = ctx.on('template:copy-settings', loadCopyOptions)
 })
 
 watch(() => layout.value?.page?.width, fitPage)

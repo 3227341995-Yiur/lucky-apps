@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useHost } from '../host.ts'
+import { computed, onBeforeUnmount, onMounted, ref , inject } from 'vue'
 import { Codemirror } from 'vue-codemirror'
 import { basicSetup } from 'codemirror'
 import { EditorView } from '@codemirror/view'
@@ -26,13 +25,13 @@ const modelValue = defineModel({
   default: '',
 })
 
-const api = useHost()
-const resolvedTheme = ref(api.theme.get().resolved)
+const ctx = inject('cordis')
+const resolvedTheme = ref(ctx.theme.get().resolved)
 let offTheme = null
 
 onMounted(() => {
-  offTheme = api.theme.onChange((theme) => {
-    resolvedTheme.value = theme?.resolved || api.theme.get().resolved
+  offTheme = ctx.theme.onChange((theme) => {
+    resolvedTheme.value = theme?.resolved || ctx.theme.get().resolved
   })
 })
 

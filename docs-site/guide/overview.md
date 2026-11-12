@@ -9,7 +9,7 @@ Lucky Apps 支持在不重新构建客户端的前提下扩展样式、插件脚
 | 方式 | 目录 | 生效方式 |
 | --- | --- | --- |
 | 外部组件 | `extensions` / AppData 插件目录 | 独立包构建后运行时注册 |
-| 插件脚本 | `resources/js` | 重新加载应用 |
+| 资源脚本 | `resources/js` | 重新加载应用（无宿主 API） |
 | 全局样式 | `resources/css` | 重新加载应用 |
 
 ## 运行架构
@@ -31,7 +31,7 @@ Cordis Node 服务（server/）
 
 - 启动：Tauri 启动 Node 服务 → 等待服务返回地址 → WebView 打开该地址。
 - 配置：Node 侧组合 profile bundles / patches，用真实 Loader 挂载插件。
-- 客户端：浏览器读取 `/api/boot`，加载组件包并注册到 `window.weekReport`。
+- 客户端：浏览器读取 `/api/boot`，加载组件包；插件在 `apply(ctx)` 里通过 Cordis 服务注册能力。
 
 ::: warning 与 DSH 的差异
 DSH 是纯 Node 进程 + Web 前端；这里是 Tauri 窗口 + Node 服务。
@@ -43,7 +43,7 @@ profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复
 
 ## 装配顺序
 
-1. 安装内置能力并暴露 `window.weekReport`。
+1. 安装宿主 Cordis 服务（navigation / settings / components / ui / theme / branding / extensions / db）。
 2. 按文件名顺序注入 `resources/css/*.css`。
 3. 按文件名顺序加载 `resources/js/*.js`。
 4. Node 服务用真实 Cordis Loader 组合 `profile`（首次启动复制到 `%APPDATA%/com.lu.lucky-apps/profile`）：bundle patches → 用户 patch，按包名从 `node_modules` 挂载。
@@ -53,8 +53,8 @@ profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复
 外部组件包由项目自己构建，宿主在启动时通过 Cordis profile 注册；内置 profile 随应用打包，用户 profile 在 %APPDATA%/com.lu.lucky-apps/profile。
 :::
 
-## API 版本
+## 能力边界
 
-当前 API 版本为 **2**，入口是 `window.weekReport`。`reports` / `templates` / `config`
-命名空间由内置 `reports` 插件提供，其余导航、设置、组件、事件、命令等属于宿主能力。
-完整字段参考见 [API 参考](/guide/api)。
+宿主只提供通用 Cordis 服务；周报业务 API（`reports` / `templates` / `config` / `data`）
+由内置 `reports` 插件通过 `ctx.provide('weekReport', ...)` 提供。没有全局 API 对象。
+完整字段参考见 [Cordis 服务与周报 API](/guide/api)。

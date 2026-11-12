@@ -1,20 +1,19 @@
 /**
  * 主题（插件版 shim）
  *
- * 模板预览只需要 resolvedTheme：从宿主 api.theme 同步，跟随宿主主题切换。
+ * 模板预览只需要 resolvedTheme：从宿主 ctx.theme 同步，跟随宿主主题切换。
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { useHost } from '../../host.ts'
+import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
 
 // ponytail: 只暴露 resolvedTheme，编辑器/预览用到其余主题能力时再补
 export function useTheme() {
-  const api = useHost()
-  const resolvedTheme = ref(api.theme.get().resolved)
+  const ctx = inject('cordis')
+  const resolvedTheme = ref(ctx.theme.get().resolved)
   let off = null
 
   onMounted(() => {
-    off = api.theme.onChange((theme) => {
-      resolvedTheme.value = theme?.resolved || api.theme.get().resolved
+    off = ctx.theme.onChange((theme) => {
+      resolvedTheme.value = theme?.resolved || ctx.theme.get().resolved
     })
   })
 

@@ -36,7 +36,6 @@ apps/
 packages/
 ├─ bundle/            profile bundle（base，tsdown 编译）
 ├─ client/            client module system（client-modules）
-├─ sdk/               plugin-api（外部插件 API）
 ├─ tooling/           cli
 └─ extensions/        内置插件包（home / reports / trash-bin / 画布与列组件）
 src-tauri/            Tauri 壳（窗口、托盘、exe 品牌）

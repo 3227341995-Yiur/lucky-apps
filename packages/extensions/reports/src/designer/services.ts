@@ -1,4 +1,4 @@
-import { useHost } from '../host.ts'
+import { weekReportApi } from '../api'
 
-export const getReportConfig = () => useHost().config.get()
-export const saveReportConfig = config => useHost().config.set(config)
+export const getReportConfig = () => weekReportApi.config.get()
+export const saveReportConfig = config => weekReportApi.config.set(config)

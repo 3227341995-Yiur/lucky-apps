@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useHost } from '../../host.ts'
+import { computed, ref , inject } from 'vue'
 import { SECTION_PRESETS } from '../config/defaultReportConfig.ts'
 import { WIDGETS } from '../config/reportLayout.ts'
 import { getAllElComponents, getElComponentLabel, getElWidget } from '../utils/elementPlusWidgets.ts'
@@ -8,7 +7,7 @@ import ElementPlusGlyph from './ElementPlusGlyph.vue'
 
 defineOptions({ name: 'LayoutPalette' })
 
-const api = useHost()
+const ctx = inject('cordis')
 const emit = defineEmits(['drag-start'])
 
 const elSearch = ref('')
@@ -26,7 +25,7 @@ const layoutWidgets = WIDGETS
   .filter(widget => widget.type !== 'section')
   .map(widget => ({ ...widget, kind: 'element' }))
 
-const externalWidgets = computed(() => api.components.listCanvas()
+const externalWidgets = computed(() => ctx.components.listCanvas()
   .filter(item => item.source !== 'builtin')
   .map(item => ({
     kind: 'component',

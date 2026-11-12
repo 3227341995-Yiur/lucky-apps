@@ -11,5 +11,3 @@ nodeLinker: hoisted
 packageImportMethod: copy
 injectWorkspacePackages: true
 verifyDepsBeforeRun: false
-minimumReleaseAgeExclude:
-  - '@lucky-apps/plugin-api@1.0.0'

@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useHost } from '../../host.ts'
+import { computed , inject } from 'vue'
 import { resolveDefaultValue } from '../config/defaultReportConfig.ts'
 import { evaluateJsExpression } from '../utils/expression.ts'
 import ElementWidget from './ElementWidget.vue'
 
 defineOptions({ name: 'WidgetView' })
 
-const api = useHost()
+const ctx = inject('cordis')
 
 const props = defineProps({
   element: {
@@ -74,7 +73,7 @@ const sectionBoxStyle = computed(() => ({
 
 const columns = computed(() => props.section?.columns || [])
 const customReady = computed(() => (
-  props.element.type === 'component' && api.components.has(props.element.component)
+  props.element.type === 'component' && ctx.components.has(props.element.component)
 ))
 
 const sampleRows = computed(() => {

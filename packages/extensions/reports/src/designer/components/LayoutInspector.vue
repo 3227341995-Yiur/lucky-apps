@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch , inject } from 'vue'
 import { Delete, CopyDocument, Plus, Setting } from '@element-plus/icons-vue'
-import { useHost } from '../../host.ts'
 import CodeEditor from './CodeEditor.vue'
 import { PAGE_PRESETS } from '../config/reportLayout.ts'
 import { getAllElComponents, getElWidget } from '../utils/elementPlusWidgets.ts'
 
 defineOptions({ name: 'LayoutInspector' })
 
-const api = useHost()
+const ctx = inject('cordis')
 
 const props = defineProps({
   layout: { type: Object, required: true },
@@ -27,7 +26,7 @@ const emit = defineEmits([
   'align-element',
 ])
 
-const componentOptions = computed(() => api.components.listColumns())
+const componentOptions = computed(() => ctx.components.listColumns())
 const elComponents = computed(() => getAllElComponents())
 const elPropsText = ref('{}')
 const elPropsError = ref('')

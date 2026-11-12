@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useHost } from '../../host.ts'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch , inject } from 'vue'
 import ReportSection from './ReportSection.vue'
 import DateRangeField from './DateRangeField.vue'
 import ElementWidget from './ElementWidget.vue'
 
 defineOptions({ name: 'ReportPage' })
 
-const api = useHost()
+const ctx = inject('cordis')
 
 function formatDateRange(dateRange) {
   return Array.isArray(dateRange) && dateRange.length === 2 ? dateRange.join(' ~ ') : dateRange
@@ -432,7 +431,7 @@ function updateElModel(element, value) {
         >
           <component
             :is="element.component"
-            v-if="api.components.has(element.component)"
+            v-if="ctx.components.has(element.component)"
             v-bind="element.props || {}"
           />
           <span v-else class="element-custom-empty">外部组件不可用：{{ element.component || '未选择' }}</span>

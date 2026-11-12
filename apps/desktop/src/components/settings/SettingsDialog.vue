@@ -6,7 +6,7 @@ import { branding, setBranding } from '@/composables/useBranding'
 import { apiGet, apiPost } from '@/services/rpc'
 import { useExtensions } from '@/composables/useExtensions'
 import { buildIconPayload } from '@/utils/appIcon'
-import { pluginApi } from '@/plugins/api'
+
 import AppDialog from '@/components/common/AppDialog.vue'
 import { getSettingsSectionComponent, listSettingsSections } from '@/plugins/registry'
 import {
@@ -481,10 +481,6 @@ async function handleCopyResources() {
               <strong>v{{ pkg.version }}</strong>
             </div>
             <div class="about-row">
-              <span>对外 API</span>
-              <strong>v{{ pluginApi.version }} · API {{ pluginApi.apiVersion }}</strong>
-            </div>
-            <div class="about-row">
               <span>技术栈</span>
               <strong>Vue 3.5 · Element Plus 2.14 · Tauri 2</strong>
             </div>
@@ -495,7 +491,7 @@ async function handleCopyResources() {
               </el-button>
             </div>
           </div>
-          <p class="hint">插件通过 <code>@lucky-apps/plugin-api</code> 或 ctx 服务访问宿主能力；扩展资源变更会自动热加载。</p>
+          <p class="hint">插件通过 Cordis <code>ctx</code> 服务访问宿主能力；扩展资源变更会自动热加载。</p>
         </div>
         </div>
       </el-scrollbar>

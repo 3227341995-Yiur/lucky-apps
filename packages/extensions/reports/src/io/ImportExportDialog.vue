@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { weekReportApi } from '../api'
+import { computed, ref, watch , inject } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useHost } from '../host.ts'
 import {
   exportBackupFile,
   exportReport,
@@ -30,7 +30,7 @@ const props = defineProps({
 
 const emit = defineEmits(['imported'])
 
-const api = useHost()
+const ctx = inject('cordis')
 
 const activeTab = ref('export')
 
@@ -136,9 +136,9 @@ async function ensureReports(force = false) {
   reportsLoading.value = true
   loadError.value = ''
   try {
-    const stats = await api.reports.stats()
+    const stats = await weekReportApi.reports.stats()
     reportTotal.value = stats.reports
-    reports.value = await api.reports.list({ limit: 500, offset: 0 })
+    reports.value = await weekReportApi.reports.list({ limit: 500, offset: 0 })
     reportsLoaded.value = true
 
     const available = new Set(reports.value.map(report => report.id))

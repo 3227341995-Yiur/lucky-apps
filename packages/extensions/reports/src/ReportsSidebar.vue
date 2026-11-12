@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { weekReportApi } from './api'
+import { computed, onBeforeUnmount, onMounted, ref , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useHost } from './host.ts'
 import { getIsoWeek } from './utils-date'
 import { createWeekReport } from './createReport'
 import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSidebar' })
 
-const api = useHost()
+const ctx = inject('cordis')
 const keywords = ref('')
 const reports = ref([])
 const loading = ref(false)
@@ -66,7 +66,7 @@ const groupedReports = computed(() => {
 async function load() {
   loading.value = true
   try {
-    reports.value = await api.reports.list({ limit: 500, offset: 0 })
+    reports.value = await weekReportApi.reports.list({ limit: 500, offset: 0 })
   } catch (error) {
     ElMessage.error(`加载周报失败：${error?.message || error}`)
   } finally {
@@ -75,12 +75,12 @@ async function load() {
 }
 
 function selectReport(report) {
-  api.ui.selectReport(report.id)
+  weekReportApi.ui.selectReport(report.id)
 }
 
 // 只在报表视图可见时高亮当前报表；切到其他功能页后取消选中
 function isActive(report) {
-  return api.ui.isReportsVisible() && api.ui.currentReportId() === report.id
+  return (ctx.ui.activeView?.value === 'reports') && weekReportApi.ui.currentReportId() === report.id
 }
 
 async function removeReport(report) {
@@ -94,7 +94,7 @@ async function removeReport(report) {
     return
   }
   try {
-    await api.reports.remove(report.id)
+    await weekReportApi.reports.remove(report.id)
     ElMessage.success('已移入回收站')
   } catch (error) {
     ElMessage.error(`删除失败：${error?.message || error}`)
@@ -103,7 +103,7 @@ async function removeReport(report) {
 
 onMounted(() => {
   load()
-  off = api.events.on('report:changed', load)
+  off = ctx.on('report:changed', load)
 })
 
 onBeforeUnmount(() => off?.())

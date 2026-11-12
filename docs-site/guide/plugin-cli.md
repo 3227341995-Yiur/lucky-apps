@@ -70,6 +70,6 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
       name: my-widget
 ````
 
-Node half 登记 client bundle，浏览器 half 通过 `@lucky-apps/plugin-api` 注册组件或页面。
+Node half 登记 client bundle，浏览器 half 用 Cordis `ctx` 服务注册组件或页面。
 
-外部项目通过 `@lucky-apps/plugin-api` 注册组件，不依赖宿主源码。
+外部项目通过 `ctx.components` / `ctx.navigation` 等 Cordis 服务注册能力，不依赖宿主源码。

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { Plus, Setting, Delete } from '@element-plus/icons-vue'
 import { createRow } from '../designer/config/defaultReportConfig'
-import { computed } from 'vue'
-import { useHost } from '../host'
+import { computed , inject } from 'vue'
 
-const api = useHost()
-const extensionVersion = computed(() => api.extensions.version?.value ?? 0)
+const ctx = inject('cordis')
+const extensionVersion = computed(() => ctx.extensions.version?.value ?? 0)
 
 defineOptions({ name: 'ReportSection' })
 
