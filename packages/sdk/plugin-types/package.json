@@ -3,10 +3,18 @@
   "version": "1.0.0",
   "description": "Type declarations for Lucky Apps Cordis services (types only, no runtime)",
   "types": "index.d.ts",
-  "files": ["index.d.ts"],
-  "keywords": ["cordis", "lucky-app"],
+  "files": [
+    "index.d.ts"
+  ],
+  "keywords": [
+    "cordis",
+    "lucky-app"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "cordis": "^4.0.0-rc.12"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
