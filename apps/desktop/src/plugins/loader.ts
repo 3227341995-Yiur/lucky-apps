@@ -13,7 +13,7 @@ import {
   resetPluginRegistries,
   extensionState,
 } from '@/plugins/registry'
-import { cordis, mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
+import { cordis, mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugin, unmountCordisPlugins } from '@/plugins/cordis'
 import { instantiateModule } from '@/plugins/modules'
 import { getSetting } from '@/services/settings'
 
@@ -24,6 +24,8 @@ const loadedScripts = new Set()
 let bootState = { modules: [], resources: [], paths: {} }
 let pollTimer = null
 let lastBootKey = ''
+// 已挂载的 client 插件资源，增量同步时只动增删，避免整页状态被重建
+const mountedComponents = new Map()
 
 export function ensureExternalPluginDir() {
   return Promise.resolve()
@@ -86,6 +88,7 @@ async function loadBrowserComponent(item) {
       throw new Error('client bundle 没有导出 Cordis 插件对象')
     }
     await mountCordisPluginObject(`component:${item.name}`, plugin)
+    mountedComponents.set(item.id, item)
     updateExtensionResource(item.id, { status: 'loaded', error: '' })
     return true
   } catch (error) {
@@ -145,6 +148,8 @@ export async function syncExtensionResource(item, enabled) {
   if (item.kind === 'component') {
     if (enabled) return loadBrowserComponent(item)
     await unmountCordisPlugin(`component:${item.name}`)
+    mountedComponents.delete(item.id)
+    document.querySelector(`style[data-extension="${item.package || item.name}"]`)?.remove()
     updateExtensionResource(item.id, { status: 'disabled' })
     return
   }
@@ -162,6 +167,7 @@ async function performReloadExtensionComponents() {
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
   // 正常注册项随 fiber dispose 撤销；全量重载时再兜底清一次，消除竞态残留。
   await unmountCordisPlugins('component:')
+  mountedComponents.clear()
   resetPluginRegistries()
   document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
   const payload = await apiGet('/api/boot')
@@ -183,33 +189,81 @@ async function performReloadExtensionComponents() {
   return { loaded, failed, total: loaded + failed }
 }
 
-let reloadRunning = false
-let reloadAgain = false
-let reloadChain = Promise.resolve()
+let clientBusy = false
+let pendingFull = false
+let pendingSync = false
+let clientChain = Promise.resolve()
 
-/**
- * 串行化热重载。安装/卸载流程和 /api/boot 监听可能同时触发，
- * 交错执行会让旧 boot 的插件在卸载后又挂回去。
- */
-export function reloadExtensionComponents() {
-  if (reloadRunning) {
-    reloadAgain = true
-    return reloadChain
+/** 安装/卸载和 boot 监听都走串行队列，避免旧 boot 把已卸载插件挂回去。 */
+function runClientQueue(first) {
+  if (clientBusy) {
+    if (first === 'full') pendingFull = true
+    else pendingSync = true
+    return clientChain
   }
-  reloadRunning = true
-  reloadChain = (async () => {
+  clientBusy = true
+  clientChain = (async () => {
     try {
       let result
+      let mode = first
       do {
-        reloadAgain = false
-        result = await performReloadExtensionComponents()
-      } while (reloadAgain)
+        pendingFull = false
+        pendingSync = false
+        result = mode === 'full'
+          ? await performReloadExtensionComponents()
+          : await performSyncExtensionComponents()
+        mode = pendingFull ? 'full' : (pendingSync ? 'sync' : null)
+      } while (mode)
       return result
     } finally {
-      reloadRunning = false
+      clientBusy = false
     }
   })()
-  return reloadChain
+  return clientChain
+}
+
+/** 手动全量热重载（设置面板按钮） */
+export function reloadExtensionComponents() {
+  return runClientQueue('full')
+}
+
+/** 安装/卸载、boot 监听的增量热更新：保留其它插件与页面状态 */
+export function syncExtensionComponents() {
+  return runClientQueue('sync')
+}
+
+/**
+ * 增量同步 client 插件：只卸载消失的、挂载新增的。
+ * 安装/卸载其它插件时，当前页面和已有插件的模块状态保持不动。
+ */
+async function performSyncExtensionComponents() {
+  try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
+  const payload = await apiGet('/api/boot')
+  applyBoot(payload)
+  const disabledList = await getSetting(DISABLED_EXTENSIONS_KEY, [])
+  const disabled = new Set(Array.isArray(disabledList) ? disabledList : [])
+  const next = bootState.resources.filter(resource => resource.kind === 'component')
+  const nextById = new Map(next.map(item => [item.id, item]))
+
+  let removed = 0
+  for (const [id, item] of [...mountedComponents]) {
+    const stillThere = nextById.get(id)
+    if (stillThere && !disabled.has(id)) continue
+    await unmountCordisPlugin(`component:${item.name}`)
+    mountedComponents.delete(id)
+    document.querySelector(`style[data-extension="${item.package || item.name}"]`)?.remove()
+    if (stillThere) updateExtensionResource(id, { status: 'disabled' })
+    removed += 1
+  }
+
+  let added = 0
+  for (const item of next) {
+    item.enabled = !disabled.has(item.id)
+    if (!item.enabled || mountedComponents.has(item.id)) continue
+    if (await loadBrowserComponent(item)) added += 1
+  }
+  if (removed || added) markExtensionsChanged()
+  return { removed, added }
 }
 
 /** npm 搜索组件包（设置面板使用） */
@@ -255,7 +309,7 @@ export async function installPlugin(spec, onEvent = () => {}) {
   if (streamError) throw new Error(streamError)
 
   onEvent({ type: 'stage', stage: 'reload', progress: 88, message: '重新加载插件…' })
-  await reloadExtensionComponents()
+  await syncExtensionComponents()
   onEvent({ type: 'stage', stage: 'done', progress: 100, message: '安装完成' })
   return result
 }
@@ -294,7 +348,7 @@ export async function uninstallPluginStream(name, onEvent = () => {}) {
   consume(decoder.decode())
   if (streamError) throw new Error(streamError)
   onEvent({ type: 'stage', stage: 'reload', progress: 92, message: '刷新扩展…' })
-  await reloadExtensionComponents()
+  await syncExtensionComponents()
   onEvent({ type: 'stage', stage: 'done', progress: 100, message: '卸载完成' })
   return result
 }
@@ -314,8 +368,7 @@ export async function startExtensionWatcher() {
       const key = JSON.stringify([payload?.modules || [], payload?.resources || []])
       if (key === lastBootKey) return
       lastBootKey = key
-      applyBoot(payload)
-      await reloadExtensionComponents()
+      await syncExtensionComponents()
     } catch (error) {
       console.warn('[extensions] profile 轮询失败:', error)
     }

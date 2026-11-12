@@ -70,11 +70,9 @@ export function registerColumnSlot(componentName, component, meta = {}) {
 }
 
 /** 只移除注册时那一项，避免同名项被后来者覆盖后被误删。 */
-export function unregisterComponent(name, entry) {
+export function unregisterComponent(name) {
   const pascalName = toPascalCase(name)
-  const index = componentCatalog.value.findIndex(item => item.name === pascalName)
-  if (index === -1) return
-  if (entry && componentCatalog.value[index] !== entry) return
+  if (!componentCatalog.value.some(item => item.name === pascalName)) return
   componentCatalog.value = componentCatalog.value.filter(item => item.name !== pascalName)
   componentMap.delete(pascalName)
 }
@@ -116,10 +114,8 @@ export function listCanvasComponents() {
 // ============================================================
 const sidebarPanelCatalog = shallowRef([])
 
-export function unregisterSidebarPanel(id, entry) {
-  const index = sidebarPanelCatalog.value.findIndex(existing => existing.id === id)
-  if (index === -1) return
-  if (entry && sidebarPanelCatalog.value[index] !== entry) return
+export function unregisterSidebarPanel(id) {
+  if (!sidebarPanelCatalog.value.some(existing => existing.id === id)) return
   sidebarPanelCatalog.value = sidebarPanelCatalog.value.filter(existing => existing.id !== id)
 }
 
@@ -139,10 +135,8 @@ export function registerSidebarPanel(item = {}) {
 
 const railActionCatalog = shallowRef([])
 
-export function unregisterRailAction(id, entry) {
-  const index = railActionCatalog.value.findIndex(existing => existing.id === id)
-  if (index === -1) return
-  if (entry && railActionCatalog.value[index] !== entry) return
+export function unregisterRailAction(id) {
+  if (!railActionCatalog.value.some(existing => existing.id === id)) return
   railActionCatalog.value = railActionCatalog.value.filter(existing => existing.id !== id)
 }
 
@@ -166,10 +160,8 @@ export function registerRailAction(item = {}) {
 
 const overlayCatalog = shallowRef([])
 
-export function unregisterOverlay(id, entry) {
-  const index = overlayCatalog.value.findIndex(existing => existing.id === id)
-  if (index === -1) return
-  if (entry && overlayCatalog.value[index] !== entry) return
+export function unregisterOverlay(id) {
+  if (!overlayCatalog.value.some(existing => existing.id === id)) return
   overlayCatalog.value = overlayCatalog.value.filter(existing => existing.id !== id)
 }
 
@@ -225,10 +217,8 @@ export function registerNavItem(item) {
   return entry
 }
 
-export function unregisterNavItem(id, entry) {
-  const index = navItemCatalog.value.findIndex(existing => existing.id === id)
-  if (index === -1) return
-  if (entry && navItemCatalog.value[index] !== entry) return
+export function unregisterNavItem(id) {
+  if (!navItemCatalog.value.some(existing => existing.id === id)) return
   navItemCatalog.value = navItemCatalog.value.filter(existing => existing.id !== id)
   navItemMap.delete(id)
 }
@@ -262,10 +252,8 @@ export function registerSettingsSection(item) {
   return entry
 }
 
-export function unregisterSettingsSection(id, entry) {
-  const index = settingsSectionCatalog.value.findIndex(existing => existing.id === id)
-  if (index === -1) return
-  if (entry && settingsSectionCatalog.value[index] !== entry) return
+export function unregisterSettingsSection(id) {
+  if (!settingsSectionCatalog.value.some(existing => existing.id === id)) return
   settingsSectionCatalog.value = settingsSectionCatalog.value.filter(existing => existing.id !== id)
   settingsSectionMap.delete(id)
 }

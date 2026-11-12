@@ -71,6 +71,7 @@ class SettingsService extends EffectService {
   }
 
   register(item: any) {
+    console.log('[nav] register', item.id, 'fiber', this.ctx.fiber?.name)
     return this.registerEffect(
       () => registerSettingsSection(item),
       entry => unregisterSettingsSection(item.id, entry),
@@ -116,6 +117,7 @@ class OverlayService extends EffectService {
   }
 
   register(item: any) {
+    console.log('[nav] register', item.id, 'fiber', this.ctx.fiber?.name)
     return this.registerEffect(
       () => registerOverlay(item),
       entry => unregisterOverlay(item.id, entry),
