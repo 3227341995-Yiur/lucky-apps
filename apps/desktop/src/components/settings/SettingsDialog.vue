@@ -124,6 +124,7 @@ async function toggleAutostart(value) {
 
 const brandIconInput = ref<HTMLInputElement | null>(null)
 const brandIconBusy = ref(false)
+const brandRestartPending = ref(false)
 
 function pickBrandIcon() {
   brandIconInput.value?.click()
@@ -166,9 +167,23 @@ async function saveBranding() {
       icon = await buildIconPayload(branding.icon)
     }
     const message = await invoke('apply_branding', { name: branding.name, icon })
+    brandRestartPending.value = String(message || '').includes('exe 文件图标已写入')
     ElMessage.success(message || '程序名称与图标已更新')
   } catch (error) {
     ElMessage.warning(`界面已保存，但更新程序图标失败：${error?.message || error}`)
+  }
+}
+
+async function restartApp() {
+  const invoke = window.__TAURI__?.core?.invoke
+  if (!invoke) {
+    window.location.reload()
+    return
+  }
+  try {
+    await invoke('restart_app')
+  } catch (error) {
+    ElMessage.error(`重启失败：${error?.message || error}`)
   }
 }
 
@@ -336,7 +351,12 @@ async function handleCopyResources() {
               @change="onBrandIconFile"
             />
             <p class="hint">支持本地上传或图片 URL，建议使用方形图片。会同步修改窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标；彻底退出并重启应用后，任务管理器里的进程图标才会更新。</p>
-            <el-button type="primary" plain @click="saveBranding">保存品牌</el-button>
+            <div class="brand-actions">
+              <el-button type="primary" plain @click="saveBranding">保存品牌</el-button>
+              <el-button v-if="brandRestartPending" type="warning" plain @click="restartApp">
+                重启应用以更新进程图标
+              </el-button>
+            </div>
           </div>
 
           <div class="brand-card">
@@ -1156,6 +1176,12 @@ async function handleCopyResources() {
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.brand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .brand-logo {

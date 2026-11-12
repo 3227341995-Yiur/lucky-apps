@@ -250,7 +250,10 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, t
     if saved.width > 0 && saved.height > 0 {
       let image = tauri::image::Image::new_owned(rgba, saved.width, saved.height);
       let _ = window.set_icon(image.clone());
+      // Windows 的托盘缓存会忽略纯 NIM_MODIFY，先隐藏再显示强制重新注册。
+      let _ = tray.set_visible(false);
       let _ = tray.set_icon(Some(image));
+      let _ = tray.set_visible(true);
     }
   }
   #[cfg(windows)]
@@ -263,6 +266,11 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, t
     let _ = window.set_title(&saved.name);
     let _ = tray.set_tooltip(Some(saved.name.clone()));
   }
+}
+
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+  app.restart();
 }
 
 #[tauri::command]
@@ -287,7 +295,9 @@ async fn apply_branding(
     let image = tauri::image::Image::new_owned(icon.rgba.clone(), icon.width, icon.height);
     window.set_icon(image.clone()).map_err(|e| e.to_string())?;
     if let Some(tray) = tray_handle(&app) {
+      let _ = tray.set_visible(false);
       let _ = tray.set_icon(Some(image));
+      let _ = tray.set_visible(true);
     }
     #[cfg(windows)]
     if !icon.ico.is_empty() {
@@ -621,7 +631,7 @@ pub fn run() {
 
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![apply_branding])
+    .invoke_handler(tauri::generate_handler![apply_branding, restart_app])
     .build(tauri::generate_context!())
     .expect("error while building tauri application");
 
