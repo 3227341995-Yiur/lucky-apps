@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
 import { installPlugin, searchPlugins, uninstallPluginStream } from '@/plugins/loader'
 import { AppDialog } from '@lucky-apps/client-ui'
 
 defineOptions({ name: 'ExtensionManager' })
+
+// 资源卡片已经展示的错误不再在全局列表重复一遍
+const visibleErrors = computed(() => {
+  const resourceErrors = extensionState.resources
+    .map(resource => String(resource.error || '').trim())
+    .filter(Boolean)
+  return extensionState.errors.filter(message => (
+    !resourceErrors.some(error => error.includes(message) || message.includes(error))
+  ))
+})
 
 const {
   extensionState,
@@ -55,6 +65,9 @@ const installStage = ref('')
 const installPercent = ref(0)
 const installLogs = ref([])
 const installError = ref('')
+const pendingBuilds = ref([])
+const approvedNames = ref([])
+const approving = ref(false)
 const uninstallOpen = ref(false)
 const uninstallName = ref('')
 const uninstallStage = ref('')
@@ -121,6 +134,8 @@ function openInstallDialog() {
   installPercent.value = 0
   installLogs.value = []
   installError.value = ''
+  pendingBuilds.value = []
+  approvedNames.value = []
   nextTick(() => installInputRef.value?.focus())
 }
 
@@ -157,6 +172,11 @@ async function copyErrorText(text) {
   } catch {
     ElMessage.error('复制失败，请手动选择文本')
   }
+}
+
+/** allowBuilds 里本地/Git 包会带 @file: / @https: 后缀，界面上只显示包名。 */
+function buildLabel(name) {
+  return String(name || '').replace(/@(?:file|link|git\+https?|https?):.*$/i, '')
 }
 
 function appendLog(logs, line) {
@@ -248,25 +268,53 @@ async function handleInstall(specArg) {
     ElMessage.warning('输入内容不是有效的 npm 包名、Git 地址或本地目录')
     return
   }
+  await runInstall(spec)
+}
+
+async function approveInstall() {
+  const names = pendingBuilds.value
+  if (!installSpec.value || !names.length) return
+  approving.value = true
+  try {
+    await runInstall(installSpec.value, names)
+  } finally {
+    approving.value = false
+  }
+}
+
+function retryInstall() {
+  if (installSpec.value) runInstall(installSpec.value)
+  else handleInstall()
+}
+
+async function runInstall(spec, approvedBuilds = []) {
   installSpec.value = spec
   installing.value = true
   installError.value = ''
+  pendingBuilds.value = []
+  approvedNames.value = []
   installLogs.value = []
   installPercent.value = 0
   installStage.value = '准备安装…'
   try {
-    const result = await installPlugin(spec, handleInstallEvent)
+    const result = await installPlugin(spec, handleInstallEvent, approvedBuilds)
     installStage.value = '安装完成'
     installPercent.value = 100
+    approvedNames.value = result?.approvedBuilds || []
     await rescan()
     installSpec.value = ''
     ElMessage.success(`已安装 ${result?.name || spec}${result?.hasBundle ? '，已加入 profile' : '（普通依赖）'}`)
   } catch (error) {
     const message = error?.message || String(error)
+    if (Array.isArray(error?.pendingBuilds) && error.pendingBuilds.length) {
+      // pnpm 拦截了安装脚本：留在同一个安装窗口里授权，不弹第二个窗口。
+      pendingBuilds.value = error.pendingBuilds
+      installStage.value = '需要允许安装脚本'
+      return
+    }
     installError.value = message
     installStage.value = '安装失败'
     installLogs.value = appendLog(installLogs.value, message)
-    ElMessage.error(`安装失败：${message}`)
   } finally {
     installing.value = false
   }
@@ -318,7 +366,6 @@ async function handleUninstall(resource) {
     uninstallError.value = message
     uninstallStage.value = '卸载失败'
     uninstallLogs.value = appendLog(uninstallLogs.value, message)
-    ElMessage.error(`卸载失败：${message}`)
     removingName.value = ''
   }
 }
@@ -339,6 +386,12 @@ async function handleToggle(resource) {
   try {
     const enabled = await toggleResource(resource.id)
     if (enabled === null) return
+    // 普通 <script> 已经执行过的监听和 DOM 无法撤销，只有重新加载界面才能真正停用。
+    if (resource.kind === 'script') {
+      ElMessage.success(`已${enabled ? '启用' : '禁用'}「${resource.name}」，正在重新加载界面…`)
+      setTimeout(() => window.location.reload(), 600)
+      return
+    }
     ElMessage.success(`已${enabled ? '启用' : '禁用'}「${resource.name}」`)
   } catch (error) {
     ElMessage.error(`切换扩展失败：${error?.message || error}`)
@@ -409,12 +462,12 @@ async function handleToggle(resource) {
       <code>cordis.patch.yml</code>。
     </p>
 
-    <div v-if="extensionState.errors.length" class="ext-errors">
+    <div v-if="visibleErrors.length" class="ext-errors">
       <div class="ext-errors-head">
         <el-icon><WarningFilled /></el-icon>
         <span>Cordis 插件错误</span>
       </div>
-      <div v-for="message in extensionState.errors" :key="message" class="ext-error-row">
+      <div v-for="message in visibleErrors" :key="message" class="ext-error-row">
         <span>{{ friendlyError(message) }}</span>
         <button type="button" class="ext-error-copy" @click="copyErrorText(message)">复制</button>
       </div>
@@ -539,12 +592,25 @@ async function handleToggle(resource) {
         <span v-if="searching" class="install-spinner"><el-icon class="is-loading"><Loading /></el-icon></span>
       </div>
 
-      <div v-if="installing || installPercent > 0 || installError" class="install-progress">
+      <div v-if="pendingBuilds.length" class="install-approval" role="group" aria-label="需要允许安装脚本">
+        <h4>需要允许安装脚本</h4>
+        <p>以下包声明了安装脚本，pnpm 默认不运行。</p>
+        <ul>
+          <li v-for="name in pendingBuilds" :key="name"><code>{{ buildLabel(name) }}</code></li>
+        </ul>
+        <p>允许后，脚本会以你的权限在本机运行，授权保存在当前 profile，之后不再询问。</p>
+        <p class="approval-hint">只在信任这些包时允许。</p>
+      </div>
+
+      <div v-else-if="installing || installPercent > 0 || installError" class="install-progress">
         <div class="install-progress-head">
           <span>{{ installStage || '正在安装…' }}</span>
           <strong>{{ installPercent }}%</strong>
         </div>
         <el-progress :percentage="installPercent" :show-text="false" :stroke-width="7" />
+        <p v-if="approvedNames.length" class="install-approved" role="status">
+          已允许运行安装脚本：{{ approvedNames.map(buildLabel).join('、') }}
+        </p>
         <div v-if="installError" class="install-error-card" role="alert">
           <span class="install-error-icon"><el-icon><WarningFilled /></el-icon></span>
           <div class="install-error-main">
@@ -582,18 +648,24 @@ async function handleToggle(resource) {
         </div>
       </div>
       <template #footer>
-        <span class="install-foot-hint">{{ installError ? '没有安装完成，可以点「重试」再试一次。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
-        <template v-if="installPercent === 100 && !installError">
-          <el-button type="primary" @click="installOpen = false">关闭</el-button>
+        <template v-if="pendingBuilds.length">
+          <span class="install-foot-hint">授权只保存在当前 profile。</span>
+          <el-button type="primary" :loading="approving" @click="approveInstall">允许这些脚本并重试</el-button>
         </template>
-        <el-button
-          v-else
-          type="primary"
-          :loading="installing"
-          @click="handleInstall()"
-        >
-          <el-icon><Download /></el-icon><span>{{ installError ? '重试' : '安装' }}</span>
-        </el-button>
+        <template v-else>
+          <span class="install-foot-hint">{{ installError ? '没有安装完成，可以点「重试」再试一次。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+          <template v-if="installPercent === 100 && !installError">
+            <el-button type="primary" @click="installOpen = false">关闭</el-button>
+          </template>
+          <el-button
+            v-else
+            type="primary"
+            :loading="installing"
+            @click="installError ? retryInstall() : handleInstall()"
+          >
+            <el-icon><Download /></el-icon><span>{{ installError ? '重试' : '安装' }}</span>
+          </el-button>
+        </template>
       </template>
     </AppDialog>
   </div>
@@ -846,6 +918,59 @@ async function handleToggle(resource) {
   color: var(--el-text-color-primary);
   font-family: var(--wr-mono);
   font-size: 11px;
+}
+
+.install-approval {
+  display: grid;
+  gap: 8px;
+  padding: 14px 15px;
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 26%, var(--el-border-color-lighter));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-color-warning-light-9) 64%, var(--el-bg-color));
+}
+
+.install-approval h4 {
+  margin: 0;
+  color: var(--el-text-color-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.install-approval p {
+  margin: 0;
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.install-approval ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.install-approval code {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  font-family: var(--wr-mono);
+  font-size: 11px;
+}
+
+.approval-hint {
+  color: var(--el-text-color-placeholder) !important;
+  font-size: 11px !important;
+}
+
+.install-approved {
+  margin: 0;
+  color: var(--el-color-success);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .install-error-card {

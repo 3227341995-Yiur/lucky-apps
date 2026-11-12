@@ -27,6 +27,7 @@ docs-site             VitePress 开发文档
 - 数据库等业务数据层归插件所有（`packages/extensions/reports` 的 `reports-database`），宿主不持有。
 - 插件 `cordis.patch.yml` 必须入库；构建产物 `lib/` 不入库。
 - 客户端 bundle 通过 `window.__ModuleLoader__.load({ id, factory })` 注册 CJS factory；`require('vue')` 等由宿主 staticModules 解析，不挂 window 库全局。
+- 插件安装/卸载优先用系统 pnpm，没有 pnpm 时用 Node 自带的 npm；不要要求用户额外安装包管理器。插件声明 `preinstall` / `install` / `postinstall` / `prepare` 时，安装窗口必须先让用户确认再执行。
 - 插件 `package.json` 必须声明 `keywords: ["cordis", "lucky-app"]`；设置中心的 npm 搜索只展示带 `lucky-app` 标签的包。
 - 提交前跑 `pnpm lint` 与 `pnpm test`；lefthook 已配置 staged 自动修复。
 - 不要手工修改 `node_modules`、`dist`、`target`。

@@ -1,4 +1,4 @@
-# Lucky Apps v3.2.8
+# Lucky Apps v3.2.11
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的插件化桌面应用。
 
@@ -12,7 +12,7 @@
 - 画布组件：`kpi-card` / `progress-board` / `timeline-card`
 - 列组件：`rating-cell` / `progress-cell` / `user-cell` / `money-cell`
 
-插件可以注册导航入口与页面、设置面板、程序名称与图标、画布组件、列组件以及列属性编辑插槽。插件包统一在 `package.json` 声明 `keywords: ["cordis", "lucky-app"]`，安装面板只检索带 `lucky-app` 标签的包。
+插件可以注册导航入口与页面、设置面板、程序名称与图标、画布组件、列组件以及列属性编辑插槽。可安装的插件包在 `package.json` 声明 `keywords: ["cordis", "lucky-app"]`，安装面板只检索带 `lucky-app` 标签的包；`@lucky-apps/client-ui`、`@lucky-apps/plugin-types` 等宿主 SDK 包不是插件，不声明这两个标签。
 
 ## 开发
 

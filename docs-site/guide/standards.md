@@ -93,5 +93,6 @@ npm publish
 
 - 版本遵循 semver；破坏插件 API 或配置结构时升 major。
 - 发布前跑 `pnpm build` 与 `pnpm test`，确认 `lib/` 产物包含 `client.js`、`node.js` 和所需资源。
+- 宿主不绑定包管理器：有 pnpm 用 pnpm，没有 pnpm 时用 Node 自带的 npm。插件声明安装/构建脚本（`preinstall` / `install` / `postinstall` / `prepare`）时，包管理器默认不执行；安装窗口会列出被拦截的包，用户确认后写入 profile 的 `pnpm-workspace.yaml`（`allowBuilds: { 包名: true }`）并重试，npm 回退路径用 `npm rebuild` 只跑已授权的包。
 - 宿主通过 `la.profile.bundles` 升级内置插件，通过 npm 安装外部插件；不要手工复制 `node_modules`。
 - 安装面板只搜索带 `lucky-app` 标签的包；本地目录、Git 仓库和直接包名安装不受限制。

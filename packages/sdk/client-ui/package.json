@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/client-ui",
-  "version": "3.2.8",
+  "version": "3.2.11",
   "description": "Host-provided Vue UI primitives for Lucky Apps plugins",
   "private": false,
   "type": "module",
@@ -13,10 +13,6 @@
   },
   "files": [
     "src"
-  ],
-  "keywords": [
-    "cordis",
-    "lucky-app"
   ],
   "license": "MIT",
   "peerDependencies": {

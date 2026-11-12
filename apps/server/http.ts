@@ -246,9 +246,15 @@ export async function createHttpServer({
             if (!res.writableEnded) res.write(`${JSON.stringify(event)}\n`)
           }
           try {
-            await installProfilePluginStream(profileDir, String(body.spec || ''), emit)
+            const approvedBuilds = Array.isArray(body.approvedBuilds) ? body.approvedBuilds.filter(item => typeof item === 'string') : []
+            await installProfilePluginStream(profileDir, String(body.spec || ''), emit, { approvedBuilds })
           } catch (error) {
-            emit({ type: 'error', error: error.message })
+            const pendingBuilds = Array.isArray(error?.pendingBuilds) ? error.pendingBuilds : []
+            emit({
+              type: 'error',
+              error: error.message,
+              ...pendingBuilds.length ? { pendingBuilds } : {},
+            })
           }
           res.end()
           return

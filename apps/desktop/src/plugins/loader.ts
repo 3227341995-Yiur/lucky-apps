@@ -68,10 +68,21 @@ function applyBoot(payload) {
   }
 }
 
+async function disabledIds() {
+  const list = await getSetting(DISABLED_EXTENSIONS_KEY, [])
+  return new Set(Array.isArray(list) ? list : [])
+}
+
+/** 把用户保存的启停状态同步到资源列表；脚本/样式也要显示真实状态。 */
+function applyEnabledState(resources, disabled) {
+  for (const item of resources) item.enabled = !disabled.has(item.id)
+}
+
 /** 扫描服务端 boot 清单，供管理界面展示 */
 export async function scanExtensionResources() {
   const payload = await apiGet('/api/boot')
   applyBoot(payload)
+  applyEnabledState(bootState.resources, await disabledIds())
   return bootState.resources
 }
 
@@ -127,14 +138,10 @@ async function mountScriptResource(item) {
 export async function loadExtensionResources() {
   clearExtensionErrors()
   const resources = await scanExtensionResources()
-  const disabledList = await getSetting(DISABLED_EXTENSIONS_KEY, [])
-  const disabled = new Set(Array.isArray(disabledList) ? disabledList : [])
+  const disabled = await disabledIds()
 
   for (const item of resources) {
-    if (item.kind === 'component') {
-      item.enabled = !disabled.has(item.id)
-      continue
-    }
+    if (item.kind === 'component') continue
     if (disabled.has(item.id)) continue
     if (item.kind === 'style') await mountStyleResource(item)
     else if (item.kind === 'script') await mountScriptResource(item)
@@ -175,13 +182,12 @@ async function performReloadExtensionComponents() {
   document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
   const payload = await apiGet('/api/boot')
   applyBoot(payload)
-  const disabledList = await getSetting(DISABLED_EXTENSIONS_KEY, [])
-  const disabled = new Set(Array.isArray(disabledList) ? disabledList : [])
+  const disabled = await disabledIds()
+  applyEnabledState(bootState.resources, disabled)
 
   let loaded = 0
   let failed = 0
   for (const item of bootState.resources.filter(resource => resource.kind === 'component')) {
-    item.enabled = !disabled.has(item.id)
     if (!item.enabled) continue
     const ok = await loadBrowserComponent(item)
     if (ok) loaded += 1
@@ -244,8 +250,8 @@ async function performSyncExtensionComponents() {
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
   const payload = await apiGet('/api/boot')
   applyBoot(payload)
-  const disabledList = await getSetting(DISABLED_EXTENSIONS_KEY, [])
-  const disabled = new Set(Array.isArray(disabledList) ? disabledList : [])
+  const disabled = await disabledIds()
+  applyEnabledState(bootState.resources, disabled)
   const next = bootState.resources.filter(resource => resource.kind === 'component')
   const nextById = new Map(next.map(item => [item.id, item]))
 
@@ -262,7 +268,6 @@ async function performSyncExtensionComponents() {
 
   let added = 0
   for (const item of next) {
-    item.enabled = !disabled.has(item.id)
     if (!item.enabled || mountedComponents.has(item.id)) continue
     if (await loadBrowserComponent(item)) added += 1
   }
@@ -276,8 +281,8 @@ export async function searchPlugins(query) {
 }
 
 /** 通过服务端安装外部组件包，流式接收 pnpm 进度与错误（设置面板使用） */
-export async function installPlugin(spec, onEvent = () => {}) {
-  const response = await apiStream('/api/packages/extensions/install', { spec })
+export async function installPlugin(spec, onEvent = () => {}, approvedBuilds = []) {
+  const response = await apiStream('/api/packages/extensions/install', { spec, approvedBuilds })
   if (!response.ok) {
     let detail = ''
     try { detail = (await response.json()).error || '' } catch {}
@@ -289,6 +294,7 @@ export async function installPlugin(spec, onEvent = () => {}) {
   let buffer = ''
   let result = null
   let streamError = ''
+  let pendingBuilds = []
 
   const consume = (chunk) => {
     buffer += chunk
@@ -298,8 +304,10 @@ export async function installPlugin(spec, onEvent = () => {}) {
       if (!line.trim()) continue
       let event
       try { event = JSON.parse(line) } catch { continue }
-      if (event.type === 'error') streamError = event.error || '安装失败'
-      else if (event.type === 'done') result = event.result
+      if (event.type === 'error') {
+        streamError = event.error || '安装失败'
+        pendingBuilds = Array.isArray(event.pendingBuilds) ? event.pendingBuilds : []
+      } else if (event.type === 'done') result = event.result
       onEvent(event)
     }
   }
@@ -310,7 +318,11 @@ export async function installPlugin(spec, onEvent = () => {}) {
     consume(decoder.decode(value, { stream: true }))
   }
   consume(decoder.decode())
-  if (streamError) throw new Error(streamError)
+  if (streamError) {
+    const error = new Error(streamError)
+    error.pendingBuilds = pendingBuilds
+    throw error
+  }
 
   onEvent({ type: 'stage', stage: 'reload', progress: 88, message: '重新加载插件…' })
   await syncExtensionComponents()

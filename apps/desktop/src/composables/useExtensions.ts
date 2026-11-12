@@ -24,7 +24,7 @@ const GROUP_LABELS = {
 
 const GROUP_HINTS = {
   style: '运行时注入的 CSS 文件',
-  script: '按文件名排序加载的插件脚本',
+  script: '按文件名排序加载的插件脚本；启停会重新加载界面',
   'component-canvas': '拖入自由画布的组件',
   'component-column': '表格单元格 / 列编辑组件',
   'component-feature': '侧边栏入口、页面与后台功能',

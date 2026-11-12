@@ -145,6 +145,72 @@ fn tray_handle(app: &tauri::AppHandle) -> Option<tauri::tray::TrayIcon> {
   app.try_state::<TrayProcess>()?.0.lock().unwrap().clone()
 }
 
+/// Tauri 的 set_icon 只设置 WM_SETICON 的小图标（标题栏），任务栏用的大图标要单独设置。
+#[cfg(windows)]
+fn apply_taskbar_icon(window: &tauri::WebviewWindow, ico: &[u8]) -> Result<(), String> {
+  use std::sync::atomic::{AtomicIsize, Ordering};
+  use windows_sys::Win32::UI::WindowsAndMessaging::{
+    CreateIconFromResourceEx, DestroyIcon, SendMessageW, ICON_BIG, WM_SETICON,
+  };
+
+  static TASKBAR_ICON: AtomicIsize = AtomicIsize::new(0);
+  let entries = ico_entries(ico)?;
+  // 48px 在 100%~150% 缩放下都清晰；Windows 会按任务栏实际尺寸再缩放。
+  let (size, offset, len) = entries.iter()
+    .find(|(size, _, _)| *size == 48)
+    .or_else(|| entries.iter().find(|(size, _, _)| *size == 32))
+    .or_else(|| entries.iter().max_by_key(|(size, _, _)| *size))
+    .copied()
+    .ok_or("ico 文件没有图标条目")?;
+  let image = unsafe {
+    CreateIconFromResourceEx(
+      ico[offset..].as_ptr(),
+      len as u32,
+      1,
+      0x0003_0000,
+      size as i32,
+      size as i32,
+      0,
+    )
+  };
+  if image.is_null() {
+    return Err("无法创建任务栏图标".into());
+  }
+  let hwnd = window.hwnd().map_err(|error| error.to_string())?;
+  unsafe {
+    SendMessageW(hwnd.0 as _, WM_SETICON, ICON_BIG as usize, image as isize);
+  }
+  let previous = TASKBAR_ICON.swap(image as isize, Ordering::SeqCst);
+  if previous != 0 {
+    unsafe { DestroyIcon(previous as _) };
+  }
+  Ok(())
+}
+
+/// 解析 .ico 的目录项：尺寸、数据偏移、数据长度。宽度字节 0 表示 256。
+#[cfg(windows)]
+fn ico_entries(ico: &[u8]) -> Result<Vec<(u32, usize, usize)>, String> {
+  if ico.len() < 6 || u16::from_le_bytes([ico[4], ico[5]]) == 0 {
+    return Err("ico 文件格式无效".into());
+  }
+  let count = u16::from_le_bytes([ico[4], ico[5]]) as usize;
+  let mut images = Vec::with_capacity(count);
+  for index in 0..count {
+    let head = 6 + index * 16;
+    if head + 16 > ico.len() {
+      return Err("ico 目录越界".into());
+    }
+    let size = if ico[head] == 0 { 256 } else { ico[head] as u32 };
+    let len = u32::from_le_bytes([ico[head + 8], ico[head + 9], ico[head + 10], ico[head + 11]]) as usize;
+    let offset = u32::from_le_bytes([ico[head + 12], ico[head + 13], ico[head + 14], ico[head + 15]]) as usize;
+    if offset + len > ico.len() {
+      return Err("ico 数据越界".into());
+    }
+    images.push((size, offset, len));
+  }
+  Ok(images)
+}
+
 fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, tray: &tauri::tray::TrayIcon) {
   let Ok(dir) = branding_dir(app) else { return };
   let Some(saved) = std::fs::read_to_string(dir.join("branding.json"))
@@ -158,6 +224,12 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, t
       let image = tauri::image::Image::new_owned(rgba, saved.width, saved.height);
       let _ = window.set_icon(image.clone());
       let _ = tray.set_icon(Some(image));
+    }
+  }
+  #[cfg(windows)]
+  if let Ok(ico) = std::fs::read(dir.join("branding-icon.ico")) {
+    if let Err(error) = apply_taskbar_icon(window, &ico) {
+      eprintln!("[shell] 恢复任务栏图标失败: {error}");
     }
   }
   if !saved.name.is_empty() {
@@ -188,6 +260,12 @@ async fn apply_branding(
     if let Some(tray) = tray_handle(&app) {
       let _ = tray.set_icon(Some(image));
     }
+    #[cfg(windows)]
+    if !icon.ico.is_empty() {
+      if let Err(error) = apply_taskbar_icon(&window, &icon.ico) {
+        eprintln!("[shell] 任务栏图标更新失败: {error}");
+      }
+    }
     std::fs::write(dir.join("branding-icon.bin"), &icon.rgba).map_err(|e| e.to_string())?;
     std::fs::write(dir.join("branding-icon.ico"), &icon.ico).map_err(|e| e.to_string())?;
     saved.width = icon.width;
@@ -200,7 +278,7 @@ async fn apply_branding(
     }
   }
 
-  let mut message = String::from("程序名称与图标已更新");
+  let mut message = String::from("程序名称与窗口、托盘、任务栏图标已更新");
   #[cfg(windows)]
   if let Some(icon) = icon.filter(|icon| !icon.ico.is_empty()) {
     if cfg!(debug_assertions) {
@@ -233,27 +311,13 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
     use windows_sys::Win32::System::LibraryLoader::{
       BeginUpdateResourceW, EndUpdateResourceW, UpdateResourceW,
     };
-    use windows_sys::Win32::UI::Shell::{SHChangeNotify, SHCNF_IDLIST, SHCNE_ASSOCCHANGED};
+    use windows_sys::Win32::UI::Shell::{
+      SHChangeNotify, SHCNF_IDLIST, SHCNF_PATHW, SHCNE_ASSOCCHANGED, SHCNE_UPDATEITEM,
+    };
     use windows_sys::Win32::UI::WindowsAndMessaging::{RT_GROUP_ICON, RT_ICON};
 
-    // 解析 .ico：ICONDIR + 若干 ICONDIRENTRY
-    if ico.len() < 6 || u16::from_le_bytes([ico[4], ico[5]]) == 0 {
-      return Err("ico 文件格式无效".into());
-    }
-    let count = u16::from_le_bytes([ico[4], ico[5]]) as usize;
-    let mut images: Vec<(usize, usize)> = Vec::with_capacity(count); // (offset, len)
-    for index in 0..count {
-      let head = 6 + index * 16;
-      if head + 16 > ico.len() {
-        return Err("ico 目录越界".into());
-      }
-      let len = u32::from_le_bytes([ico[head + 8], ico[head + 9], ico[head + 10], ico[head + 11]]) as usize;
-      let offset = u32::from_le_bytes([ico[head + 12], ico[head + 13], ico[head + 14], ico[head + 15]]) as usize;
-      if offset + len > ico.len() {
-        return Err("ico 数据越界".into());
-      }
-      images.push((offset, len));
-    }
+    let images = ico_entries(ico)?;
+    let count = images.len();
     // RT_GROUP_ICON：同 ICONDIR 头 + 每项 14 字节（末尾 offset 换成资源 ID）
     let mut group = Vec::with_capacity(6 + count * 14);
     group.extend_from_slice(&ico[..6]);
@@ -281,7 +345,7 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
       return Err("无法打开程序资源（可能被占用或无权限）".into());
     }
     let mut ok = true;
-    for (index, (offset, len)) in images.iter().enumerate() {
+    for (index, (_, offset, len)) in images.iter().enumerate() {
       let data = &ico[*offset..*offset + *len];
       let result = unsafe {
         UpdateResourceW(
@@ -298,12 +362,18 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
         break;
       }
     }
+    // Tauri 的默认图标组是 IDI_APPLICATION（32512）。旧版本写到组 1，Windows
+    // 仍可能读取 32512，导致 exe/任务管理器图标看起来没变；这里覆盖 32512 并清掉组 1。
+    let group_id: usize = 32512;
+    unsafe {
+      UpdateResourceW(handle, RT_GROUP_ICON as _, 1usize as _, 0x0409, std::ptr::null(), 0);
+    }
     if ok {
       let result = unsafe {
         UpdateResourceW(
           handle,
           RT_GROUP_ICON as _,
-          1 as usize as _,
+          group_id as _,
           0x0409,
           group.as_ptr() as *const core::ffi::c_void,
           group.len() as u32,
@@ -327,7 +397,15 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
       let _ = std::fs::rename(&previous, &exe);
       return Err(format!("新程序就位失败: {error}"));
     }
+    // 让资源管理器重新读取这个 exe 的图标；任务管理器需要等应用重启后展示新图标。
+    let exe_wide: Vec<u16> = exe.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
     unsafe {
+      SHChangeNotify(
+        SHCNE_UPDATEITEM as i32,
+        SHCNF_PATHW,
+        exe_wide.as_ptr() as *const core::ffi::c_void,
+        std::ptr::null(),
+      );
       SHChangeNotify(SHCNE_ASSOCCHANGED as i32, SHCNF_IDLIST, std::ptr::null(), std::ptr::null());
     }
     Ok(())
