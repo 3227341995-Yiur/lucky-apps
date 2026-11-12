@@ -31,6 +31,21 @@ async function groupedManifests(dir: string): Promise<string[]> {
   return files
 }
 
+test('只有可安装插件声明 lucky-app 标签', async () => {
+  const manifests = [
+    join(root, 'package.json'),
+    ...(await directManifests(join(root, 'packages', 'sdk'))),
+    ...(await directManifests(join(root, 'packages', 'tooling'))),
+    ...(await directManifests(join(root, 'packages', 'bundle'))),
+    ...(await directManifests(join(root, 'packages', 'client'))),
+    ...(await directManifests(join(root, 'apps'))),
+  ]
+  for (const manifest of manifests) {
+    const pkg = JSON.parse(await readFile(manifest, 'utf8'))
+    assert.ok(!(pkg.keywords || []).includes('lucky-app'), `${manifest} 不是插件，不应声明 lucky-app 标签`)
+  }
+})
+
 test('App、apps 与 packages 使用同一版本', async () => {
   const version = await jsonVersion(join(root, 'package.json'))
   assert.match(version, /^\d+\.\d+\.\d+/)
