@@ -483,7 +483,10 @@ export async function installProfilePluginStream(
   if (manager === 'npm') {
     const scripts = lifecycleScripts(installed.manifest.scripts)
     if (scripts.length) {
-      if (!approved.includes(installed.name)) throw new BuildApprovalRequired([installed.name])
+      if (!approved.includes(installed.name)) {
+        restoreFiles()
+        throw new BuildApprovalRequired([installed.name])
+      }
       emit({ type: 'stage', stage: 'scripts', progress: 70, message: `正在运行 ${installed.name} 的安装脚本…` })
       await runStreamed(profileDir, {
         command: 'npm',
