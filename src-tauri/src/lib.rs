@@ -363,23 +363,25 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
       }
     }
     // Tauri 的默认图标组是 IDI_APPLICATION（32512）。旧版本写到组 1，Windows
-    // 仍可能读取 32512，导致 exe/任务管理器图标看起来没变；这里覆盖 32512 并清掉组 1。
-    let group_id: usize = 32512;
-    unsafe {
-      UpdateResourceW(handle, RT_GROUP_ICON as _, 1usize as _, 0x0409, std::ptr::null(), 0);
-    }
+    // 仍可能读取 32512，导致 exe/任务管理器图标看起来没变。
+    // 两个组都写入新图标；注意不能“删除不存在的组 1”，会让更新句柄直接失效。
     if ok {
-      let result = unsafe {
-        UpdateResourceW(
-          handle,
-          RT_GROUP_ICON as _,
-          group_id as _,
-          0x0409,
-          group.as_ptr() as *const core::ffi::c_void,
-          group.len() as u32,
-        )
-      };
-      ok = result != 0;
+      for group_id in [1usize, 32512] {
+        let result = unsafe {
+          UpdateResourceW(
+            handle,
+            RT_GROUP_ICON as _,
+            group_id as _,
+            0x0409,
+            group.as_ptr() as *const core::ffi::c_void,
+            group.len() as u32,
+          )
+        };
+        if result == 0 {
+          ok = false;
+          break;
+        }
+      }
     }
     let committed = unsafe { EndUpdateResourceW(handle, if ok { 0 } else { 1 }) } != 0;
     if !ok || !committed {

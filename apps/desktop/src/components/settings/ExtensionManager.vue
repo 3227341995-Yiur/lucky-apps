@@ -126,6 +126,13 @@ async function handleCopyPluginsPath() {
   }
 }
 
+function focusInstallInput() {
+  const input = installInputRef.value
+  if (!input) return
+  input.focus({ preventScroll: true })
+  input.select()
+}
+
 function openInstallDialog() {
   installOpen.value = true
   installQuery.value = ''
@@ -136,7 +143,11 @@ function openInstallDialog() {
   installError.value = ''
   pendingBuilds.value = []
   approvedNames.value = []
-  nextTick(() => installInputRef.value?.focus())
+  // el-dialog 打开时会把焦点收到弹窗容器上，挂载后补一次聚焦。
+  nextTick(() => {
+    focusInstallInput()
+    setTimeout(focusInstallInput, 180)
+  })
 }
 
 function guardInstallClose(done) {
@@ -584,6 +595,7 @@ async function handleToggle(resource) {
           ref="installInputRef"
           v-model="installQuery"
           placeholder="搜索 npm 包，或粘贴本地组件项目路径"
+          autofocus
           spellcheck="false"
           :disabled="installing"
           @input="scheduleSearch"
