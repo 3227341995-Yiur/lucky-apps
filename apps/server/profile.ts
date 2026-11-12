@@ -110,6 +110,15 @@ export async function composeProfile(profileDir: string): Promise<{ manifest: an
 // 现在只保留真正的 Cordis 插件包；这三个包由宿主 dist 提供。
 const LEGACY_BROWSER_DEPS = ['vue', 'element-plus', '@element-plus/icons-vue']
 
+function legacyShortNames(bundled: any): Set<string> {
+  const names = new Set<string>()
+  for (const name of Object.keys(bundled?.dependencies || {})) {
+    if (name.startsWith('@lucky-apps/extension-')) names.add(name.slice('@lucky-apps/extension-'.length))
+    else if (name.startsWith('@lucky-apps/')) names.add(name.slice('@lucky-apps/'.length))
+  }
+  return names
+}
+
 function mergeProfileManifest(bundled: any, installed: any): any {
   const bundledBundles = bundled?.la?.profile?.bundles || []
   const installedBundles = installed?.la?.profile?.bundles || []
@@ -124,6 +133,9 @@ function mergeProfileManifest(bundled: any, installed: any): any {
   for (const name of LEGACY_BROWSER_DEPS) {
     if (!bundled?.dependencies?.[name]) delete dependencies[name]
   }
+  // 旧版本内置包使用过不带 @lucky-apps 前缀的名字；bundled 已改用 scoped 名，
+  // 这些残留的 registry 依赖会让之后的 pnpm add 直接 404。
+  for (const name of legacyShortNames(bundled)) delete dependencies[name]
   return {
     ...installed,
     ...bundled,
@@ -261,6 +273,12 @@ async function upgradeProfile(sourceDir: string, targetDir: string): Promise<boo
     )
   for (const name of removed) {
     delete merged.dependencies?.[name]
+    await rm(join(targetDir, 'node_modules', name), { recursive: true, force: true })
+  }
+  // 无前缀旧内置包名（kpi-card / progress-cell …）同样清掉
+  for (const name of legacyShortNames(bundled)) {
+    if (!merged.dependencies?.[name]) continue
+    delete merged.dependencies[name]
     await rm(join(targetDir, 'node_modules', name), { recursive: true, force: true })
   }
   if (removed.length) {
