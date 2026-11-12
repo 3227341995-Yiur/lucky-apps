@@ -1,5 +1,5 @@
 /**
- * 扩展资源管理：读取扫描结果、启停（下次启动生效）、复制资源路径
+ * 扩展资源管理：读取扫描结果、按 Cordis 生命周期热启停、复制资源路径
  */
 import { computed } from 'vue'
 import { extensionState } from '@/plugins/registry'

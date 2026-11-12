@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { weekReportApi } from './api'
 import { computed, onMounted, ref , inject } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSettings' })
@@ -44,23 +44,14 @@ async function load() {
 }
 
 async function toggle(resource) {
-  let enabled
   try {
-    enabled = await ctx.get('extensions').toggle(resource.id)
+    const enabled = await ctx.get('extensions').toggle(resource.id)
+    if (enabled === null || enabled === undefined) return
+    // Cordis 卸载时会撤销组件注册，直接热切换，不需要重载应用。
+    await load()
+    ElMessage.success(`已${enabled ? '启用' : '禁用'}「${resource.name}」`)
   } catch (error) {
-    ElMessage.error(`保存设置失败：${error?.message || error}`)
-    return
-  }
-  if (enabled === null || enabled === undefined) return
-  try {
-    await ElMessageBox.confirm(
-      `已${enabled ? '启用' : '禁用'}「${resource.name}」，需要重新加载应用后生效。是否立即重新加载？`,
-      '需要重新加载',
-      { confirmButtonText: '立即重新加载', cancelButtonText: '稍后', type: 'info' },
-    )
-    window.location.reload()
-  } catch {
-    ElMessage.info('设置已保存，下次启动生效')
+    ElMessage.error(`切换组件失败：${error?.message || error}`)
   }
 }
 
