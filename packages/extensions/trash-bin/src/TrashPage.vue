@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 
 defineOptions({ name: 'TrashView' })
 
-const api = useWeekReport()
+const api = useHost()
 const items = ref([])
 const trashLoading = ref(false)
 let off = null

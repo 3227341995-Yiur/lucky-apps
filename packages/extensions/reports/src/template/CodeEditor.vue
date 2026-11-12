@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import { Codemirror } from 'vue-codemirror'
 import { basicSetup } from 'codemirror'
 import { EditorView } from '@codemirror/view'
@@ -26,7 +26,7 @@ const modelValue = defineModel({
   default: '',
 })
 
-const api = useWeekReport()
+const api = useHost()
 const resolvedTheme = ref(api.theme.get().resolved)
 let offTheme = null
 

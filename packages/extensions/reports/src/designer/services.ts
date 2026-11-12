@@ -1,4 +1,4 @@
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 
-export const getReportConfig = () => useWeekReport().config.get()
-export const saveReportConfig = config => useWeekReport().config.set(config)
+export const getReportConfig = () => useHost().config.get()
+export const saveReportConfig = config => useHost().config.set(config)

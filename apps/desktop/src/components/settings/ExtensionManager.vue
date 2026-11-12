@@ -258,7 +258,7 @@ async function handleUninstall(resource) {
   const name = resource.package || resource.name
   try {
     await ElMessageBox.confirm(
-      `卸载「${name}」？会从 profile 移除该插件包，并重新加载应用。`,
+      `卸载「${name}」？会从 profile 移除该插件包并热卸载。`,
       '卸载插件',
       { type: 'warning', confirmButtonText: '卸载', cancelButtonText: '取消' },
     )
@@ -277,6 +277,7 @@ async function handleUninstall(resource) {
     uninstallStage.value = '卸载完成'
     uninstallPercent.value = 100
     removingName.value = ''
+    await rescan()
     ElMessage.success(`已卸载 ${name}`)
   } catch (error) {
     const message = error?.message || String(error)
@@ -303,28 +304,12 @@ function handleMoreCommand(command) {
 }
 
 async function handleToggle(resource) {
-  let enabled
   try {
-    enabled = await toggleResource(resource.id)
+    const enabled = await toggleResource(resource.id)
+    if (enabled === null) return
+    ElMessage.success(`已${enabled ? '启用' : '禁用'}「${resource.name}」`)
   } catch (error) {
-    ElMessage.error(`保存扩展设置失败：${error?.message || error}`)
-    return
-  }
-  if (enabled === null) return
-
-  try {
-    await ElMessageBox.confirm(
-      `已${enabled ? '启用' : '禁用'}「${resource.name}」，启停状态需要重新加载应用后生效。是否立即重新加载？`,
-      '需要重新加载',
-      {
-        confirmButtonText: '立即重新加载',
-        cancelButtonText: '稍后',
-        type: 'info',
-      },
-    )
-    reloadApp()
-  } catch {
-    ElMessage.info('设置已保存，下次启动生效')
+    ElMessage.error(`切换扩展失败：${error?.message || error}`)
   }
 }
 </script>
@@ -540,10 +525,9 @@ async function handleToggle(resource) {
         </div>
       </div>
       <template #footer>
-        <span class="install-foot-hint">{{ installError ? '安装失败，检查上面的日志后可以重试。' : installPercent === 100 ? '安装完成，可重新加载应用或关闭窗口。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+        <span class="install-foot-hint">{{ installError ? '安装失败，检查上面的日志后可以重试。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
         <template v-if="installPercent === 100 && !installError">
-          <el-button @click="installOpen = false">关闭</el-button>
-          <el-button type="primary" @click="reloadApp">重新加载应用</el-button>
+          <el-button type="primary" @click="installOpen = false">关闭</el-button>
         </template>
         <el-button
           v-else

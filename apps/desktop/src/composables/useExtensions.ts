@@ -6,6 +6,7 @@ import { extensionState } from '@/plugins/registry'
 import {
   scanExtensionResources,
   reloadExtensionComponents,
+  syncExtensionResource,
   getResourcesPath,
   getPluginsPath,
   DISABLED_EXTENSIONS_KEY,
@@ -52,6 +53,8 @@ async function toggleResource(id) {
   resource.enabled = nextEnabled
   resource.status = nextEnabled ? 'pending' : 'disabled'
   resource.error = ''
+  // Cordis 生命周期直接挂载/卸载，不再要求用户重启应用。
+  await syncExtensionResource(resource, nextEnabled)
   return nextEnabled
 }
 

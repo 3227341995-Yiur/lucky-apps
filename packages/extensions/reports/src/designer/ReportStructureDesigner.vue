@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import LayoutPalette from './components/LayoutPalette.vue'
 import LayoutCanvas from './components/LayoutCanvas.vue'
 import LayoutInspector from './components/LayoutInspector.vue'
@@ -23,7 +23,7 @@ defineOptions({ name: 'ReportStructureDesigner' })
 
 const visible = defineModel({ type: Boolean, default: false })
 
-const api = useWeekReport()
+const api = useHost()
 
 // ponytail: 独立弹窗恒为编辑态，保留原模板里的 isView 分支不动
 const isView = computed(() => false)

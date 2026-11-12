@@ -101,7 +101,7 @@ export function clientConfig({ name, root }: { name: string; root: string }) {
     outDir: 'lib',
     format: ['cjs'],
     platform: 'browser',
-    external: ['vue', 'element-plus', '@element-plus/icons-vue', 'handlebars'],
+    external: ['vue', 'element-plus', '@element-plus/icons-vue', 'handlebars', '@lucky-apps/plugin-api'],
     plugins: [rawTextPlugin() as any, vue() as any, clientModule(name, root), nodeHalf(name, root)],
     dts: false,
     clean: true,

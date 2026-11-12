@@ -1,5 +1,5 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml'
 
@@ -26,8 +26,10 @@ function specName(spec: string): string {
   return text.split('/')[0]
 }
 
+/** profile 是插件沙箱：插件靠自己的 prepare/build 产出 lib，pnpm 12 默认拦截构建脚本，这里整体放行。 */
 function prepareProfile(profileDir: string): void {
   writeFileSync(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
+  writeFileSync(join(profileDir, 'pnpm-workspace.yaml'), 'dangerouslyAllowAllBuilds: true\n')
   const modulesDir = join(profileDir, 'node_modules')
   const metaPath = join(modulesDir, '.modules.yaml')
   if (!existsSync(metaPath)) return
@@ -40,6 +42,81 @@ function prepareProfile(profileDir: string): void {
     rmSync(join(modulesDir, '.pnpm-workspace-state-v1.json'), { force: true })
     rmSync(join(modulesDir, '.pnpm'), { recursive: true, force: true })
   } catch {}
+}
+
+/**
+ * 本地目录先打成 tarball 再装。pnpm 对目录依赖建 junction，Windows 上遍历会报
+ * os error 448（untrusted mount point）；tarball 走 store 硬链接，没有这个问题。
+ */
+function packLocalDir(profileDir: string, dir: string, emit?: (event: any) => void): string {
+  const manifest = readJson(join(dir, 'package.json'))
+  const file = `${String(manifest.name || 'plugin').replace(/^@/, '').replace(/\//g, '-')}-${manifest.version || '0.0.0'}.tgz`
+  const vendorDir = join(profileDir, 'vendor')
+  mkdirSync(vendorDir, { recursive: true })
+  rmSync(join(vendorDir, file), { force: true })
+  emit?.({ type: 'stage', stage: 'pack', progress: 8, message: `正在打包本地插件 ${manifest.name || file}…` })
+  const out = join(vendorDir, file)
+  try {
+    execFileSync('pnpm', ['pack', '--out', process.platform === 'win32' ? `"${out}"` : out, '--reporter=append-only'], {
+      cwd: dir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+    })
+  } catch (error: any) {
+    const detail = String(error.stderr || error.stdout || error.message || '').trim().split(/\r?\n/).slice(-12).join('\n')
+    throw new Error(detail || `本地插件打包失败: ${manifest.name || dir}`)
+  }
+  return `file:./vendor/${file}`
+}
+
+function resolveInstallSpec(profileDir: string, spec: string, emit?: (event: any) => void): string {
+  const dir = resolve(spec)
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) return spec
+  return packLocalDir(profileDir, dir, emit)
+}
+
+/**
+ * 已装过的 Git 插件再装一次时 pnpm add 会复用 lockfile 里的旧 commit（不重新解析），
+ * 用 update 才会拉最新提交并重跑 prepare。
+ */
+function installArgs(target: string, before: Record<string, string>): string[] {
+  const isGit = /^(?:https?:\/\/|git\+|git@|github:|gitlab:|bitbucket:)/i.test(target)
+  const name = specName(target)
+  if (isGit && name && before[name]) return ['update', name, '--node-linker=hoisted']
+  return ['add', target, '--node-linker=hoisted']
+}
+
+/** 旧版本把本地插件装成 link:（junction）。残留在 manifest 里会让之后每次 pnpm 操作都报 448，这里改回 tarball。 */
+function normalizeProfileLinks(profileDir: string, emit?: (event: any) => void): void {
+  if (process.platform !== 'win32') return
+  const manifestPath = join(profileDir, 'package.json')
+  if (!existsSync(manifestPath)) return
+  const manifest = readJson(manifestPath)
+  const deps = manifest.dependencies || {}
+  let changed = false
+  for (const [name, value] of Object.entries(deps)) {
+    if (typeof value !== 'string' || !value.startsWith('link:')) continue
+    const dir = resolve(profileDir, value.slice('link:'.length))
+    if (existsSync(join(dir, 'package.json'))) deps[name] = packLocalDir(profileDir, dir, emit)
+    else {
+      delete deps[name]
+      emit?.({ type: 'log', stream: 'stderr', line: `插件源目录不存在，已从 profile 移除 ${name}` })
+    }
+    changed = true
+  }
+  if (changed) {
+    manifest.dependencies = deps
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  }
+  // 失败安装可能留下 manifest 里已不存在的 junction，pnpm 遍历时同样报 448，先清掉。
+  const modulesDir = join(profileDir, 'node_modules')
+  if (!existsSync(modulesDir)) return
+  for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {
+    if (!entry.isSymbolicLink()) continue
+    rmSync(join(modulesDir, entry.name), { recursive: true, force: true })
+    emit?.({ type: 'log', stream: 'stderr', line: `已清理残留目录链接 node_modules/${entry.name}` })
+  }
 }
 
 function readProfilePatch(profileDir: string): any[] {
@@ -200,8 +277,10 @@ export function installProfilePlugin(profileDir: string, spec: string): InstallR
   if (!isValidInstallSpec(String(spec).trim())) throw new Error('无效的包名、Git 地址或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   prepareProfile(profileDir)
+  normalizeProfileLinks(profileDir)
   const before = readJson(join(profileDir, 'package.json')).dependencies || {}
-  execFileSync('pnpm', ['add', spec, '--node-linker=hoisted'], {
+  const target = resolveInstallSpec(profileDir, String(spec).trim())
+  execFileSync('pnpm', installArgs(target, before), {
     cwd: profileDir,
     stdio: 'inherit',
     shell: process.platform === 'win32',
@@ -239,12 +318,14 @@ export async function installProfilePluginStream(profileDir: string, spec: strin
   if (!isValidInstallSpec(String(spec).trim())) throw new Error('无效的包名、Git 地址或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   prepareProfile(profileDir)
-  const before = readJson(join(profileDir, 'package.json')).dependencies || {}
   emit({ type: 'stage', stage: 'prepare', progress: 5, message: '准备 profile…' })
+  normalizeProfileLinks(profileDir, emit)
+  const before = readJson(join(profileDir, 'package.json')).dependencies || {}
+  const target = resolveInstallSpec(profileDir, String(spec).trim(), emit)
   emit({ type: 'stage', stage: 'install', progress: 15, message: '正在解析并安装依赖…' })
 
   await new Promise((resolvePromise, reject) => {
-    const child: ChildProcess = spawn('pnpm', ['add', spec, '--node-linker=hoisted', '--reporter=append-only'], {
+    const child: ChildProcess = spawn('pnpm', [...installArgs(target, before), '--reporter=append-only'], {
       cwd: profileDir,
       shell: process.platform === 'win32',
     })

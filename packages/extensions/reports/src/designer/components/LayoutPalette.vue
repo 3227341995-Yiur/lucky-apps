@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import { SECTION_PRESETS } from '../config/defaultReportConfig.ts'
 import { WIDGETS } from '../config/reportLayout.ts'
 import { getAllElComponents, getElComponentLabel, getElWidget } from '../utils/elementPlusWidgets.ts'
@@ -8,7 +8,7 @@ import ElementPlusGlyph from './ElementPlusGlyph.vue'
 
 defineOptions({ name: 'LayoutPalette' })
 
-const api = useWeekReport()
+const api = useHost()
 const emit = defineEmits(['drag-start'])
 
 const elSearch = ref('')

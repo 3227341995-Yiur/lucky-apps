@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import { resolveDefaultValue } from '../config/defaultReportConfig.ts'
 import { evaluateJsExpression } from '../utils/expression.ts'
 import ElementWidget from './ElementWidget.vue'
 
 defineOptions({ name: 'WidgetView' })
 
-const api = useWeekReport()
+const api = useHost()
 
 const props = defineProps({
   element: {

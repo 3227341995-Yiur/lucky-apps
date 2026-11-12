@@ -4,7 +4,7 @@
  * 宿主 services/templateService 的插件侧实现：模板 CRUD 走宿主插件 API，
  * 默认模板内容复用 template/config 下的内置文件。
  */
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import defaultHtmlTemplate from '../config/default-html.html?raw'
 import defaultMarkdownTemplate from '../config/default-markdown.md?raw'
 
@@ -36,14 +36,14 @@ export function templateTypeLabel(type, types = BUILTIN_TEMPLATE_TYPES) {
  * 获取所有模板
  */
 export function getAllTemplates() {
-  return useWeekReport().templates.list()
+  return useHost().templates.list()
 }
 
 /**
  * 保存模板（新增或更新）
  */
 export function saveTemplate(template) {
-  return useWeekReport().templates.save(template)
+  return useHost().templates.save(template)
 }
 
 /**
@@ -64,21 +64,21 @@ export function createTemplate(name, type = 'html', template = '') {
  * 删除模板
  */
 export function deleteTemplate(id) {
-  return useWeekReport().templates.remove(id)
+  return useHost().templates.remove(id)
 }
 
 /**
  * 设置默认模板（按类型）
  */
 export function setDefaultTemplate(id, type = null) {
-  return useWeekReport().templates.setDefault(id, type)
+  return useHost().templates.setDefault(id, type)
 }
 
 /** 模板类型不写死：HTML / Markdown + 数据库里用户创建的自定义类型 */
 export async function getTemplateTypes() {
   let list = []
   try {
-    list = await useWeekReport().templates.list()
+    list = await useHost().templates.list()
   } catch {
     list = []
   }

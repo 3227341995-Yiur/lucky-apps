@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import { formatDate, formatDateTime, getWeekRange, isDateInRange } from './utils/date'
 
 defineOptions({ name: 'HomePage' })
 
-const api = useWeekReport()
+const api = useHost()
 
 const now = new Date()
 const weekRange = getWeekRange(now)

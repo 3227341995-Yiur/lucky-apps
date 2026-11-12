@@ -5,7 +5,7 @@ import App from '@/App.vue'
 import AppDialog from '@/components/common/AppDialog.vue'
 
 export const name = 'app'
-export const inject = ['extensions', 'weekReport', 'reports', 'theme']
+export const inject = ['extensions', 'luckyApps', 'reports', 'theme']
 
 export async function apply(ctx) {
   const app = createApp(App)

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import TemplateListPane from './TemplateListPane.vue'
 import TemplateEditorPane from './TemplateEditorPane.vue'
 import TemplatePreviewPane from './TemplatePreviewPane.vue'
@@ -20,7 +20,7 @@ import {
 
 defineOptions({ name: 'TemplateDesigner' })
 
-const api = useWeekReport()
+const api = useHost()
 // ponytail: 插件侧不再广播 template:copy-settings，宿主复制流程直接读取同一份设置
 const emit = () => {}
 

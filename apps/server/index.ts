@@ -102,14 +102,19 @@ export async function startServer(options: StartServerOptions = {}) {
     currentProfile = await composeProfile(profileDir)
     await ctx.plugin(Loader, { baseUrl: pathToFileURL(`${profileDir}/`).href })
 
+    // 行 id 固定用 row.id / name，重载时按 id 做增量 diff：
+    // 只卸载消失的、挂载新增的，未变化的插件保持挂载（Cordis loader 的形态）。
+    const rowOptions = row => ({
+      id: String(row.id || row.name),
+      name: row.name,
+      config: row.config,
+      disabled: Boolean(row.disabled),
+    })
+
     const mountRows = async (rows) => {
       for (const row of rows) {
         if (!row?.name) continue
-        await ctx.loader.create({
-          name: row.name,
-          config: row.config,
-          disabled: Boolean(row.disabled),
-        })
+        await ctx.loader.create(rowOptions(row))
       }
       await ctx.loader.await()
     }
@@ -120,7 +125,8 @@ export async function startServer(options: StartServerOptions = {}) {
       const manifestPath = join(profileDir, 'package.json')
       let manifest = {}
       try { manifest = JSON.parse(await readFile(manifestPath, 'utf8')) } catch {}
-      for (const dep of Object.keys(manifest.dependencies || {})) {
+      const deps = new Set(Object.keys(manifest.dependencies || {}))
+      for (const dep of deps) {
         const pkgDir = join(profileDir, 'node_modules', dep)
         const pkgPath = join(pkgDir, 'package.json')
         if (!existsSync(pkgPath)) continue
@@ -139,6 +145,10 @@ export async function startServer(options: StartServerOptions = {}) {
           url: `/client/${encodeURIComponent(id)}/index.js`,
         })
       }
+      // 卸载后清掉已经不在 manifest 里的 client 模块（含插件 node half 自己登记的）。
+      for (const module of ctx.clientModules.list()) {
+        if (!deps.has(module.package)) ctx.clientModules.remove(module.id)
+      }
     }
     const annotateClientKinds = async () => {
       for (const module of ctx.clientModules.list()) {
@@ -154,11 +164,38 @@ export async function startServer(options: StartServerOptions = {}) {
     await annotateClientKinds()
 
     reloadImpl = async () => {
-      for (const entry of [...ctx.loader.entries()]) {
-        try { ctx.loader.remove(entry.id) } catch {}
-      }
       currentProfile = await composeProfile(profileDir)
-      await mountRows(currentProfile.rows)
+      const desired = new Map()
+      for (const row of currentProfile.rows) {
+        if (row?.name) desired.set(String(row.id || row.name), rowOptions(row))
+      }
+      const existing = new Map([...ctx.loader.entries()].map(entry => [entry.id, entry]))
+
+      // loader.remove 只触发 dispose，不等它完成；直接重新 create 会撞上
+      // “service already registered”。先等所有被移除的 fiber 撤销完。
+      const disposing = []
+      for (const [id, entry] of existing) {
+        if (desired.has(id)) continue
+        try { ctx.loader.remove(id) } catch {}
+        if (entry.fiber) disposing.push(entry.fiber.dispose())
+      }
+      await Promise.allSettled(disposing)
+
+      // 按 id 增量：没变化的插件保持挂载，不重启它的 Node half / 端口 / 连接。
+      for (const [id, options] of desired) {
+        const entry = existing.get(id)
+        const unchanged = entry
+          && entry.options.name === options.name
+          && JSON.stringify(entry.options.config ?? null) === JSON.stringify(options.config ?? null)
+          && Boolean(entry.options.disabled) === options.disabled
+        if (unchanged) continue
+        if (entry) {
+          try { ctx.loader.remove(id) } catch {}
+          await entry.fiber?.dispose?.()
+        }
+        await ctx.loader.create(options)
+      }
+      await ctx.loader.await()
       await registerClientEntries()
       await annotateClientKinds()
       return currentProfile

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import { openReportsDialog } from './dialogs'
 
 defineOptions({ name: 'ReportsSettings' })
 
-const api = useWeekReport()
+const api = useHost()
 const resources = ref([])
 const loading = ref(false)
 const stats = ref({ reports: 0, workItems: 0, trash: 0, templates: 0 })

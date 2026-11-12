@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import ImportExportDialog from './io/ImportExportDialog.vue'
 import TemplateDesignerDialog from './template/TemplateDesignerDialog.vue'
 import ReportStructureDesigner from './designer/ReportStructureDesigner.vue'
@@ -8,7 +8,7 @@ import { dialogState } from './dialogs'
 
 defineOptions({ name: 'ReportsOverlays' })
 
-const api = useWeekReport()
+const api = useHost()
 let off = null
 
 onMounted(() => {

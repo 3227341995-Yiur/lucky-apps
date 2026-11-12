@@ -39,7 +39,17 @@ export function instantiateModule(id: string) {
   return requireModule(id)
 }
 
-export function installModuleRegistry() {
+/** 宿主能力作为静态模块提供给插件：client bundle 里 require('@lucky-apps/plugin-api')
+ *  直接拿到宿主实现的模块，不挂 window 全局、也不把 SDK 打进每个插件。 */
+export function installModuleRegistry(hostApi) {
+  const sdk = {
+    ...hostApi,
+    definePlugin: plugin => plugin,
+    useHost: () => hostApi,
+    useWeekReport: () => hostApi,
+  }
+  sdk.default = sdk
+  staticModules['@lucky-apps/plugin-api'] = sdk
   ;(window as any).__ModuleLoader__ = {
     load: loadModule,
     require: requireModule,

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import {
   exportBackupFile,
   exportReport,
@@ -30,7 +30,7 @@ const props = defineProps({
 
 const emit = defineEmits(['imported'])
 
-const api = useWeekReport()
+const api = useHost()
 
 const activeTab = ref('export')
 

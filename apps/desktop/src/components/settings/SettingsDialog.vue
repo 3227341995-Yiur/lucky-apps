@@ -278,7 +278,7 @@ async function handleCopyResources() {
               </span>
               <div>
                 <strong>程序名称与图标</strong>
-                <p>修改窗口标题、窗口/托盘图标与 exe 文件图标；也可由插件通过 weekReport.branding.set 修改界面部分。</p>
+                <p>修改窗口标题、窗口/托盘图标与 exe 文件图标。</p>
               </div>
             </div>
             <div class="brand-fields">
@@ -496,7 +496,7 @@ async function handleCopyResources() {
               </el-button>
             </div>
           </div>
-          <p class="hint">插件可通过 window.weekReport 调用对外 API，扩展资源修改后重新加载应用生效。</p>
+          <p class="hint">插件通过 <code>@lucky-apps/plugin-api</code> 或 ctx 服务访问宿主能力；扩展资源变更会自动热加载。</p>
         </div>
         </div>
       </el-scrollbar>

@@ -15,6 +15,7 @@ export function apply(ctx) {
         package: entry.package || entry.id,
         file: entry.file,
         url: entry.url || `/client/${entry.id}/index.js`,
+        kind: entry.kind,
         status: 'loaded',
       })
     },

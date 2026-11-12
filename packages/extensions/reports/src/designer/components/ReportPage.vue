@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import ReportSection from './ReportSection.vue'
 import DateRangeField from './DateRangeField.vue'
 import ElementWidget from './ElementWidget.vue'
 
 defineOptions({ name: 'ReportPage' })
 
-const api = useWeekReport()
+const api = useHost()
 
 function formatDateRange(dateRange) {
   return Array.isArray(dateRange) && dateRange.length === 2 ? dateRange.join(' ~ ') : dateRange

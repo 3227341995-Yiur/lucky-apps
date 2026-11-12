@@ -4,15 +4,24 @@
  * 外部组件项目直接从 npm 包 import，不再依赖 ctx.weekReport 或全局变量：
  *   import { definePlugin, components } from '@lucky-apps/plugin-api'
  */
-function resolveHost() {
-  if (typeof globalThis === 'undefined') return null
-  return globalThis.__WEEK_REPORT_HOST__
-    || (typeof window !== 'undefined' ? window.weekReport : null)
-    || null
+// client bundle 通过 require('@lucky-apps/plugin-api') 拿到宿主静态模块，
+// 宿主在 installModuleRegistry 时把实现绑定进来；不使用 window 全局。
+let boundHost = null
+
+export function setHost(value) {
+  boundHost = value
 }
 
-export function useWeekReport() {
-  return resolveHost()
+/** 宿主能力入口；周报业务 API 由周报插件自己提供，不在这里。 */
+export function useHost() {
+  return boundHost
+}
+
+/** @deprecated 旧名，等价 useHost。 */
+export const useWeekReport = useHost
+
+function resolveHost() {
+  return boundHost
 }
 
 export function definePlugin(plugin) {
@@ -157,4 +166,4 @@ export const commands = {
   },
 }
 
-export default { useWeekReport, definePlugin, components, navigation, settings, sidebar, overlay, branding, events, ui, commands }
+export default { useHost, useWeekReport, definePlugin, components, navigation, settings, sidebar, overlay, branding, events, ui, commands }

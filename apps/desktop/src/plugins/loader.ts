@@ -10,7 +10,6 @@ import {
   updateExtensionResource,
   addExtensionError,
   markExtensionsChanged,
-  resetPluginRegistries,
   extensionState,
 } from '@/plugins/registry'
 import { mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
@@ -96,6 +95,30 @@ async function loadBrowserComponent(item) {
   }
 }
 
+async function mountStyleResource(item) {
+  const url = item.url
+  if (loadedStyles.has(url)) return
+  loadedStyles.add(url)
+  await mountCordisPlugin(`style:${item.file}`, async () => {
+    const link = await injectStyle(url)
+    if (!link) throw new Error('样式加载失败')
+    return () => { link.remove(); loadedStyles.delete(url) }
+  })
+  updateExtensionResource(item.id, { status: 'loaded' })
+}
+
+async function mountScriptResource(item) {
+  const url = item.url
+  if (loadedScripts.has(url)) return
+  loadedScripts.add(url)
+  await mountCordisPlugin(`script:${item.file}`, async () => {
+    const script = await injectScript(url)
+    if (!script) throw new Error('脚本加载失败')
+    return () => { script.remove(); loadedScripts.delete(url) }
+  })
+  updateExtensionResource(item.id, { status: 'loaded' })
+}
+
 /** 加载全部扩展资源（样式 / 脚本 / client bundle） */
 export async function loadExtensionResources() {
   const resources = await scanExtensionResources()
@@ -108,27 +131,8 @@ export async function loadExtensionResources() {
       continue
     }
     if (disabled.has(item.id)) continue
-    if (item.kind === 'style') {
-      const url = item.url
-      if (loadedStyles.has(url)) continue
-      loadedStyles.add(url)
-      await mountCordisPlugin(`style:${item.file}`, async () => {
-        const link = await injectStyle(url)
-        if (!link) throw new Error('样式加载失败')
-        return () => link.remove()
-      })
-      updateExtensionResource(item.id, { status: 'loaded' })
-    } else if (item.kind === 'script') {
-      const url = item.url
-      if (loadedScripts.has(url)) continue
-      loadedScripts.add(url)
-      await mountCordisPlugin(`script:${item.file}`, async () => {
-        const script = await injectScript(url)
-        if (!script) throw new Error('脚本加载失败')
-        return () => script.remove()
-      })
-      updateExtensionResource(item.id, { status: 'loaded' })
-    }
+    if (item.kind === 'style') await mountStyleResource(item)
+    else if (item.kind === 'script') await mountScriptResource(item)
   }
 
   for (const item of resources.filter(resource => resource.kind === 'component' && resource.enabled)) {
@@ -136,11 +140,28 @@ export async function loadExtensionResources() {
   }
 }
 
+/** 单个资源启停：按 Cordis 生命周期挂载/卸载，不用重载页面或应用。 */
+export async function syncExtensionResource(item, enabled) {
+  if (item.kind === 'component') {
+    if (enabled) return loadBrowserComponent(item)
+    await unmountCordisPlugin(`component:${item.name}`)
+    updateExtensionResource(item.id, { status: 'disabled' })
+    return
+  }
+  if (enabled) {
+    if (item.kind === 'style') return mountStyleResource(item)
+    if (item.kind === 'script') return mountScriptResource(item)
+    return
+  }
+  await unmountCordisPlugin(`${item.kind}:${item.file}`)
+  updateExtensionResource(item.id, { status: 'disabled' })
+}
+
 /** 重新读取服务端 profile 并热加载 client bundle */
 export async function reloadExtensionComponents() {
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
+  // 插件注册项由 Cordis fiber 的 effect 自动撤销，这里只负责卸载与重新挂载。
   await unmountCordisPlugins('component:')
-  resetPluginRegistries()
   document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
   const payload = await apiGet('/api/boot')
   applyBoot(payload)
@@ -256,11 +277,11 @@ export async function uninstallPlugin(name) {
 /** 监听服务端 profile 变化（轮询清单） */
 export async function startExtensionWatcher() {
   if (pollTimer) return
-  lastBootKey = JSON.stringify(bootState.modules)
+  lastBootKey = JSON.stringify([bootState.modules, bootState.resources])
   pollTimer = setInterval(async () => {
     try {
       const payload = await apiGet('/api/boot')
-      const key = JSON.stringify(payload?.modules || [])
+      const key = JSON.stringify([payload?.modules || [], payload?.resources || []])
       if (key === lastBootKey) return
       lastBootKey = key
       applyBoot(payload)

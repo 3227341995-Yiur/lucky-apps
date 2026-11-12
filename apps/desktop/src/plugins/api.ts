@@ -1,16 +1,9 @@
 /**
- * 插件 API v2 - 系统对外部插件暴露的唯一入口
+ * 宿主能力实现，通过 __ModuleLoader__ 的静态模块 `@lucky-apps/plugin-api` 暴露，
+ * client bundle 里 require 同一个模块实例；不挂 window 全局。
  *
- * window.weekReport
- *   reports   周报 CRUD / 回收站 / 搜索 / 统计
- *   templates 导出模板
- *   config    默认周报结构（低代码配置）
- *   components 运行时注册列组件
- *   commands  命令注册与执行
- *   ui        界面联动（打开周报、设置、导入导出、设计器、提示）
- *   theme     主题读写与订阅
- *   events    系统事件
- *   extensions 扩展资源状态
+ * 注意：reports / templates / config / data 仍由宿主实现，属于待迁移到
+ * reports 插件的历史业务接口。
  */
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -357,12 +350,6 @@ let extensionToolsInstance = null
 function extensionTools() {
   extensionToolsInstance ||= useExtensions()
   return extensionToolsInstance
-}
-
-// 插件脚本在扩展加载阶段即可访问；装配期重复赋值无副作用
-if (typeof window !== 'undefined') {
-  window.weekReport = pluginApi
-  window.__WEEK_REPORT_HOST__ = pluginApi
 }
 
 export default pluginApi

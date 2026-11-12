@@ -2,7 +2,7 @@
  * 新建本周周报：与宿主原逻辑一致——按默认配置生成区块、标题表达式与画布 layout。
  */
 import { ElMessage } from 'element-plus'
-import { useWeekReport } from '@lucky-apps/plugin-api'
+import { useWeekReport as useHost } from '@lucky-apps/plugin-api'
 import { createSectionsFromConfig } from './designer/config/defaultReportConfig'
 import { extractLayout } from './designer/config/reportLayout'
 import { evaluateJsExpression } from './designer/utils/expression'
@@ -18,7 +18,7 @@ function weekRange(base = new Date()) {
 }
 
 export async function createWeekReport() {
-  const api = useWeekReport()
+  const api = useHost()
   try {
     const config = await api.config.get()
     const sections = createSectionsFromConfig(config.sections)

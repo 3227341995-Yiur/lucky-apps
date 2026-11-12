@@ -69,6 +69,20 @@ export function registerColumnSlot(componentName, component, meta = {}) {
   return slotName
 }
 
+/** 只移除注册时那一项，避免同名项被后来者覆盖后被误删。 */
+export function unregisterComponent(name, entry) {
+  const pascalName = toPascalCase(name)
+  const index = componentCatalog.value.findIndex(item => item.name === pascalName)
+  if (index === -1) return
+  if (entry && componentCatalog.value[index] !== entry) return
+  componentCatalog.value = componentCatalog.value.filter(item => item.name !== pascalName)
+  componentMap.delete(pascalName)
+}
+
+export function unregisterColumnSlot(componentName, entry) {
+  unregisterComponent(`${toPascalCase(componentName)}ColumnModifySlot`, entry)
+}
+
 export function getComponent(name) {
   return componentMap.get(toPascalCase(name))
 }
@@ -102,6 +116,13 @@ export function listCanvasComponents() {
 // ============================================================
 const sidebarPanelCatalog = shallowRef([])
 
+export function unregisterSidebarPanel(id, entry) {
+  const index = sidebarPanelCatalog.value.findIndex(existing => existing.id === id)
+  if (index === -1) return
+  if (entry && sidebarPanelCatalog.value[index] !== entry) return
+  sidebarPanelCatalog.value = sidebarPanelCatalog.value.filter(existing => existing.id !== id)
+}
+
 export function registerSidebarPanel(item = {}) {
   if (!item.id || !item.component) throw new Error('[registry] 侧栏面板需要 id 与 component')
   const entry = {
@@ -117,6 +138,13 @@ export function registerSidebarPanel(item = {}) {
 }
 
 const railActionCatalog = shallowRef([])
+
+export function unregisterRailAction(id, entry) {
+  const index = railActionCatalog.value.findIndex(existing => existing.id === id)
+  if (index === -1) return
+  if (entry && railActionCatalog.value[index] !== entry) return
+  railActionCatalog.value = railActionCatalog.value.filter(existing => existing.id !== id)
+}
 
 export function registerRailAction(item = {}) {
   if (!item.id || typeof item.onClick !== 'function') {
@@ -137,6 +165,13 @@ export function registerRailAction(item = {}) {
 }
 
 const overlayCatalog = shallowRef([])
+
+export function unregisterOverlay(id, entry) {
+  const index = overlayCatalog.value.findIndex(existing => existing.id === id)
+  if (index === -1) return
+  if (entry && overlayCatalog.value[index] !== entry) return
+  overlayCatalog.value = overlayCatalog.value.filter(existing => existing.id !== id)
+}
 
 export function registerOverlay(item = {}) {
   if (!item.id || !item.component) throw new Error('[registry] overlay 需要 id 与 component')
@@ -190,6 +225,14 @@ export function registerNavItem(item) {
   return entry
 }
 
+export function unregisterNavItem(id, entry) {
+  const index = navItemCatalog.value.findIndex(existing => existing.id === id)
+  if (index === -1) return
+  if (entry && navItemCatalog.value[index] !== entry) return
+  navItemCatalog.value = navItemCatalog.value.filter(existing => existing.id !== id)
+  navItemMap.delete(id)
+}
+
 export function listNavItems() {
   return [...navItemCatalog.value].sort((a, b) => a.order - b.order)
 }
@@ -217,6 +260,14 @@ export function registerSettingsSection(item) {
     settingsSectionCatalog.value = next
   }
   return entry
+}
+
+export function unregisterSettingsSection(id, entry) {
+  const index = settingsSectionCatalog.value.findIndex(existing => existing.id === id)
+  if (index === -1) return
+  if (entry && settingsSectionCatalog.value[index] !== entry) return
+  settingsSectionCatalog.value = settingsSectionCatalog.value.filter(existing => existing.id !== id)
+  settingsSectionMap.delete(id)
 }
 
 export function listSettingsSections() {
@@ -248,22 +299,6 @@ export function addExtensionError(message) {
 export function markExtensionsReady() {
   extensionState.ready = true
   extensionState.loading = false
-}
-
-/** 热更新前清空插件注册项，保留内置组件。 */
-export function resetPluginRegistries() {
-  const pluginComponents = componentCatalog.value.filter(item => item.source === 'plugin')
-  if (pluginComponents.length) {
-    componentCatalog.value = componentCatalog.value.filter(item => item.source !== 'plugin')
-    for (const item of pluginComponents) componentMap.delete(item.name)
-  }
-  navItemCatalog.value = []
-  navItemMap.clear()
-  settingsSectionCatalog.value = []
-  settingsSectionMap.clear()
-  sidebarPanelCatalog.value = []
-  railActionCatalog.value = []
-  overlayCatalog.value = []
 }
 
 export function markExtensionsChanged() {
