@@ -335,7 +335,7 @@ async function handleCopyResources() {
               accept="image/*"
               @change="onBrandIconFile"
             />
-            <p class="hint">支持本地上传或图片 URL，建议使用方形图片。会同步修改窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标（exe 需重启后生效）。</p>
+            <p class="hint">支持本地上传或图片 URL，建议使用方形图片。会同步修改窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标；彻底退出并重启应用后，任务管理器里的进程图标才会更新。</p>
             <el-button type="primary" plain @click="saveBranding">保存品牌</el-button>
           </div>
 

@@ -145,44 +145,71 @@ fn tray_handle(app: &tauri::AppHandle) -> Option<tauri::tray::TrayIcon> {
   app.try_state::<TrayProcess>()?.0.lock().unwrap().clone()
 }
 
-/// Tauri 的 set_icon 只设置 WM_SETICON 的小图标（标题栏），任务栏用的大图标要单独设置。
+/// Tauri 的 set_icon 只设置 WM_SETICON 的小图标（标题栏），任务栏/Alt-Tab 用的大图标要单独设置。
 #[cfg(windows)]
 fn apply_taskbar_icon(window: &tauri::WebviewWindow, ico: &[u8]) -> Result<(), String> {
   use std::sync::atomic::{AtomicIsize, Ordering};
   use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateIconFromResourceEx, DestroyIcon, SendMessageW, ICON_BIG, WM_SETICON,
+    CreateIconFromResourceEx, DestroyIcon, SendMessageW, SetClassLongPtrW, SetWindowPos,
+    GCLP_HICON, GCLP_HICONSM, ICON_BIG, ICON_SMALL, ICON_SMALL2, SWP_FRAMECHANGED, SWP_NOMOVE,
+    SWP_NOSIZE, SWP_NOZORDER, WM_SETICON,
   };
 
-  static TASKBAR_ICON: AtomicIsize = AtomicIsize::new(0);
+  static BIG_ICON: AtomicIsize = AtomicIsize::new(0);
+  static SMALL_ICON: AtomicIsize = AtomicIsize::new(0);
   let entries = ico_entries(ico)?;
-  // 48px 在 100%~150% 缩放下都清晰；Windows 会按任务栏实际尺寸再缩放。
-  let (size, offset, len) = entries.iter()
-    .find(|(size, _, _)| *size == 48)
-    .or_else(|| entries.iter().find(|(size, _, _)| *size == 32))
-    .or_else(|| entries.iter().max_by_key(|(size, _, _)| *size))
-    .copied()
-    .ok_or("ico 文件没有图标条目")?;
-  let image = unsafe {
-    CreateIconFromResourceEx(
-      ico[offset..].as_ptr(),
-      len as u32,
-      1,
-      0x0003_0000,
-      size as i32,
-      size as i32,
-      0,
-    )
+  let create = |want: u32| -> Result<isize, String> {
+    let (size, offset, len) = entries.iter()
+      .find(|(size, _, _)| *size == want)
+      .or_else(|| entries.iter().find(|(size, _, _)| *size >= want))
+      .or_else(|| entries.iter().max_by_key(|(size, _, _)| *size))
+      .copied()
+      .ok_or("ico 文件没有图标条目")?;
+    let image = unsafe {
+      CreateIconFromResourceEx(
+        ico[offset..].as_ptr(),
+        len as u32,
+        1,
+        0x0003_0000,
+        size as i32,
+        size as i32,
+        0,
+      )
+    };
+    if image.is_null() {
+      return Err("无法创建图标".into());
+    }
+    Ok(image as isize)
   };
-  if image.is_null() {
-    return Err("无法创建任务栏图标".into());
-  }
+  let big = create(48)?;
+  let small = create(32).unwrap_or(big);
   let hwnd = window.hwnd().map_err(|error| error.to_string())?;
   unsafe {
-    SendMessageW(hwnd.0 as _, WM_SETICON, ICON_BIG as usize, image as isize);
+    SendMessageW(hwnd.0 as _, WM_SETICON, ICON_BIG as usize, big);
+    SendMessageW(hwnd.0 as _, WM_SETICON, ICON_SMALL as usize, small);
+    SendMessageW(hwnd.0 as _, WM_SETICON, ICON_SMALL2 as usize, small);
+    // 部分场景任务栏读窗口类图标，同步一份并强制重绘非客户区。
+    SetClassLongPtrW(hwnd.0 as _, GCLP_HICON, big);
+    SetClassLongPtrW(hwnd.0 as _, GCLP_HICONSM, small);
+    SetWindowPos(
+      hwnd.0 as _,
+      std::ptr::null_mut(),
+      0,
+      0,
+      0,
+      0,
+      SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
+    );
   }
-  let previous = TASKBAR_ICON.swap(image as isize, Ordering::SeqCst);
-  if previous != 0 {
-    unsafe { DestroyIcon(previous as _) };
+  let previous_big = BIG_ICON.swap(big, Ordering::SeqCst);
+  let previous_small = SMALL_ICON.swap(small, Ordering::SeqCst);
+  unsafe {
+    if previous_big != 0 {
+      DestroyIcon(previous_big as _);
+    }
+    if previous_small != 0 && previous_small != previous_big {
+      DestroyIcon(previous_small as _);
+    }
   }
   Ok(())
 }
@@ -254,6 +281,8 @@ async fn apply_branding(
   if let Some(name) = name.as_deref().map(str::trim).filter(|n| !n.is_empty()) {
     saved.name = name.to_string();
   }
+  #[allow(unused_mut)]
+  let mut taskbar_error: Option<String> = None;
   if let Some(icon) = &icon {
     let image = tauri::image::Image::new_owned(icon.rgba.clone(), icon.width, icon.height);
     window.set_icon(image.clone()).map_err(|e| e.to_string())?;
@@ -264,6 +293,7 @@ async fn apply_branding(
     if !icon.ico.is_empty() {
       if let Err(error) = apply_taskbar_icon(&window, &icon.ico) {
         eprintln!("[shell] 任务栏图标更新失败: {error}");
+        taskbar_error = Some(error);
       }
     }
     std::fs::write(dir.join("branding-icon.bin"), &icon.rgba).map_err(|e| e.to_string())?;
@@ -280,6 +310,10 @@ async fn apply_branding(
 
   let mut message = String::from("程序名称与窗口、托盘、任务栏图标已更新");
   #[cfg(windows)]
+  if let Some(error) = taskbar_error {
+    message.push_str(&format!("（任务栏图标未更新：{error}）"));
+  }
+  #[cfg(windows)]
   if let Some(icon) = icon.filter(|icon| !icon.ico.is_empty()) {
     if cfg!(debug_assertions) {
       message.push_str("（开发模式不修改 exe 文件图标）");
@@ -288,7 +322,7 @@ async fn apply_branding(
         .await
         .map_err(|e| e.to_string())?;
       match outcome {
-        Ok(()) => message.push_str("，exe 文件图标已写入（重启应用后生效）"),
+        Ok(()) => message.push_str("，exe 文件图标已写入（任务管理器里的进程图标需完全退出并重启应用后才更新）"),
         Err(error) => {
           eprintln!("[shell] exe 文件图标更新失败: {error}");
           message.push_str(&format!("（exe 文件图标未修改：{error}）"));
