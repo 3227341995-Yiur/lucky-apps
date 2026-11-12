@@ -18,6 +18,15 @@ export default {
     await ensureDatabase()
     ctx.provide('weekReport', weekReportApi)
 
+    // 资源目录里的经典脚本（如 search.js）不是 Cordis 插件，用这个桥接对象拿周报 API。
+    // 由周报插件自己提供/回收，宿主不参与。
+    ctx.effect(() => {
+      window.weekReport = weekReportApi
+      return () => {
+        if (window.weekReport === weekReportApi) delete window.weekReport
+      }
+    })
+
     ctx.navigation.register({
       id: 'reports',
       label: '周报',
