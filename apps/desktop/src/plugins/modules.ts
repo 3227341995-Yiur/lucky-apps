@@ -7,12 +7,14 @@
 import * as Vue from 'vue'
 import * as ElementPlus from 'element-plus'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import * as ClientUi from '@lucky-apps/client-ui'
 import Handlebars from 'handlebars'
 
 const staticModules: Record<string, any> = {
   vue: Vue,
   'element-plus': ElementPlus,
   '@element-plus/icons-vue': ElementPlusIconsVue,
+  '@lucky-apps/client-ui': ClientUi,
   handlebars: Handlebars,
 }
 

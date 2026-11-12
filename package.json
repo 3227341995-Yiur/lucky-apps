@@ -1,6 +1,6 @@
 {
   "name": "lucky-apps",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "keywords": [
     "cordis",
     "lucky-app"
@@ -23,6 +23,7 @@
     "plugins:build": "pnpm -r --filter \"./packages/extensions/*\" build",
     "build:server": "node scripts/build-server.ts",
     "profile:build": "pnpm plugins:build && pnpm packages:build && node scripts/build-profile.ts",
+    "version:sync": "node scripts/sync-version.ts",
     "plugin": "node packages/tooling/cli/bin.ts",
     "lucky-apps": "node packages/tooling/cli/bin.ts",
     "plugin:add": "node packages/tooling/cli/bin.ts plugin add",

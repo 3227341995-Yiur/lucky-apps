@@ -2,6 +2,7 @@
 import { weekReportApi } from '../api'
 import { computed, onBeforeUnmount, onMounted, ref, watch , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { AppDialog } from '@lucky-apps/client-ui'
 import { Check, CopyDocument, MoreFilled, RefreshLeft, RefreshRight, WarningFilled } from '@element-plus/icons-vue'
 import LayoutPalette from './components/LayoutPalette.vue'
 import LayoutCanvas from './components/LayoutCanvas.vue'

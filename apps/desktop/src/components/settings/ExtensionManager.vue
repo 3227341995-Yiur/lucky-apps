@@ -3,7 +3,7 @@ import { nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
 import { installPlugin, searchPlugins, uninstallPluginStream } from '@/plugins/loader'
-import AppDialog from '@/components/common/AppDialog.vue'
+import { AppDialog } from '@lucky-apps/client-ui'
 
 defineOptions({ name: 'ExtensionManager' })
 

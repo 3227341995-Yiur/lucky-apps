@@ -16,6 +16,23 @@ const overlays = computed(() => listOverlays())
 const pluginPageComponent = computed(() => (
   activePluginPage.value ? getNavItemComponent(activePluginPage.value) : null
 ))
+
+// 插件模块重载后组件对象会变：用组件对象身份做 KeepAlive key，
+// 只重建真正变化的页面，其它页面实例与状态保持不动。
+const pageKeys = new WeakMap<object, string>()
+let pageKeySeq = 0
+const pluginPageKey = computed(() => {
+  const id = activePluginPage.value
+  const component = pluginPageComponent.value
+  if (!id) return ''
+  if (!component) return id
+  let key = pageKeys.get(component)
+  if (!key) {
+    key = `${id}:${++pageKeySeq}`
+    pageKeys.set(component, key)
+  }
+  return key
+})
 let offExtensionsChanged = null
 
 function closeDialogs() {
@@ -104,11 +121,16 @@ watch(
     />
 
     <main class="wr-main">
-      <component
-        :is="pluginPageComponent"
-        v-if="activePluginPage && pluginPageComponent"
-        class="plugin-page-host"
-      />    </main>
+      <!-- 页面切换只挂起，不销毁：插件页面的编辑态、滚动位置和请求状态随导航保留。 -->
+      <KeepAlive :max="12">
+        <component
+          :is="pluginPageComponent"
+          v-if="activePluginPage && pluginPageComponent"
+          :key="pluginPageKey"
+          class="plugin-page-host"
+        />
+      </KeepAlive>
+    </main>
 
     <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
 

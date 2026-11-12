@@ -34,7 +34,8 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
 插件是标准 npm 包：需要什么依赖、用什么版本，由插件自己的 `package.json` 决定，由插件自己的 Vite 打进 bundle。宿主不提供依赖，也不锁定插件版本；需要升级时插件自己升 `version`。
 
 - 不要假设宿主会提供某个库或某个版本；需要什么就在插件里声明什么。
-- `handlebars` 由宿主 client module 注册表提供唯一实例，插件构建时 external，由 loader 注入；helper 由 `resources/js/registerHelper.js` 统一注册，插件不要另打包一份。
+- `vue` / `element-plus` / `@element-plus/icons-vue` / `handlebars` / `@lucky-apps/client-ui` 由宿主 client module 注册表提供唯一实例，插件构建时标为 external，由 loader 注入。
+- 宿主 UI 组件从 `@lucky-apps/client-ui` 导入，例如 `import { AppDialog } from '@lucky-apps/client-ui'`；不要在插件里复制 `AppDialog`、不要在本机 `env.d.ts` 重新声明宿主组件类型。该包随宿主仓库一起 lockstep 发版。
 - 插件不能引用宿主源码别名 `@/...`；需要宿主能力时使用 Cordis `ctx` 服务。
 
 ## 3. 生命周期
@@ -78,6 +79,7 @@ export default {
 
 - 优先使用 Element Plus 组件和宿主 CSS 变量（`--el-*`、`--wr-*`），不要写死颜色。
 - 导航、设置面板、侧栏面板、全局浮层分别用 `navigation` / `settings` / `sidebar` / `overlay` 注册。
+- 系统弹窗统一用 `@lucky-apps/client-ui` 的 `AppDialog`，关闭由标题栏 X 完成，footer 不要再放重复的「取消」按钮。
 - 应用内提示用 `ElMessage`；需要系统级通知时通过 Node half 调用原生通知，并随包提供图标资源。
 - 右键菜单、浮层等交互应限制在触发元素内部；不要把菜单挂到 `body` 后随鼠标漂移。
 - 可点击元素必须有可见的选中态、键盘操作与 `aria-label`。

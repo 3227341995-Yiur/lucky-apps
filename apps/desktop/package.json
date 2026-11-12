@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/desktop",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lucky-apps/client-ui": "workspace:*",
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/lang-json": "^6.0.2",

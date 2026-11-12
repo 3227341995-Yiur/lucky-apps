@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/extension-reports",
-  "version": "1.0.0",
+  "version": "3.2.6",
   "private": true,
   "type": "module",
   "main": "lib/node.js",
@@ -19,6 +19,7 @@
     "dev": "tsdown --watch"
   },
   "devDependencies": {
+    "@lucky-apps/client-ui": "workspace:*",
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/theme-one-dark": "^6.1.3",

@@ -1,4 +1,4 @@
-# Lucky Apps v3.2.5
+# Lucky Apps v3.2.6
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的插件化桌面应用。
 
@@ -36,13 +36,22 @@ apps/
 packages/
 ├─ bundle/            profile bundle（base，tsdown 编译）
 ├─ client/            client module system（client-modules）
+├─ sdk/               外部插件包（@lucky-apps/plugin-types、@lucky-apps/client-ui）
 ├─ tooling/           cli
 └─ extensions/        内置插件包（home / reports / trash-bin / 画布与列组件）
 src-tauri/            Tauri 壳（窗口、托盘、exe 品牌）
 docs-site/            开发文档（VitePress）
-scripts/              server / profile 构建脚本
+scripts/              server / profile 构建与版本同步脚本
 resources/            运行时样式 / 插件脚本（服务端按清单下发）
 ```
+
+App 与 `packages/**` 使用同一版本号（与 DSH 的 lockstep 发布一致）：
+
+```bash
+pnpm version:sync 3.2.6
+```
+
+会同步根 `package.json`、`apps/*`、`packages/**`、Tauri / Cargo 版本与 README。
 
 <details>
 <summary>apps/desktop/src 内部结构</summary>
@@ -59,7 +68,7 @@ src/
 │  ├─ TemplateDesigner/ 模板设计器（IDE 布局 + 预览）
 │  ├─ cells/           内置列组件（状态/日期/数字）
 │  ├─ editors/         Markdown 编辑器
-│  ├─ common/          AppDialog / DateRangeField 等通用件
+│  ├─ common/          DateRangeField 等通用件（AppDialog 在 @lucky-apps/client-ui）
 │  └─ ReportEditor.vue / WelcomePage.vue
 ├─ composables/        useReports / useTheme / useExtensions
 ├─ config/             默认报表结构、自由画布布局模型、EP 组件元数据
@@ -83,6 +92,8 @@ src/
 `src-tauri/target/profile/node_modules`。绘制 profile 时按 DSH 语义组合：
 空根 → 各 bundle 的 `la.bundle.patch` → profile 的 `cordis.patch.yml`。
 画布 / 列 / 功能包同样是 bundle，profile 的 `la.profile.bundles` 列出它们。
+弹窗统一使用宿主包 `@lucky-apps/client-ui` 的 `AppDialog`：插件构建时标为 external，
+运行时从 `window.__ModuleLoader__` 的 staticModules 取同一份宿主组件，不在插件里复制第二份实现。
 Node 服务用真实 Cordis loader 按行里的包名从 profile 的 `node_modules` 解析并挂载；
 Tauri 窗口只打开服务地址。浏览器依赖 `vue` / `element-plus` / 图标已经由宿主 Vite
 构建进 `dist`，不再重复安装到 profile；profile 只包含 Cordis 插件包（约 150KB），

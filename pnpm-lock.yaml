@@ -228,6 +228,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/client-ui':
+        specifier: workspace:*
+        version: link:../../packages/sdk/client-ui
       animejs:
         specifier: ^4.5.0
         version: 4.5.0
@@ -427,6 +430,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.2
         version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      '@lucky-apps/client-ui':
+        specifier: workspace:*
+        version: link:../../sdk/client-ui
       '@tsdown/css':
         specifier: ^0.23.7
         version: 0.23.7(postcss@8.5.32)(sass@1.107.1)(tsdown@0.22.14)(yaml@2.9.1)
@@ -526,6 +532,24 @@ importers:
       vue:
         specifier: ^3.5.44
         version: 3.5.44(typescript@5.9.3)
+
+  packages/sdk/client-ui:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: ^2.3.2
+        version: 2.3.2(vue@3.5.44(typescript@5.9.3))
+      element-plus:
+        specifier: ^2.14.0
+        version: 2.14.7(vue@3.5.44(typescript@5.9.3))
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.44(typescript@5.9.3)
+
+  packages/sdk/plugin-types:
+    dependencies:
+      cordis:
+        specifier: ^4.0.0-rc.12
+        version: 4.0.0-rc.12(@cordisjs/plugin-loader@1.0.0-rc.9)
 
   packages/tooling/cli:
     dependencies:

@@ -5,7 +5,6 @@
  * 保证外部脚本执行时 __ModuleLoader__ / 静态模块等能力已就绪。
  */
 import CodeEditor from '@/components/CodeEditor.vue'
-import AppDialog from '@/components/common/AppDialog.vue'
 import MarkdownEditor from '@/components/editors/MarkdownEditor.vue'
 import StatusSelector from '@/components/cells/StatusSelector.vue'
 import DateSelector from '@/components/cells/DateSelector.vue'
@@ -29,7 +28,6 @@ async function installGlobalModules() {
 }
 
 function installBuiltinComponents(app) {
-  app.component('AppDialog', AppDialog)
   app.component('CodeEditor', CodeEditor)
   app.component('MarkdownEditor', MarkdownEditor)
 

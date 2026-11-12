@@ -7,7 +7,7 @@ import { apiGet, apiPost } from '@/services/rpc'
 import { useExtensions } from '@/composables/useExtensions'
 import { buildIconPayload, imageFileToDataUrl } from '@/utils/appIcon'
 
-import AppDialog from '@/components/common/AppDialog.vue'
+import { AppDialog } from '@lucky-apps/client-ui'
 import { getSettingsSectionComponent, listSettingsSections } from '@/plugins/registry'
 import {
   DEFAULT_LOADING_CONFIG,

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch , inject } from 'vue'
 import { ElMessage } from 'element-plus'
+import { AppDialog } from '@lucky-apps/client-ui'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
 import { cloneConfig } from '../designer/config/defaultReportConfig'
 
