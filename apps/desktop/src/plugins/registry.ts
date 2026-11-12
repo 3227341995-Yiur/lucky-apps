@@ -301,6 +301,22 @@ export function markExtensionsReady() {
   extensionState.loading = false
 }
 
+/** 全量热重载前的兜底清空：正常注册项随 fiber dispose 撤销，这里清掉历史竞态残留。 */
+export function resetPluginRegistries() {
+  const pluginComponents = componentCatalog.value.filter(item => item.source === 'plugin')
+  if (pluginComponents.length) {
+    componentCatalog.value = componentCatalog.value.filter(item => item.source !== 'plugin')
+    for (const item of pluginComponents) componentMap.delete(item.name)
+  }
+  navItemCatalog.value = []
+  navItemMap.clear()
+  settingsSectionCatalog.value = []
+  settingsSectionMap.clear()
+  sidebarPanelCatalog.value = []
+  railActionCatalog.value = []
+  overlayCatalog.value = []
+}
+
 export function markExtensionsChanged() {
   extensionVersion.value += 1
 }

@@ -10,6 +10,7 @@ import {
   updateExtensionResource,
   addExtensionError,
   markExtensionsChanged,
+  resetPluginRegistries,
   extensionState,
 } from '@/plugins/registry'
 import { cordis, mountCordisPlugin, mountCordisPluginObject, unmountCordisPlugins } from '@/plugins/cordis'
@@ -157,10 +158,11 @@ export async function syncExtensionResource(item, enabled) {
 }
 
 /** 重新读取服务端 profile 并热加载 client bundle */
-export async function reloadExtensionComponents() {
+async function performReloadExtensionComponents() {
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
-  // 插件注册项由 Cordis fiber 的 effect 自动撤销，这里只负责卸载与重新挂载。
+  // 正常注册项随 fiber dispose 撤销；全量重载时再兜底清一次，消除竞态残留。
   await unmountCordisPlugins('component:')
+  resetPluginRegistries()
   document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
   const payload = await apiGet('/api/boot')
   applyBoot(payload)
@@ -179,6 +181,35 @@ export async function reloadExtensionComponents() {
   markExtensionsChanged()
   cordis.emit('extensions/components-reloaded', { loaded, failed, total: loaded + failed })
   return { loaded, failed, total: loaded + failed }
+}
+
+let reloadRunning = false
+let reloadAgain = false
+let reloadChain = Promise.resolve()
+
+/**
+ * 串行化热重载。安装/卸载流程和 /api/boot 监听可能同时触发，
+ * 交错执行会让旧 boot 的插件在卸载后又挂回去。
+ */
+export function reloadExtensionComponents() {
+  if (reloadRunning) {
+    reloadAgain = true
+    return reloadChain
+  }
+  reloadRunning = true
+  reloadChain = (async () => {
+    try {
+      let result
+      do {
+        reloadAgain = false
+        result = await performReloadExtensionComponents()
+      } while (reloadAgain)
+      return result
+    } finally {
+      reloadRunning = false
+    }
+  })()
+  return reloadChain
 }
 
 /** npm 搜索组件包（设置面板使用） */
