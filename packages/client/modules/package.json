@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/client-modules",
-  "version": "3.2.16",
+  "version": "3.2.17",
   "private": false,
   "type": "module",
   "main": "index.js",

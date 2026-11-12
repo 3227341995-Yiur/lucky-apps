@@ -238,7 +238,59 @@ fn ico_entries(ico: &[u8]) -> Result<Vec<(u32, usize, usize)>, String> {
   Ok(images)
 }
 
-fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, tray: &tauri::tray::TrayIcon) {
+fn create_tray(
+  app: &tauri::AppHandle,
+  icon: tauri::image::Image<'static>,
+  tooltip: &str,
+) -> tauri::Result<TrayIcon> {
+  let show_item = MenuItemBuilder::with_id("show", "显示 Lucky Apps").build(app)?;
+  let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
+  let menu = MenuBuilder::new(app).items(&[&show_item, &quit_item]).build()?;
+  let mut builder = TrayIconBuilder::with_id("main")
+    .icon(icon)
+    .menu(&menu)
+    .show_menu_on_left_click(false)
+    .on_menu_event(|app, event| match event.id().as_ref() {
+      "show" => {
+        if let Some(window) = app.get_webview_window("main") {
+          let _ = window.show();
+          let _ = window.unminimize();
+          let _ = window.set_focus();
+        }
+      }
+      "quit" => app.exit(0),
+      _ => {}
+    })
+    .on_tray_icon_event(|tray, event| {
+      if let TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
+        let app = tray.app_handle();
+        if let Some(window) = app.get_webview_window("main") {
+          let _ = window.show();
+          let _ = window.unminimize();
+          let _ = window.set_focus();
+        }
+      }
+    });
+  if !tooltip.is_empty() {
+    builder = builder.tooltip(tooltip);
+  }
+  builder.build(app)
+}
+
+/// Windows 的溢出托盘会缓存 NIM_MODIFY 的图标；整块重建才能稳定换图。
+fn replace_tray(app: &tauri::AppHandle, icon: tauri::image::Image<'static>, tooltip: &str) {
+  let _ = app.remove_tray_by_id("main");
+  match create_tray(app, icon, tooltip) {
+    Ok(tray) => {
+      if let Some(state) = app.try_state::<TrayProcess>() {
+        *state.0.lock().unwrap() = Some(tray);
+      }
+    }
+    Err(error) => eprintln!("[shell] 重建托盘图标失败: {error}"),
+  }
+}
+
+fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
   let Ok(dir) = branding_dir(app) else { return };
   let Some(saved) = std::fs::read_to_string(dir.join("branding.json"))
     .ok()
@@ -250,10 +302,7 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, t
     if saved.width > 0 && saved.height > 0 {
       let image = tauri::image::Image::new_owned(rgba, saved.width, saved.height);
       let _ = window.set_icon(image.clone());
-      // Windows 的托盘缓存会忽略纯 NIM_MODIFY，先隐藏再显示强制重新注册。
-      let _ = tray.set_visible(false);
-      let _ = tray.set_icon(Some(image));
-      let _ = tray.set_visible(true);
+      replace_tray(app, image, &saved.name);
     }
   }
   #[cfg(windows)]
@@ -264,7 +313,9 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow, t
   }
   if !saved.name.is_empty() {
     let _ = window.set_title(&saved.name);
-    let _ = tray.set_tooltip(Some(saved.name.clone()));
+    if let Some(tray) = tray_handle(app) {
+      let _ = tray.set_tooltip(Some(saved.name.clone()));
+    }
   }
 }
 
@@ -294,11 +345,7 @@ async fn apply_branding(
   if let Some(icon) = &icon {
     let image = tauri::image::Image::new_owned(icon.rgba.clone(), icon.width, icon.height);
     window.set_icon(image.clone()).map_err(|e| e.to_string())?;
-    if let Some(tray) = tray_handle(&app) {
-      let _ = tray.set_visible(false);
-      let _ = tray.set_icon(Some(image));
-      let _ = tray.set_visible(true);
-    }
+    replace_tray(&app, image, &saved.name);
     #[cfg(windows)]
     if !icon.ico.is_empty() {
       if let Err(error) = apply_taskbar_icon(&window, &icon.ico) {
@@ -596,38 +643,14 @@ pub fn run() {
         _ => {}
       });
 
-      let show_item = MenuItemBuilder::with_id("show", "显示 Lucky Apps").build(app)?;
-      let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
-      let menu = MenuBuilder::new(app).items(&[&show_item, &quit_item]).build()?;
-      let tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().cloned().expect("window icon"))
-        .menu(&menu)
-        .show_menu_on_left_click(false)
-        .on_menu_event(|app, event| match event.id().as_ref() {
-          "show" => {
-            if let Some(window) = app.get_webview_window("main") {
-              let _ = window.show();
-              let _ = window.unminimize();
-              let _ = window.set_focus();
-            }
-          }
-          "quit" => app.exit(0),
-          _ => {}
-        })
-        .on_tray_icon_event(|tray, event| {
-          if let TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
-            let app = tray.app_handle();
-            if let Some(window) = app.get_webview_window("main") {
-              let _ = window.show();
-              let _ = window.unminimize();
-              let _ = window.set_focus();
-            }
-          }
-        })
-        .build(app)?;
-      app.manage(TrayProcess(Mutex::new(Some(tray.clone()))));
+      let tray = create_tray(
+        app.handle(),
+        app.default_window_icon().map(|icon| icon.clone().to_owned()).expect("window icon"),
+        "",
+      )?;
+      app.manage(TrayProcess(Mutex::new(Some(tray))));
 
-      apply_saved_branding(app.handle(), &window, &tray);
+      apply_saved_branding(app.handle(), &window);
 
       Ok(())
     })
