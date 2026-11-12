@@ -209,6 +209,8 @@ export function registerNavItem(item) {
     label: item.label,
     icon: item.icon || 'Grid',
     iconSvg: item.iconSvg || '',
+    // railStatic：图标只做状态高亮，不可点击（如周报入口，从侧栏列表打开）
+    railStatic: Boolean(item.railStatic),
     // 组件图标可以被外部插件用来渲染徽标、动态状态等
     iconComponent: item.iconComponent ? markRaw(item.iconComponent) : null,
     order: Number.isFinite(Number(item.order)) ? Number(item.order) : 100,

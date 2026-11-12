@@ -916,5 +916,13 @@
     }, 2000);
 
     // 预热数据缓存：后台先取全量周报，首次打开搜索框即刻出列表
-    fetchAllReports().catch((e) => console.error('搜索缓存预热失败:', e));
+    // 资源脚本先于 client bundle 加载，等周报插件的桥接对象就绪再预热
+    function warmupWhenReady(attempt = 0) {
+        if (window.weekReport) {
+            fetchAllReports().catch((e) => console.error('搜索缓存预热失败:', e));
+            return;
+        }
+        if (attempt < 100) setTimeout(() => warmupWhenReady(attempt + 1), 100);
+    }
+    warmupWhenReady();
 })();

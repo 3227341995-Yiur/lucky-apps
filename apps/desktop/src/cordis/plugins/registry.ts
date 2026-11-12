@@ -59,6 +59,10 @@ class NavigationService extends EffectService {
   list() {
     return listNavItems()
   }
+
+  open(id: string) {
+    return this.ctx.get('ui')?.navigate(id) ?? false
+  }
 }
 
 class SettingsService extends EffectService {

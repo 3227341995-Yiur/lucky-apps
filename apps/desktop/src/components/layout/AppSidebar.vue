@@ -58,6 +58,20 @@ const railActions = computed(() => listRailActions())
           :show-after="500"
         >
           <button
+            v-if="item.railStatic"
+            type="button"
+            class="rail-item rail-static"
+            :title="item.label"
+            :aria-label="item.label"
+            :aria-disabled="true"
+            :class="{ active: isRailActive(item) }"
+          >
+            <component :is="item.iconComponent" v-if="item.iconComponent" />
+            <span v-else-if="item.iconSvg" class="rail-custom-icon" v-html="item.iconSvg"></span>
+            <el-icon v-else :size="18"><component :is="item.icon || 'Grid'" /></el-icon>
+          </button>
+          <button
+            v-else
             type="button"
             class="rail-item"
             :title="item.label"

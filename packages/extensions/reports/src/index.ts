@@ -32,6 +32,7 @@ export default {
       label: '周报',
       icon: 'Document',
       order: 10,
+      railStatic: true,
       component: ReportsPage,
     })
     ctx.sidebar.registerRailAction({

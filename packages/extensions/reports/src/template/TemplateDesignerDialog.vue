@@ -1,5 +1,6 @@
 <script setup>
 import { weekReportApi } from '../api'
+import { useReports } from '../useReports'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch , inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import TemplateListPane from './TemplateListPane.vue'
@@ -159,9 +160,19 @@ async function openWorkspace() {
 
   const [next] = await Promise.all([refreshTemplates(currentId.value), refreshTemplateTypes()])
   if (seq !== openSeq) return
-  applyTemplate(next)
+  let selected = next
+  // 默认打开与复制设置同类型的默认模板（通常是 HTML），避免一进来是短 Markdown 模板
+  if (currentId.value == null && selected) {
+    const type = copyDefaultType.value || 'html'
+    const typed = templates.value.find(item => item.type === type && item.isDefault)
+      || templates.value.find(item => item.type === type)
+    if (typed) selected = typed
+  }
+  applyTemplate(selected)
 
   await loadReports()
+  const preferred = useReports().state.currentId ?? reports.value[0]?.id ?? null
+  if (preferred != null) selectedReportId.value = preferred
 }
 
 watch(

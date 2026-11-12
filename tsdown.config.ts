@@ -2,7 +2,7 @@ import { defineConfig } from 'tsdown'
 
 export default defineConfig({
   fixedExtension: false,
-  workspace: ['packages/bundle/*', 'packages/client/*', 'packages/sdk/*'],
+  workspace: ['packages/bundle/*', 'packages/client/*'],
   format: ['esm'],
   platform: 'node',
   target: 'es2022',

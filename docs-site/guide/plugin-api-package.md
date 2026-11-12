@@ -50,6 +50,21 @@ const enabled = ctx.extensions.list().filter(item => item.enabled).length
 
 完整方法见 [Cordis 服务与周报 API](/guide/api)。
 
+## 类型
+
+`@lucky-apps/plugin-types` 是**纯声明包**（没有运行时代码），给 `ctx` 服务补类型：
+
+```bash
+pnpm add -D @lucky-apps/plugin-types
+```
+
+```ts
+import type {} from '@lucky-apps/plugin-types'
+```
+
+然后在 `apply(ctx)` 里就有 `ctx.navigation` / `ctx.weekReport` 等类型提示；运行时仍然是 Cordis ctx，
+不会多出任何 API 对象或全局变量。
+
 ## 包结构
 
 插件包只依赖 `cordis` 类型（如需类型提示）和它自己的构建依赖；不再有 `@lucky-apps/plugin-api` 运行时包。
