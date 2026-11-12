@@ -11,6 +11,7 @@ node_modules
 # 内置插件包按 node_modules 结构随应用资源提交
 !src-tauri/resources/node_modules/
 !src-tauri/resources/node_modules/**
+resources/pnpm/
 packages/extensions/*/lib/
 .DS_Store
 dist

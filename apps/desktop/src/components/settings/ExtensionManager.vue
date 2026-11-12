@@ -132,6 +132,42 @@ function guardUninstallClose(done) {
   if (!removingName.value) done()
 }
 
+function friendlyError(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return '操作没有完成，请稍后重试。'
+  const rules = [
+    [/ERR_PNPM_FETCH_404|404 Not Found/i, '找不到这个包，请检查包名或仓库地址。'],
+    [/ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED|prepare script/i, '插件的构建脚本被拦截，无法生成运行文件。'],
+    [/EACCES|EPERM|access is denied/i, '没有写入权限，请关闭占用该目录的程序后重试。'],
+    [/ENOTFOUND|ECONNREFUSED|ETIMEDOUT|fetch failed|network/i, '网络连接失败，请检查网络或 registry 设置。'],
+    [/ERR_PNPM_PEER_DEP_ISSUES/i, '依赖版本不兼容，请检查插件的 peerDependencies。'],
+    [/ERR_PNPM_UNEXPECTED_VIRTUAL_STORE/i, 'profile 依赖目录不一致，重新加载应用后重试。'],
+    [/ERR_PNPM_CMD_SHIM_READ_MANIFEST|os error 448|UNTRUSTED_MOUNT_POINT/i, '本地插件目录链接不可用，请改用 tarball 或重新安装。'],
+    [/退出码|exit code/i, '依赖安装没有完成，展开日志可查看具体原因。'],
+  ]
+  for (const [pattern, message] of rules) if (pattern.test(text)) return message
+  const first = text.split(/\r?\n/).find(line => line.trim()) || text
+  return first.length > 160 ? `${first.slice(0, 160)}…` : first
+}
+
+async function copyErrorText(text) {
+  try {
+    await navigator.clipboard.writeText(String(text || ''))
+    ElMessage.success('错误信息已复制')
+  } catch {
+    ElMessage.error('复制失败，请手动选择文本')
+  }
+}
+
+function appendLog(logs, line) {
+  const value = String(line || '').trim()
+  if (!value) return logs
+  const next = logs[logs.length - 1] === value
+    ? logs
+    : [...logs, value]
+  return next.slice(-300)
+}
+
 function handleInstallEvent(event) {
   if (event.type === 'stage') {
     installStage.value = event.message || installStage.value
@@ -139,7 +175,7 @@ function handleInstallEvent(event) {
     return
   }
   if (event.type === 'log') {
-    installLogs.value = [...installLogs.value, event.line].slice(-300)
+    installLogs.value = appendLog(installLogs.value, event.line)
     return
   }
   if (event.type === 'error') {
@@ -229,7 +265,7 @@ async function handleInstall(specArg) {
     const message = error?.message || String(error)
     installError.value = message
     installStage.value = '安装失败'
-    installLogs.value = [...installLogs.value, message].slice(-300)
+    installLogs.value = appendLog(installLogs.value, message)
     ElMessage.error(`安装失败：${message}`)
   } finally {
     installing.value = false
@@ -243,14 +279,12 @@ function handleUninstallEvent(event) {
     return
   }
   if (event.type === 'log') {
-    uninstallLogs.value = [...uninstallLogs.value, event.line].slice(-300)
+    uninstallLogs.value = appendLog(uninstallLogs.value, event.line)
     return
   }
   if (event.type === 'error') {
     uninstallError.value = event.error || '卸载失败'
-    if (!uninstallLogs.value.includes(uninstallError.value)) {
-      uninstallLogs.value = [...uninstallLogs.value, uninstallError.value].slice(-300)
-    }
+    uninstallLogs.value = appendLog(uninstallLogs.value, uninstallError.value)
   }
 }
 
@@ -283,9 +317,7 @@ async function handleUninstall(resource) {
     const message = error?.message || String(error)
     uninstallError.value = message
     uninstallStage.value = '卸载失败'
-    if (!uninstallLogs.value.includes(message)) {
-      uninstallLogs.value = [...uninstallLogs.value, message].slice(-300)
-    }
+    uninstallLogs.value = appendLog(uninstallLogs.value, message)
     ElMessage.error(`卸载失败：${message}`)
     removingName.value = ''
   }
@@ -382,7 +414,10 @@ async function handleToggle(resource) {
         <el-icon><WarningFilled /></el-icon>
         <span>Cordis 插件错误</span>
       </div>
-      <p v-for="message in extensionState.errors" :key="message">{{ message }}</p>
+      <div v-for="message in extensionState.errors" :key="message" class="ext-error-row">
+        <span>{{ friendlyError(message) }}</span>
+        <button type="button" class="ext-error-copy" @click="copyErrorText(message)">复制</button>
+      </div>
     </div>
 
     <div v-if="extensionState.loading || rescanning" class="ext-state">
@@ -466,7 +501,18 @@ async function handleToggle(resource) {
           <strong>{{ uninstallPercent }}%</strong>
         </div>
         <el-progress :percentage="uninstallPercent" :show-text="false" :stroke-width="7" />
-        <pre v-if="uninstallLogs.length" class="install-log">{{ uninstallLogs.join('\n') }}</pre>
+        <div v-if="uninstallError" class="install-error-card" role="alert">
+          <span class="install-error-icon"><el-icon><WarningFilled /></el-icon></span>
+          <div class="install-error-main">
+            <strong>卸载没有完成</strong>
+            <p>{{ friendlyError(uninstallError) }}</p>
+          </div>
+          <el-button size="small" text class="install-error-copy" @click="copyErrorText(uninstallError)">复制错误</el-button>
+        </div>
+        <details v-if="uninstallLogs.length" class="install-details">
+          <summary>查看详细日志</summary>
+          <pre class="install-log">{{ uninstallLogs.join('\n') }}</pre>
+        </details>
       </div>
     </AppDialog>
 
@@ -493,13 +539,24 @@ async function handleToggle(resource) {
         <span v-if="searching" class="install-spinner"><el-icon class="is-loading"><Loading /></el-icon></span>
       </div>
 
-      <div v-if="installing || installPercent > 0" class="install-progress">
+      <div v-if="installing || installPercent > 0 || installError" class="install-progress">
         <div class="install-progress-head">
           <span>{{ installStage || '正在安装…' }}</span>
           <strong>{{ installPercent }}%</strong>
         </div>
         <el-progress :percentage="installPercent" :show-text="false" :stroke-width="7" />
-        <pre v-if="installLogs.length" class="install-log">{{ installLogs.join('\n') }}</pre>
+        <div v-if="installError" class="install-error-card" role="alert">
+          <span class="install-error-icon"><el-icon><WarningFilled /></el-icon></span>
+          <div class="install-error-main">
+            <strong>安装没有完成</strong>
+            <p>{{ friendlyError(installError) }}</p>
+          </div>
+          <el-button size="small" text class="install-error-copy" @click="copyErrorText(installError)">复制错误</el-button>
+        </div>
+        <details v-if="installLogs.length" class="install-details">
+          <summary>查看详细日志</summary>
+          <pre class="install-log">{{ installLogs.join('\n') }}</pre>
+        </details>
       </div>
 
       <div v-else class="install-results">
@@ -525,7 +582,7 @@ async function handleToggle(resource) {
         </div>
       </div>
       <template #footer>
-        <span class="install-foot-hint">{{ installError ? '安装失败，检查上面的日志后可以重试。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+        <span class="install-foot-hint">{{ installError ? '没有安装完成，可以点「重试」再试一次。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
         <template v-if="installPercent === 100 && !installError">
           <el-button type="primary" @click="installOpen = false">关闭</el-button>
         </template>
@@ -737,13 +794,36 @@ async function handleToggle(resource) {
   font-weight: 650;
 }
 
-.ext-errors p {
-  margin: 6px 0 0;
-  color: var(--el-color-danger);
-  font-family: var(--wr-mono);
-  font-size: 10.5px;
+.ext-error-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--el-bg-color) 72%, transparent);
+  color: var(--el-text-color-regular);
+  font-size: 11.5px;
   line-height: 1.55;
   overflow-wrap: anywhere;
+}
+
+.ext-error-copy {
+  flex: none;
+  padding: 2px 9px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.ext-error-copy:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
 }
 
 .install-progress {
@@ -768,8 +848,69 @@ async function handleToggle(resource) {
   font-size: 11px;
 }
 
-.install-error {
+.install-error-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 22%, var(--el-border-color-lighter));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--el-color-danger-light-9) 72%, var(--el-bg-color));
+}
+
+.install-error-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  color: var(--el-color-danger);
+  font-size: 14px;
+}
+
+.install-error-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-error-main strong {
+  display: block;
+  color: var(--el-text-color-primary);
+  font-size: 12px;
+}
+
+.install-error-main p {
+  margin: 4px 0 0;
+  color: var(--el-text-color-regular);
+  font-size: 11.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.install-error-copy {
+  flex: none;
+  color: var(--el-text-color-secondary);
+}
+
+.install-error-copy:hover {
+  color: var(--el-color-primary);
+}
+
+.install-details {
   margin-top: 2px;
+}
+
+.install-details summary {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.install-details[open] summary {
+  margin-bottom: 8px;
 }
 
 .install-log {

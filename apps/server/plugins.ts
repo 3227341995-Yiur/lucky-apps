@@ -3,6 +3,17 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { join, resolve } from 'node:path'
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml'
 
+const resourcesRoot = process.env.WR_RESOURCES_DIR || resolve(process.cwd(), 'resources')
+
+/** 优先随包 pnpm（不要求用户装 pnpm），没有时回退系统 pnpm。 */
+function pnpmCommand(args: string[]) {
+  const bundled = join(resourcesRoot, 'pnpm', 'bin', 'pnpm.mjs')
+  if (existsSync(bundled)) {
+    return { command: process.execPath, args: [bundled, ...args], shell: false }
+  }
+  return { command: 'pnpm', args, shell: process.platform === 'win32' }
+}
+
 function readJson(path: string): any {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
@@ -57,11 +68,13 @@ function packLocalDir(profileDir: string, dir: string, emit?: (event: any) => vo
   emit?.({ type: 'stage', stage: 'pack', progress: 8, message: `正在打包本地插件 ${manifest.name || file}…` })
   const out = join(vendorDir, file)
   try {
-    execFileSync('pnpm', ['pack', '--out', process.platform === 'win32' ? `"${out}"` : out, '--reporter=append-only'], {
+    const pnpm = pnpmCommand(['pack', '--out', out, '--reporter=append-only'])
+    if (pnpm.shell) pnpm.args = pnpm.args.map(arg => (arg === out ? `"${out}"` : arg))
+    execFileSync(pnpm.command, pnpm.args, {
       cwd: dir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
+      shell: pnpm.shell,
     })
   } catch (error: any) {
     const detail = String(error.stderr || error.stdout || error.message || '').trim().split(/\r?\n/).slice(-12).join('\n')
@@ -167,10 +180,11 @@ export function uninstallProfilePlugin(profileDir: string, name: string): { name
   if (!name || !String(name).trim()) throw new Error('缺少要卸载的包名')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   prepareProfile(profileDir)
-  execFileSync('pnpm', ['remove', String(name).trim(), '--node-linker=hoisted'], {
+  const pnpm = pnpmCommand(['remove', String(name).trim(), '--node-linker=hoisted'])
+  execFileSync(pnpm.command, pnpm.args, {
     cwd: profileDir,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    shell: pnpm.shell,
   })
   const manifestPath = join(profileDir, 'package.json')
   const manifest = readJson(manifestPath)
@@ -197,10 +211,11 @@ export async function uninstallProfilePluginStream(
   emit({ type: 'stage', stage: 'remove', progress: 15, message: `正在卸载 ${target}…` })
 
   await new Promise<void>((resolvePromise) => {
+    const pnpm = pnpmCommand(['remove', target, '--node-linker=hoisted', '--ignore-scripts', '--reporter=append-only'])
     const child: ChildProcess = spawn(
-      'pnpm',
-      ['remove', target, '--node-linker=hoisted', '--ignore-scripts', '--reporter=append-only'],
-      { cwd: profileDir, shell: process.platform === 'win32' },
+      pnpm.command,
+      pnpm.args,
+      { cwd: profileDir, shell: pnpm.shell },
     )
     streamChildLogs(child, emit)
     child.on('error', (error) => {
@@ -280,10 +295,11 @@ export function installProfilePlugin(profileDir: string, spec: string): InstallR
   normalizeProfileLinks(profileDir)
   const before = readJson(join(profileDir, 'package.json')).dependencies || {}
   const target = resolveInstallSpec(profileDir, String(spec).trim())
-  execFileSync('pnpm', installArgs(target, before), {
+  const pnpm = pnpmCommand(installArgs(target, before))
+  execFileSync(pnpm.command, pnpm.args, {
     cwd: profileDir,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
+    shell: pnpm.shell,
   })
   return registerInstalledPackage(profileDir, spec, before)
 }
@@ -325,9 +341,10 @@ export async function installProfilePluginStream(profileDir: string, spec: strin
   emit({ type: 'stage', stage: 'install', progress: 15, message: '正在解析并安装依赖…' })
 
   await new Promise((resolvePromise, reject) => {
-    const child: ChildProcess = spawn('pnpm', [...installArgs(target, before), '--reporter=append-only'], {
+    const pnpm = pnpmCommand([...installArgs(target, before), '--reporter=append-only'])
+    const child: ChildProcess = spawn(pnpm.command, pnpm.args, {
       cwd: profileDir,
-      shell: process.platform === 'win32',
+      shell: pnpm.shell,
     })
     const tailText = streamChildLogs(child, emit)
     child.on('error', reject)

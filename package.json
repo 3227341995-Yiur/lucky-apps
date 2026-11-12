@@ -1,6 +1,6 @@
 {
   "name": "lucky-apps",
-  "version": "3.2.7",
+  "version": "3.2.8",
   "keywords": [
     "cordis",
     "lucky-app"
@@ -40,14 +40,14 @@
     "js-yaml": "^5.5.0"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@tauri-apps/cli": "2.10.1",
     "esbuild": "^0.28.2",
-    "typescript": "^5.9.3",
-    "vitepress": "^1.6.4",
-    "oxlint": "1.76.0",
-    "@stylistic/eslint-plugin": "^5.10.0",
-    "tsdown": "^0.22.2",
+    "eslint-plugin-sonarjs": "^4.1.0",
     "lefthook": "^2.1.9",
-    "eslint-plugin-sonarjs": "^4.1.0"
+    "oxlint": "1.76.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4"
   }
 }
