@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Lucky Apps",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "identifier": "com.lu.lucky-apps",
   "build": {
     "frontendDist": "../apps/desktop/dist",
