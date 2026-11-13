@@ -2,7 +2,7 @@
 import { computed, nextTick, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useExtensions } from '@/composables/useExtensions'
-import { installPlugin, searchPlugins, uninstallPluginStream } from '@/plugins/loader'
+import { installPlugin, isScriptHot, searchPlugins, uninstallPluginStream } from '@/plugins/loader'
 import { AppDialog } from '@lucky-apps/client-ui'
 
 defineOptions({ name: 'ExtensionManager' })
@@ -411,10 +411,12 @@ function handleMoreCommand(command) {
 
 async function handleToggle(resource) {
   try {
+    // 在卸载前记录，dispose 会把 hotScripts 里的记录删掉
+    const hot = resource.hot || isScriptHot(resource.file)
     const enabled = await toggleResource(resource.id)
     if (enabled === null) return
     // 支持 teardown 的脚本走 Cordis 热卸载；没有 teardown 的旧脚本只能重载界面。
-    if (resource.kind === 'script' && !enabled && !resource.hot) {
+    if (resource.kind === 'script' && !enabled && !hot) {
       ElMessage.success(`已禁用「${resource.name}」，正在重新加载界面…`)
       setTimeout(() => window.location.reload(), 600)
       return

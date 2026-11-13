@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/plugin-types",
-  "version": "3.2.25",
+  "version": "3.2.26",
   "description": "Type declarations for Lucky Apps Cordis services (types only, no runtime)",
   "types": "index.d.ts",
   "files": [

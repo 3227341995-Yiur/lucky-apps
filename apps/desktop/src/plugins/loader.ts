@@ -22,6 +22,8 @@ export const DISABLED_EXTENSIONS_KEY = 'extensions.disabled'
 
 const loadedStyles = new Set()
 const loadedScripts = new Set()
+// 已经注册了 teardown 的脚本；重新扫描资源时用它恢复 hot 状态
+const hotScripts = new Set()
 let bootState = { modules: [], resources: [], paths: {} }
 let pollTimer = null
 let lastBootKey = ''
@@ -71,7 +73,17 @@ async function disabledIds() {
 
 /** 把用户保存的启停状态同步到资源列表；脚本/样式也要显示真实状态。 */
 function applyEnabledState(resources, disabled) {
-  for (const item of resources) item.enabled = !disabled.has(item.id)
+  for (const item of resources) {
+    item.enabled = !disabled.has(item.id)
+    // 禁用的资源不能沿用服务端的 loaded 状态，否则界面会显示“已加载”但开关是关的
+    if (!item.enabled) item.status = 'disabled'
+    if (item.kind === 'script') item.hot = hotScripts.has(item.file)
+  }
+}
+
+/** 脚本是否注册了 teardown（用于界面判断能否热卸载） */
+export function isScriptHot(file) {
+  return hotScripts.has(file)
 }
 
 /** 扫描服务端 boot 清单，供管理界面展示 */
@@ -151,11 +163,13 @@ async function mountScriptResource(item) {
     }
     const globalCleanup = (SCRIPT_GLOBAL_CLEANUP as Record<string, (() => void) | undefined>)[item.file]
     hot = disposers.length > 0 || Boolean(globalCleanup)
+    if (hot) hotScripts.add(item.file)
     return () => {
       for (const dispose of disposers.reverse()) {
         try { dispose() } catch (error) { console.warn(`[extensions] 脚本清理失败 ${item.file}:`, error) }
       }
       try { globalCleanup?.() } catch (error) { console.warn(`[extensions] 全局清理失败 ${item.file}:`, error) }
+      hotScripts.delete(item.file)
       loadedScripts.delete(url)
     }
   })
