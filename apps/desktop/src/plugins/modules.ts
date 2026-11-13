@@ -1,5 +1,5 @@
 /**
- * Client module loader，对应 DSH client-modules 的 staticModules。
+ * Client module loader：依赖由宿主 staticModules 解析。
  *
  * bundle 通过 window.__ModuleLoader__.load({ id, factory }) 注册 CJS factory；
  * factory 里的 require('vue') 等由这里解析，不把库挂到 window 上。

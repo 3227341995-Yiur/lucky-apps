@@ -3,7 +3,7 @@
  *
  * 用 Service 类而不是普通对象：通过 ctx 访问服务时 Cordis 会给出调用方视角的
  * proxy，`this.ctx` 就是**调用方插件**的 Context。注册动作包进该插件的
- * `ctx.effect`，插件 dispose 时注册项自动撤销（Cordis/dsh 的生命周期形态）。
+ * `ctx.effect`，插件 dispose 时注册项自动撤销（Cordis 的生命周期形态）。
  * 用 Service 而不是 accessor，是为了保留插件声明式 `inject: ['navigation']`。
  */
 import { Service } from 'cordis'

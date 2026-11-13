@@ -245,15 +245,23 @@ export async function createHttpServer({
           const emit = (event: any) => {
             if (!res.writableEnded) res.write(`${JSON.stringify(event)}\n`)
           }
+          const controller = new AbortController()
+          req.on('close', () => {
+            if (!res.writableEnded) controller.abort()
+          })
           try {
             const approvedBuilds = Array.isArray(body.approvedBuilds) ? body.approvedBuilds.filter(item => typeof item === 'string') : []
-            await installProfilePluginStream(profileDir, String(body.spec || ''), emit, { approvedBuilds })
+            await installProfilePluginStream(profileDir, String(body.spec || ''), emit, {
+              approvedBuilds,
+              signal: controller.signal,
+            })
           } catch (error) {
             const pendingBuilds = Array.isArray(error?.pendingBuilds) ? error.pendingBuilds : []
             emit({
               type: 'error',
               error: error.message,
               ...pendingBuilds.length ? { pendingBuilds } : {},
+              ...error?.cancelled ? { cancelled: true } : {},
             })
           }
           res.end()

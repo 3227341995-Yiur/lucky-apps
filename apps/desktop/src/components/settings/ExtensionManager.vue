@@ -75,6 +75,7 @@ const uninstallPercent = ref(0)
 const uninstallLogs = ref([])
 const uninstallError = ref('')
 let searchTimer = null
+let installController = null
 
 function statusOf(resource) {
   return STATUS_META[resource.status] || STATUS_META.pending
@@ -150,8 +151,13 @@ function openInstallDialog() {
   })
 }
 
+function cancelInstall() {
+  installController?.abort()
+}
+
 function guardInstallClose(done) {
-  if (!installing.value) done()
+  if (installing.value) cancelInstall()
+  done()
 }
 
 function guardUninstallClose(done) {
@@ -299,6 +305,8 @@ function retryInstall() {
 }
 
 async function runInstall(spec, approvedBuilds = []) {
+  const controller = new AbortController()
+  installController = controller
   installSpec.value = spec
   installing.value = true
   installError.value = ''
@@ -308,7 +316,7 @@ async function runInstall(spec, approvedBuilds = []) {
   installPercent.value = 0
   installStage.value = '准备安装…'
   try {
-    const result = await installPlugin(spec, handleInstallEvent, approvedBuilds)
+    const result = await installPlugin(spec, handleInstallEvent, approvedBuilds, controller.signal)
     installStage.value = '安装完成'
     installPercent.value = 100
     approvedNames.value = result?.approvedBuilds || []
@@ -316,6 +324,13 @@ async function runInstall(spec, approvedBuilds = []) {
     installSpec.value = ''
     ElMessage.success(`已安装 ${result?.name || spec}${result?.hasBundle ? '，已加入 profile' : '（普通依赖）'}`)
   } catch (error) {
+    if (controller.signal.aborted) {
+      installStage.value = '已取消'
+      installError.value = ''
+      pendingBuilds.value = []
+      installPercent.value = 0
+      return
+    }
     const message = error?.message || String(error)
     if (Array.isArray(error?.pendingBuilds) && error.pendingBuilds.length) {
       // pnpm 拦截了安装脚本：留在同一个安装窗口里授权，不弹第二个窗口。
@@ -328,6 +343,7 @@ async function runInstall(spec, approvedBuilds = []) {
     installLogs.value = appendLog(installLogs.value, message)
   } finally {
     installing.value = false
+    if (installController === controller) installController = null
   }
 }
 
@@ -397,9 +413,9 @@ async function handleToggle(resource) {
   try {
     const enabled = await toggleResource(resource.id)
     if (enabled === null) return
-    // 普通 <script> 已经执行过的监听和 DOM 无法撤销，只有重新加载界面才能真正停用。
-    if (resource.kind === 'script') {
-      ElMessage.success(`已${enabled ? '启用' : '禁用'}「${resource.name}」，正在重新加载界面…`)
+    // 支持 teardown 的脚本走 Cordis 热卸载；没有 teardown 的旧脚本只能重载界面。
+    if (resource.kind === 'script' && !enabled && !resource.hot) {
+      ElMessage.success(`已禁用「${resource.name}」，正在重新加载界面…`)
       setTimeout(() => window.location.reload(), 600)
       return
     }
@@ -665,14 +681,14 @@ async function handleToggle(resource) {
           <el-button type="primary" :loading="approving" @click="approveInstall">允许这些脚本并重试</el-button>
         </template>
         <template v-else>
-          <span class="install-foot-hint">{{ installError ? '没有安装完成，可以点「重试」再试一次。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
-          <template v-if="installPercent === 100 && !installError">
+          <span class="install-foot-hint">{{ installing ? '正在安装，关闭窗口会取消本次安装。' : installError ? '没有安装完成，可以点「重试」再试一次。' : installPercent === 100 ? '安装完成，插件已自动加载。' : '安装后自动加入 profile bundles，并热加载组件。' }}</span>
+          <el-button v-if="installing" @click="cancelInstall">取消安装</el-button>
+          <template v-else-if="installPercent === 100 && !installError">
             <el-button type="primary" @click="installOpen = false">关闭</el-button>
           </template>
           <el-button
             v-else
             type="primary"
-            :loading="installing"
             @click="installError ? retryInstall() : handleInstall()"
           >
             <el-icon><Download /></el-icon><span>{{ installError ? '重试' : '安装' }}</span>

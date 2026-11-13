@@ -44,7 +44,7 @@ function specName(spec: string): string {
   return text.split('/')[0]
 }
 
-/** profile 是插件沙箱：构建脚本按包授权（allowBuilds），和 DSH 一样不做整体放行。 */
+/** profile 是插件沙箱：构建脚本按包授权（allowBuilds），不做整体放行。 */
 function prepareProfile(profileDir: string): void {
   if (packageManager() === 'npm') {
     // npm 不认识 pnpm 的 node-linker，清掉以免每次 install 都告警
@@ -119,7 +119,7 @@ function readBlockedBuilds(profileDir: string): string[] {
   }
 }
 
-/** 按 DSH 的方式持久化授权：只把待授权的包改成 true，不运行脚本。 */
+/** 持久化授权：只把待授权的包改成 true，不运行脚本。 */
 function approveBuilds(profileDir: string, names: string[]): void {
   const policyPath = join(profileDir, 'pnpm-workspace.yaml')
   let policy: any = {}
@@ -184,20 +184,21 @@ function resolveInstallSpec(profileDir: string, spec: string, emit?: (event: any
  * 已装过的 Git 插件再装一次时 pnpm add 会复用 lockfile 里的旧 commit（不重新解析），
  * 用 update 才会拉最新提交并重跑 prepare。
  */
-function installInvocation(target: string, before: Record<string, string>) {
+function installInvocation(target: string, before: Record<string, string>, registry?: string) {
   const isGit = /^(?:https?:\/\/|git\+|git@|github:|gitlab:|bitbucket:)/i.test(target)
   const name = specName(target)
+  const registryArgs = registry ? [`--registry=${registry}`] : []
   if (packageManager() === 'npm') {
     // npm 默认会直接跑脚本；先拦住，等用户在看得到的安装窗口里授权后再 rebuild。
     const args = isGit && name && before[name]
       ? ['update', name, '--ignore-scripts', '--no-audit', '--no-fund']
       : ['install', target, '--ignore-scripts', '--no-audit', '--no-fund']
-    return { command: 'npm', args, shell: isWindows }
+    return { command: 'npm', args: [...args, ...registryArgs], shell: isWindows }
   }
   const args = isGit && name && before[name]
     ? ['update', name, '--node-linker=hoisted']
     : ['add', target, '--node-linker=hoisted']
-  return { command: 'pnpm', args, shell: isWindows }
+  return { command: 'pnpm', args: [...args, ...registryArgs], shell: isWindows }
 }
 
 function removeInvocation(name: string, extra: string[] = []) {
@@ -404,19 +405,54 @@ function streamChildLogs(child: ChildProcess, emit: (event: any) => void): () =>
   return () => tail
 }
 
+class InstallCancelled extends Error {
+  cancelled = true
+
+  constructor() {
+    super('安装已取消')
+    this.name = 'InstallCancelled'
+  }
+}
+
+function killChildTree(child: ChildProcess) {
+  if (!child.pid) return
+  if (isWindows) {
+    try {
+      execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+      return
+    } catch {}
+  }
+  child.kill('SIGTERM')
+}
+
 async function runStreamed(
   profileDir: string,
   invocation: { command: string, args: string[], shell: boolean },
   emit: (event: any) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   await new Promise<void>((resolvePromise, reject) => {
+    if (signal?.aborted) {
+      reject(new InstallCancelled())
+      return
+    }
     const child: ChildProcess = spawn(invocation.command, invocation.args, {
       cwd: profileDir,
       shell: invocation.shell,
     })
     const tailText = streamChildLogs(child, emit)
-    child.on('error', reject)
+    const onAbort = () => {
+      killChildTree(child)
+      reject(new InstallCancelled())
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+    child.on('error', (error) => {
+      signal?.removeEventListener('abort', onAbort)
+      reject(error)
+    })
     child.on('close', (code) => {
+      signal?.removeEventListener('abort', onAbort)
+      if (signal?.aborted) return reject(new InstallCancelled())
       if (code === 0) return resolvePromise()
       const detail = tailText().trim().split(/\r?\n/).slice(-12).join('\n')
       reject(new Error(detail || `${invocation.command} 退出码 ${code}`))
@@ -424,9 +460,114 @@ async function runStreamed(
   })
 }
 
+function isRegistryTarget(target: string): boolean {
+  return !/^(file:|link:|https?:\/\/|git\+|git@|github:|gitlab:|bitbucket:)/i.test(target)
+    && !/^[A-Za-z]:[\\/]/.test(target)
+    && !/^\.{1,2}[\\/]/.test(target)
+    && !target.endsWith('.tgz')
+}
+
+function readConfiguredRegistry(profileDir: string, manager: 'pnpm' | 'npm'): string {
+  try {
+    return execFileSync(manager, ['config', 'get', 'registry'], {
+      cwd: profileDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      shell: isWindows,
+    }).trim()
+  } catch {
+    return ''
+  }
+}
+
+/** 主 registry 失败后依次尝试官方源和镜像；本地包/Git 包不参与回退。 */
+function registryPlan(profileDir: string, manager: 'pnpm' | 'npm', target: string): Array<string | undefined> {
+  if (!isRegistryTarget(target)) return [undefined]
+  const configured = readConfiguredRegistry(profileDir, manager)
+  return [...new Set([
+    configured || undefined,
+    'https://registry.npmjs.org/',
+    'https://registry.npmmirror.com/',
+  ].filter(Boolean))] as string[]
+}
+
+function isRegistryFailure(message: string): boolean {
+  return /ERR_PNPM_FETCH|E404|404 Not Found|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|fetch failed|network timeout|ERR_SOCKET_TIMEOUT|getaddrinfo/i.test(String(message || ''))
+}
+
+/** 极简 semver 范围判断，覆盖插件 engines.node 常见写法。 */
+function nodeSatisfies(version: string, range: string): boolean {
+  const current = version.split('.').map(part => Number(part) || 0)
+  const compare = (a: number[], b: number[]) => {
+    for (let i = 0; i < 3; i += 1) {
+      if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) - (b[i] || 0)
+    }
+    return 0
+  }
+  const parse = (part: string) => {
+    const match = /^(\^|~|>=|<=|>|<|=)?\s*v?(\d+)(?:\.(\d+))?(?:\.(\d+))?/.exec(part.trim())
+    if (!match) return null
+    return {
+      op: match[1] || '=',
+      version: [Number(match[2]), Number(match[3] || 0), Number(match[4] || 0)],
+    }
+  }
+  return range.split('||').some(group => group.trim().split(/\s+/).filter(Boolean).every((token) => {
+    if (token === '*' || token === 'x') return true
+    const item = parse(token)
+    if (!item) return true
+    const [major, minor] = item.version
+    const diff = compare(current, item.version)
+    switch (item.op) {
+      case '^': return diff >= 0 && current[0] === major
+      case '~': return diff >= 0 && current[0] === major && current[1] === minor
+      case '>=': return diff >= 0
+      case '>': return diff > 0
+      case '<=': return diff <= 0
+      case '<': return diff < 0
+      default: return diff === 0
+    }
+  }))
+}
+
+function registryPackageName(spec: string): string {
+  const match = /^(@[^/]+\/[^@]+|[^@]+)(?:@.*)?$/.exec(spec)
+  return match?.[1] || spec
+}
+
+/** 安装前读取包元数据，检查 Node 版本要求；读不到元数据就交给安装器判断。 */
+async function preflightCompatibility(spec: string, registry: string | undefined, emit: (event: any) => void): Promise<void> {
+  const dir = resolve(spec)
+  let manifest: any = null
+  if (existsSync(join(dir, 'package.json'))) {
+    try { manifest = readJson(join(dir, 'package.json')) } catch {}
+  } else if (!/^(https?:\/\/|git\+|git@|github:|gitlab:|bitbucket:)/i.test(spec)) {
+    const name = registryPackageName(spec)
+    const base = (registry || 'https://registry.npmjs.org/').replace(/\/$/, '')
+    try {
+      const response = await fetch(`${base}/${name.startsWith('@') ? name.replace('/', '%2F') : name}`, {
+        headers: { accept: 'application/json' },
+      })
+      if (response.ok) {
+        const meta: any = await response.json()
+        const latest = meta['dist-tags']?.latest
+        manifest = meta.versions?.[latest] || null
+      }
+    } catch {}
+  }
+  const range = String(manifest?.engines?.node || '').trim()
+  if (!range) return
+  if (!nodeSatisfies(process.versions.node, range)) {
+    throw new Error(`插件要求 Node ${range}，当前运行的是 Node ${process.versions.node}`)
+  }
+  emit({ type: 'log', stream: 'stdout', line: `兼容性检查通过：Node ${process.versions.node} 满足 ${range}` })
+}
+
 export interface InstallOptions {
   /** 用户在安装窗口里确认过的包；pnpm 写进 allowBuilds，npm 走 rebuild。 */
   approvedBuilds?: string[]
+  /** 用户关闭安装窗口时中止当前安装，服务端会杀掉整个包管理器进程树。 */
+  signal?: AbortSignal
 }
 
 export async function installProfilePluginStream(
@@ -448,10 +589,16 @@ export async function installProfilePluginStream(
     emit({ type: 'stage', stage: 'approve', progress: 10, message: `已允许安装脚本：${approved.join(', ')}` })
   }
   const before = readJson(join(profileDir, 'package.json')).dependencies || {}
+  emit({ type: 'stage', stage: 'check', progress: 8, message: '检查插件兼容性…' })
+  await preflightCompatibility(
+    String(spec).trim(),
+    registryPlan(profileDir, manager, String(spec).trim())[0],
+    emit,
+  )
   const target = resolveInstallSpec(profileDir, String(spec).trim(), emit)
   emit({ type: 'stage', stage: 'install', progress: 15, message: '正在解析并安装依赖…' })
 
-  // 安装失败时把清单和锁文件恢复原状，和 DSH 一样不留下半装的依赖。
+  // 安装失败时把清单和锁文件恢复原状，不留下半装的依赖。
   const savedFiles = ['package.json', 'pnpm-lock.yaml', 'package-lock.json'].map((name) => {
     const path = join(profileDir, name)
     return { path, text: existsSync(path) ? readFileSync(path, 'utf8') : undefined }
@@ -465,18 +612,48 @@ export async function installProfilePluginStream(
     }
   }
 
-  const invocation = installInvocation(target, before)
-  if (invocation.command === 'pnpm') invocation.args.push('--reporter=append-only')
-  try {
-    await runStreamed(profileDir, invocation, emit)
-  } catch (error) {
-    // pnpm 拦截了安装脚本：把被拦截的包名交给安装窗口询问用户，而不是当作普通失败。
-    const pending = manager === 'pnpm'
-      ? [...new Set([...readPendingBuilds(profileDir), ...readBlockedBuilds(profileDir)])]
-      : []
+  const plan = registryPlan(profileDir, manager, target)
+  let succeeded = false
+  let lastError: Error | null = null
+  for (const [index, registry] of plan.entries()) {
+    if (options.signal?.aborted) {
+      restoreFiles()
+      throw new InstallCancelled()
+    }
+    if (index > 0) {
+      restoreFiles()
+      emit({ type: 'stage', stage: 'registry', progress: 20, message: `切换到备用源 ${registry}…` })
+    }
+    const invocation = installInvocation(target, before, registry)
+    if (invocation.command === 'pnpm') invocation.args.push('--reporter=append-only')
+    try {
+      await runStreamed(profileDir, invocation, emit, options.signal)
+      succeeded = true
+      break
+    } catch (error: any) {
+      lastError = error
+      if (error instanceof InstallCancelled || options.signal?.aborted) {
+        restoreFiles()
+        throw new InstallCancelled()
+      }
+      // pnpm 拦截了安装脚本：把被拦截的包名交给安装窗口询问用户，而不是当作普通失败。
+      const pending = manager === 'pnpm'
+        ? [...new Set([...readPendingBuilds(profileDir), ...readBlockedBuilds(profileDir)])]
+        : []
+      if (pending.length) {
+        restoreFiles()
+        throw new BuildApprovalRequired(pending)
+      }
+      if (index === plan.length - 1 || !isRegistryFailure(error?.message || String(error))) {
+        restoreFiles()
+        throw error
+      }
+      emit({ type: 'log', stream: 'stderr', line: `${registry} 不可用：${String(error?.message || error).split(/\r?\n/)[0]}` })
+    }
+  }
+  if (!succeeded) {
     restoreFiles()
-    if (pending.length) throw new BuildApprovalRequired(pending)
-    throw error
+    throw lastError || new Error('安装失败')
   }
 
   const installed = installedPackage(profileDir, spec, before)
@@ -492,7 +669,7 @@ export async function installProfilePluginStream(
         command: 'npm',
         args: ['rebuild', installed.name, '--foreground-scripts', '--no-audit', '--no-fund'],
         shell: isWindows,
-      }, emit)
+      }, emit, options.signal)
     }
   }
 

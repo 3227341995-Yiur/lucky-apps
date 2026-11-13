@@ -1,6 +1,6 @@
 /**
  * 宿主插件：收集各 bundle 注册的浏览器 client bundle。
- * 对应 DSH 的 client-modules node half：只登记模块，不执行浏览器代码。
+ * 对应宿主的 client-modules node half：只登记模块，不执行浏览器代码。
  */
 export const name = '@lucky-apps/client-modules'
 

@@ -1,5 +1,5 @@
 /**
- * 统一版本：App 与所有 workspace 包共用同一个版本号（与 DSH 的 lockstep 发布一致）。
+ * 统一版本：App 与所有 workspace 包共用同一个版本号（lockstep 发布）。
  *
  *   pnpm version:sync 3.2.6
  *

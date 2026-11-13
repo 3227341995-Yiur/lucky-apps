@@ -1,4 +1,4 @@
-# Lucky Apps v3.2.21
+# Lucky Apps v3.2.22
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的插件化桌面应用。
 
@@ -45,7 +45,7 @@ scripts/              server / profile 构建与版本同步脚本
 resources/            运行时样式 / 插件脚本（服务端按清单下发）
 ```
 
-App 与 `packages/**` 使用同一版本号（与 DSH 的 lockstep 发布一致）：
+App 与 `packages/**` 使用同一版本号（lockstep 发布）：
 
 ```bash
 pnpm version:sync 3.2.6

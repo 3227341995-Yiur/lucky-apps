@@ -1,5 +1,5 @@
 /**
- * 外部 Cordis 组件安装命令，对齐 dsh plugin 的用法：
+ * 外部 Cordis 组件安装命令，与宿主插件管理保持一致：
  *
  *   lucky-apps plugin add <包名|本地目录> [--profile <dir> | --user]
  *   lucky-apps plugin remove <包名> [--profile <dir> | --user]

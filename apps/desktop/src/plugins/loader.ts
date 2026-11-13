@@ -122,16 +122,44 @@ async function mountStyleResource(item) {
   updateExtensionResource(item.id, { status: 'loaded' })
 }
 
+/** 第三方脚本没有 teardown，卸载时清掉它们挂到 window 的全局。 */
+const SCRIPT_GLOBAL_CLEANUP = {
+  'marked.min.js': () => { delete (window as any).marked },
+  'sweetalert2.min.js': () => { delete (window as any).Sweetalert2 },
+  'driver.min.js': () => { delete (window as any).Driver },
+}
+
 async function mountScriptResource(item) {
   const url = item.url
   if (loadedScripts.has(url)) return
   loadedScripts.add(url)
+  let hot = false
   await mountCordisPlugin(`script:${item.file}`, async () => {
-    const script = await injectScript(url)
+    const disposers: Array<() => void> = []
+    // 脚本可调用 window.__LUCKY_SCRIPT__.onDispose(fn) 注册真正的卸载逻辑。
+    ;(window as any).__LUCKY_SCRIPT__ = {
+      file: item.file,
+      onDispose: (fn) => { if (typeof fn === 'function') disposers.push(fn) },
+    }
+    let script
+    try {
+      script = await injectScript(url)
+    } finally {
+      ;(window as any).__LUCKY_SCRIPT__ = null
+    }
     if (!script) throw new Error('脚本加载失败')
-    return () => { script.remove(); loadedScripts.delete(url) }
+    const globalCleanup = (SCRIPT_GLOBAL_CLEANUP as Record<string, (() => void) | undefined>)[item.file]
+    hot = disposers.length > 0 || Boolean(globalCleanup)
+    return () => {
+      script.remove()
+      for (const dispose of disposers.reverse()) {
+        try { dispose() } catch (error) { console.warn(`[extensions] 脚本清理失败 ${item.file}:`, error) }
+      }
+      try { globalCleanup?.() } catch (error) { console.warn(`[extensions] 全局清理失败 ${item.file}:`, error) }
+      loadedScripts.delete(url)
+    }
   })
-  updateExtensionResource(item.id, { status: 'loaded' })
+  updateExtensionResource(item.id, { status: 'loaded', hot })
 }
 
 /** 加载全部扩展资源（样式 / 脚本 / client bundle） */
@@ -281,8 +309,8 @@ export async function searchPlugins(query) {
 }
 
 /** 通过服务端安装外部组件包，流式接收 pnpm 进度与错误（设置面板使用） */
-export async function installPlugin(spec, onEvent = () => {}, approvedBuilds = []) {
-  const response = await apiStream('/api/packages/extensions/install', { spec, approvedBuilds })
+export async function installPlugin(spec, onEvent = () => {}, approvedBuilds = [], signal = undefined) {
+  const response = await apiStream('/api/packages/extensions/install', { spec, approvedBuilds }, signal)
   if (!response.ok) {
     let detail = ''
     try { detail = (await response.json()).error || '' } catch {}

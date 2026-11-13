@@ -1,7 +1,7 @@
 /**
  * Lucky Apps client bundle preset（tsdown）
  *
- * DSH client module 形态：产物是 CJS factory，注册到 window.__ModuleLoader__；
+ * 宿主 client module 形态：产物是 CJS factory，注册到 window.__ModuleLoader__；
  * 外部依赖通过 loader 注入的 require 解析，不再使用 output.globals。
  */
 import { defineConfig } from 'tsdown'

@@ -1,5 +1,5 @@
 /**
- * Cordis profile 组合，语义与 DSH 一致：
+ * Cordis profile 组合语义：
  * 空根 → 各 bundle 的 la.bundle.patch → profile 的 cordis.patch.yml。
  * 这里只生成 Loader 行；真正的模块解析和插件挂载交给 @cordisjs/plugin-loader。
  */

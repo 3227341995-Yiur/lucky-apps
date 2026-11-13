@@ -33,9 +33,8 @@ Cordis Node 服务（server/）
 - 配置：Node 侧组合 profile bundles / patches，用真实 Loader 挂载插件。
 - 客户端：浏览器读取 `/api/boot`，加载组件包；插件在 `apply(ctx)` 里通过 Cordis 服务注册能力。
 
-::: warning 与 DSH 的差异
-DSH 是纯 Node 进程 + Web 前端；这里是 Tauri 窗口 + Node 服务。
-profile 组合和 client modules 是 DSH 语义的最小实现，不是直接复用 DSH app-boot。
+::: warning 运行形态
+这里是 Tauri 窗口 + Node 服务；profile 组合和 client modules 按 Cordis 语义实现。
 `profile` 是真实 pnpm 项目：插件包先 `pnpm pack` 成 tarball，由 `pnpm install`
 安装到 `src-tauri/target/profile/node_modules`。`vue` / `element-plus` 由宿主 Vite
 直接构建进前端 `dist`，不重复安装进 profile。

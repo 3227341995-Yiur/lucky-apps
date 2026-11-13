@@ -1,4 +1,4 @@
-/** App 与 workspace 包必须保持同一版本（与 DSH lockstep 发布一致）。 */
+/** App 与 workspace 包必须保持同一版本（lockstep 发布）。 */
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile, readdir } from 'node:fs/promises'

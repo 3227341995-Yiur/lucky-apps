@@ -76,7 +76,7 @@ npm 依赖、Vue SFC、TypeScript、less / scss 都由 Vite 正常打包。
 `package.json` 声明 `la.bundle.patch`；`pnpm profile:build` 会把包 `pnpm pack`
 成 tarball，安装到 `src-tauri/target/profile/node_modules`（真实 pnpm profile，不是手工复制）。
 
-这和 DSH bundle 形态一致：画布 / 列 / 功能包都通过 Cordis loader 行挂载，
+这是 Lucky Apps 的 bundle 形态：画布 / 列 / 功能包都通过 Cordis loader 行挂载，
 Node half 把浏览器 bundle 登记进 clientModules。
 
 profile 结构：
@@ -94,7 +94,7 @@ src-tauri/target/profile/
    └─ 外部 Node 插件 ...
 ```
 
-组合顺序和 DSH 一致：空根 → 各 bundle 的 `la.bundle.patch` →
+组合顺序：空根 → 各 bundle 的 `la.bundle.patch` →
 profile 的 `cordis.patch.yml`。内置 profile 的 `la.profile.bundles` 列出
 `base`、画布包、列包、功能包和外部功能插件。
 

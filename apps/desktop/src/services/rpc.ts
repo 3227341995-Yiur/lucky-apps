@@ -42,7 +42,7 @@ export function apiPost(path, body = {}) {
 }
 
 /** 返回原始 Response，供 NDJSON 流式接口使用 */
-export function apiStream(path, body = {}) {
+export function apiStream(path, body = {}, signal?) {
   return fetch(path, {
     method: 'POST',
     headers: {
@@ -50,5 +50,6 @@ export function apiStream(path, body = {}) {
       'x-wr-token': token,
     },
     body: JSON.stringify(body),
+    signal,
   })
 }

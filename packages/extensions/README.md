@@ -9,7 +9,7 @@
 - `la.kind`：`canvas` / `column` / `feature`
 - 可选的 `main` / `exports`：Node half
 
-这和 DSH 的 bundle 形态一致：包自带 patch，profile 的 `la.profile.bundles` 按顺序叠加。画布 / 列 / 功能包也走同一套 Cordis loader 行，Node half 负责把 client bundle 登记进 clientModules。
+这是 Lucky Apps 的 bundle 形态：包自带 patch，profile 的 `la.profile.bundles` 按顺序叠加。画布 / 列 / 功能包也走同一套 Cordis loader 行，Node half 负责把 client bundle 登记进 clientModules。
 
 ```text
 packages/extensions/
@@ -44,7 +44,7 @@ base → home → reports → kpi-card → ... → trash-bin → 外部功能插
 功能插件（kind: feature）的页面和后台能力注册为导航/设置面板；
 列组件（column）与画布组件（canvas）由内置 `reports` 插件的「设置 → 周报」统一维护。
 
-组合顺序与 DSH 一致：空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
+组合顺序：空根 → 各 bundle 的 `cordis.patch.yml` → profile 的 `cordis.patch.yml`。
 
 ## 入口
 

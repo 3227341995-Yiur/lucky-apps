@@ -689,7 +689,8 @@
 
     // 双击Shift检测：忽略按住不放的重复触发；命中后归零避免三连击误触
     let lastShiftTime = 0;
-    document.addEventListener('keydown', function(event) {
+    let disposed = false;
+    function handleShiftKey(event) {
         if (event.key !== 'Shift' || event.repeat) return;
 
         const currentTime = Date.now();
@@ -699,7 +700,8 @@
         } else {
             lastShiftTime = currentTime;
         }
-    });
+    }
+    document.addEventListener('keydown', handleShiftKey);
 
     // 显示搜索模态框
     function showSearchModal() {
@@ -911,13 +913,14 @@
     });
 
     // 显示使用提示
-    setTimeout(() => {
-        toast('提示: 双击Shift键打开搜索框');
+    const hintTimer = setTimeout(() => {
+        if (!disposed) toast('提示: 双击Shift键打开搜索框');
     }, 2000);
 
     // 预热数据缓存：后台先取全量周报，首次打开搜索框即刻出列表
     // 资源脚本先于 client bundle 加载，等周报插件的桥接对象就绪再预热
     function warmupWhenReady(attempt = 0) {
+        if (disposed) return;
         if (window.weekReport) {
             fetchAllReports().catch((e) => console.error('搜索缓存预热失败:', e));
             return;
@@ -925,4 +928,16 @@
         if (attempt < 100) setTimeout(() => warmupWhenReady(attempt + 1), 100);
     }
     warmupWhenReady();
+
+    // Cordis 卸载时撤掉监听、DOM 和定时器，脚本开关可以热生效。
+    if (window.__LUCKY_SCRIPT__) {
+        window.__LUCKY_SCRIPT__.onDispose(() => {
+            disposed = true;
+            clearTimeout(hintTimer);
+            document.removeEventListener('keydown', handleShiftKey);
+            document.removeEventListener('keydown', handleKeyDown);
+            style.remove();
+            modal.remove();
+        });
+    }
 })();
