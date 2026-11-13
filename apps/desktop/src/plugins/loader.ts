@@ -43,14 +43,10 @@ function injectStyle(url) {
   })
 }
 
-function injectScript(url) {
-  return new Promise((resolve) => {
-    const script = document.createElement('script')
-    script.src = url
-    script.onload = () => resolve(script)
-    script.onerror = () => resolve(null)
-    document.head.appendChild(script)
-  })
+async function fetchScriptSource(url) {
+  const response = await fetch(url, { cache: 'no-store' })
+  if (!response.ok) throw new Error(`脚本加载失败 (${response.status})`)
+  return response.text()
 }
 
 function applyBoot(payload) {
@@ -136,8 +132,8 @@ async function mountScriptResource(item) {
   let hot = false
   await mountCordisPlugin(`script:${item.file}`, async () => {
     const disposers: Array<() => void> = []
-    // 与 Cordis ctx.effect 相同的写法：脚本用 __CORDIS_SCRIPT__.effect(() => cleanup) 注册卸载。
-    ;(window as any).__CORDIS_SCRIPT__ = {
+    // 脚本以 Function('ctx', source) 执行，和 Cordis 插件一样拿到 ctx.effect 注册卸载。
+    const scriptCtx = {
       file: item.file,
       effect: (execute: () => void | (() => void)) => {
         const dispose = execute()
@@ -145,17 +141,17 @@ async function mountScriptResource(item) {
         return dispose
       },
     }
-    let script
+    const source = await fetchScriptSource(url)
     try {
-      script = await injectScript(url)
-    } finally {
-      ;(window as any).__CORDIS_SCRIPT__ = null
+      const runner = new Function('ctx', `${source}\n//# sourceURL=${url}`)
+      runner.call(window, scriptCtx)
+    } catch (error) {
+      loadedScripts.delete(url)
+      throw error
     }
-    if (!script) throw new Error('脚本加载失败')
     const globalCleanup = (SCRIPT_GLOBAL_CLEANUP as Record<string, (() => void) | undefined>)[item.file]
     hot = disposers.length > 0 || Boolean(globalCleanup)
     return () => {
-      script.remove()
       for (const dispose of disposers.reverse()) {
         try { dispose() } catch (error) { console.warn(`[extensions] 脚本清理失败 ${item.file}:`, error) }
       }
