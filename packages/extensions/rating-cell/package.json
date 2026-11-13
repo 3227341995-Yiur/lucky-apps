@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/extension-rating-cell",
-  "version": "3.2.22",
+  "version": "3.2.23",
   "private": true,
   "type": "module",
   "main": "lib/node.js",

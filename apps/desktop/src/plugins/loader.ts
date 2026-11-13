@@ -136,16 +136,20 @@ async function mountScriptResource(item) {
   let hot = false
   await mountCordisPlugin(`script:${item.file}`, async () => {
     const disposers: Array<() => void> = []
-    // 脚本可调用 window.__LUCKY_SCRIPT__.onDispose(fn) 注册真正的卸载逻辑。
-    ;(window as any).__LUCKY_SCRIPT__ = {
+    // 与 Cordis ctx.effect 相同的写法：脚本用 __CORDIS_SCRIPT__.effect(() => cleanup) 注册卸载。
+    ;(window as any).__CORDIS_SCRIPT__ = {
       file: item.file,
-      onDispose: (fn) => { if (typeof fn === 'function') disposers.push(fn) },
+      effect: (execute: () => void | (() => void)) => {
+        const dispose = execute()
+        if (typeof dispose === 'function') disposers.push(dispose)
+        return dispose
+      },
     }
     let script
     try {
       script = await injectScript(url)
     } finally {
-      ;(window as any).__LUCKY_SCRIPT__ = null
+      ;(window as any).__CORDIS_SCRIPT__ = null
     }
     if (!script) throw new Error('脚本加载失败')
     const globalCleanup = (SCRIPT_GLOBAL_CLEANUP as Record<string, (() => void) | undefined>)[item.file]

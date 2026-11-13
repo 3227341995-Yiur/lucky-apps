@@ -62,13 +62,13 @@
   })
 
   // Cordis 卸载时注销，插件开关不需要重载界面。
-  if (window.__LUCKY_SCRIPT__) {
+  if (window.__CORDIS_SCRIPT__) {
     const helperNames = [
       'not', 'eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'and', 'or',
       'lookup', 'add', 'includes', 'join', 'json', 'default',
       'formatDate', 'now', 'markdown',
     ]
-    window.__LUCKY_SCRIPT__.onDispose(() => {
+    window.__CORDIS_SCRIPT__.effect(() => () => {
       helperNames.forEach(name => H.unregisterHelper(name))
     })
   }

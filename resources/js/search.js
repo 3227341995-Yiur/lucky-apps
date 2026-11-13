@@ -930,8 +930,8 @@
     warmupWhenReady();
 
     // Cordis 卸载时撤掉监听、DOM 和定时器，脚本开关可以热生效。
-    if (window.__LUCKY_SCRIPT__) {
-        window.__LUCKY_SCRIPT__.onDispose(() => {
+    if (window.__CORDIS_SCRIPT__) {
+        window.__CORDIS_SCRIPT__.effect(() => () => {
             disposed = true;
             clearTimeout(hintTimer);
             document.removeEventListener('keydown', handleShiftKey);
