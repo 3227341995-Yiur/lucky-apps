@@ -20,7 +20,7 @@ resources/
 
 ## 三步开始
 
-1. **插件包**：在 `packages/extensions/<name>` 里用标准 Vue 3 + TypeScript 开发。`package.json` 声明 `la.bundle.patch` / `la.client.entry` / `la.kind`，`cordis.patch.yml` 必须入库；`pnpm plugins:build` 输出到包内 `lib/`，`pnpm profile:build` 打包并安装到 profile。
+1. **插件包**：在 `packages/extensions/<name>` 里用标准 Vue 3 + TypeScript 开发（外部插件也可用 React / Angular 等框架，见[插件规范 §2.1](/guide/standards)）。`package.json` 声明 `la.bundle.patch` / `la.client.entry` / `la.kind`，`cordis.patch.yml` 必须入库；`pnpm plugins:build` 输出到包内 `lib/`，`pnpm profile:build` 打包并安装到 profile。
 2. **脚本 / 样式**：放入 `resources/js` / `resources/css`，服务端 `/api/boot` 清单会下发。
 3. **启用**：到「设置 → 扩展」确认已加载；profile 变化由 Node 服务自动重载。
 

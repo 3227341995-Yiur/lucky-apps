@@ -40,7 +40,7 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
 
 ## 包要求
 
-外部插件是标准 Vue 3 + TypeScript 的 bundle 形态：
+外部插件是标准 TypeScript 的 bundle 形态（默认 Vue 3，也可用 React / Angular 等框架，见[插件规范 §2.1](/guide/standards)）：
 
 ```json
 {
@@ -70,6 +70,6 @@ lucky-apps plugin add <包名|本地目录> [--profile <dir>|--user]
       name: my-widget
 ````
 
-Node half 登记 client bundle，浏览器 half 用 Cordis `ctx` 服务注册组件或页面。
+Node half 登记 client bundle，浏览器 half 用 Cordis `ctx` 服务注册组件或页面。本地目录安装要传**绝对路径**：CLI 在 profile 目录里执行包管理器，相对路径会按 profile 解析。
 
 外部项目通过 `ctx.components` / `ctx.navigation` 等 Cordis 服务注册能力，不依赖宿主源码。

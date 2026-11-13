@@ -1,6 +1,6 @@
 # 插件规范
 
-Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范适用于内置插件和发布到 npm 的外部插件，目标是可安装、可升级、可卸载、可强杀后自恢复。
+Lucky Apps 的插件是标准 **TypeScript + Vite** 包。默认技术栈是 Vue 3（宿主应用本身是 Vue，集成最顺），但 UI 框架不限：React、Angular 等都可以，只要框架随插件自己打包并用一个薄 Vue 壳挂进宿主（见 [§2.1](#21-非-vue-框架插件-react-angular-等)）。以下规范适用于内置插件和发布到 npm 的外部插件，目标是可安装、可升级、可卸载、可强杀后自恢复。
 
 ## 1. 包与元数据
 
@@ -37,6 +37,17 @@ Lucky Apps 的插件是标准 **Vue 3 + TypeScript + Vite** 包。以下规范�
 - `vue` / `element-plus` / `@element-plus/icons-vue` / `handlebars` / `@lucky-apps/client-ui` 由宿主 client module 注册表提供唯一实例，插件构建时标为 external，由 loader 注入。
 - 宿主 UI 组件从 `@lucky-apps/client-ui` 导入，例如 `import { AppDialog } from '@lucky-apps/client-ui'`；不要在插件里复制 `AppDialog`、不要在本机 `env.d.ts` 重新声明宿主组件类型。该包随宿主仓库一起 lockstep 发版。
 - 插件不能引用宿主源码别名 `@/...`；需要宿主能力时使用 Cordis `ctx` 服务。
+
+### 2.1 非 Vue 框架插件（React / Angular 等）
+
+插件 UI 框架不限，参考实现：`la-pomodoro`（React）、`la-focus-report`（Angular + JIT + zoneless）。要点：
+
+- **框架自己打包**：React / Angular 及其运行时打进插件 bundle，不要 external；宿主 loader 只解析 §2 列出的共享模块。不要把库挂到 `window` 上。
+- **薄 Vue 壳挂载**：宿主服务（`navigation` / `settings` / `sidebar` 等）接收的是 Vue 组件。写一个 ~20 行的壳组件：`onMounted` 时在 div 上 `createRoot(...).render(...)`（React）或 `createApplication()` + `createComponent()` + `appRef.attachView()`（Angular），`onBeforeUnmount` 时销毁；bootstrap 是异步的，要处理「还没挂完就被卸载」的竞态（销毁后到达的句柄直接销毁）。
+- **跨插件通信走 Cordis ctx 事件**：`ctx.emit('la-pomodoro:changed', payload)` 广播，别的插件 `ctx.on(...)` 订阅；共享数据落 localStorage 时约定好 key。
+- **别引入全局 patch 类库**：Angular 不要用 zone.js（会 patch 宿主的全局异步 API），用 `provideZonelessChangeDetection()` + signals；宿主是 Vue 应用，任何框架级全局猴子补丁都可能污染宿主。
+- **浏览器没有 Node 全局**：React 等包引用 `process.env.NODE_ENV`，构建期 `define: { 'process.env.NODE_ENV': '"production"' }` 替换掉，否则运行时报 `process is not defined`。
+- 主题适配照旧用宿主 `--el-*` CSS 变量，框架无关。
 
 ## 3. 生命周期
 
