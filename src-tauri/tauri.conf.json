@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Lucky Apps",
-  "version": "3.2.17",
+  "version": "3.2.18",
   "identifier": "com.lu.lucky-apps",
   "build": {
     "frontendDist": "../apps/desktop/dist",
@@ -34,7 +34,8 @@
     },
     "windows": {
       "wix": {
-        "language": "zh-CN"
+        "language": "zh-CN",
+        "template": "./wix/main.wxs"
       },
       "nsis": {
         "installerHooks": "./nsis/hooks.nsh"

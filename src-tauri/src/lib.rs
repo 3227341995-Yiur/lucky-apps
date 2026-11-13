@@ -120,11 +120,24 @@ fn server_url_from_line(line: &str) -> Option<String> {
 // ============================================================
 // 程序品牌：窗口标题、窗口/托盘图标、exe 文件图标
 // ============================================================
-#[derive(serde::Serialize, serde::Deserialize, Default)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Default)]
 struct SavedBranding {
   name: String,
   width: u32,
   height: u32,
+  /// 上次写入 exe 图标后的文件指纹，升级换 exe 后自动补写图标。
+  #[serde(default)]
+  exe_hash: u64,
+}
+
+fn file_hash(path: &Path) -> Option<u64> {
+  let bytes = std::fs::read(path).ok()?;
+  let mut hash = 0xcbf2_9ce4_8422_2325u64;
+  for byte in bytes {
+    hash ^= byte as u64;
+    hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+  }
+  Some(hash)
 }
 
 #[derive(serde::Deserialize)]
@@ -298,6 +311,31 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
   else {
     return;
   };
+  // 安装包升级会换掉 exe，启动时按指纹补写一次，快捷方式/资源管理器才能看到品牌图标。
+  #[cfg(windows)]
+  {
+    let needs_patch = std::env::current_exe()
+      .ok()
+      .and_then(|exe| file_hash(&exe))
+      .map(|hash| hash != saved.exe_hash)
+      .unwrap_or(false);
+    if needs_patch {
+      if let Ok(ico) = std::fs::read(dir.join("branding-icon.ico")) {
+        let dir = dir.clone();
+        let mut next = saved.clone();
+        std::thread::spawn(move || {
+          if patch_exe_icon(&ico).is_ok() {
+            if let Ok(exe) = std::env::current_exe() {
+              next.exe_hash = file_hash(&exe).unwrap_or(0);
+            }
+            if let Ok(json) = serde_json::to_string_pretty(&next) {
+              let _ = std::fs::write(dir.join("branding.json"), format!("{json}\n"));
+            }
+          }
+        });
+      }
+    }
+  }
   if let Ok(rgba) = std::fs::read(dir.join("branding-icon.bin")) {
     if saved.width > 0 && saved.height > 0 {
       let image = tauri::image::Image::new_owned(rgba, saved.width, saved.height);
@@ -379,7 +417,12 @@ async fn apply_branding(
         .await
         .map_err(|e| e.to_string())?;
       match outcome {
-        Ok(()) => message.push_str("，exe 文件图标已写入（任务管理器里的进程图标需完全退出并重启应用后才更新）"),
+        Ok(()) => {
+          if let Ok(exe) = std::env::current_exe() {
+            saved.exe_hash = file_hash(&exe).unwrap_or(0);
+          }
+          message.push_str("，exe 文件图标已写入（任务管理器里的进程图标需完全退出并重启应用后才更新）");
+        }
         Err(error) => {
           eprintln!("[shell] exe 文件图标更新失败: {error}");
           message.push_str(&format!("（exe 文件图标未修改：{error}）"));
@@ -398,6 +441,9 @@ async fn apply_branding(
 #[cfg(windows)]
 fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
   {
+    static PATCH_LOCK: Mutex<()> = Mutex::new(());
+    let _guard = PATCH_LOCK.lock().unwrap();
+
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::System::LibraryLoader::{
       BeginUpdateResourceW, EndUpdateResourceW, UpdateResourceW,

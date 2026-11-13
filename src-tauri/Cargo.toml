@@ -1,6 +1,6 @@
 [package]
 name = "lucky-apps"
-version = "3.2.17"
+version = "3.2.18"
 description = "Lucky Apps"
 authors = ["lu"]
 license = ""
