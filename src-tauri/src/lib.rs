@@ -526,14 +526,16 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
       return Err("写入图标资源失败".into());
     }
 
+    // .old.exe 可能正是当前运行中的旧镜像（启动时自动补写过一次），这时换一个备份名。
+    let mut backup = previous.clone();
     if previous.exists() && std::fs::remove_file(&previous).is_err() {
-      let _ = std::fs::remove_file(&staging);
-      return Err("旧的备份文件被占用，请重启应用后再修改".into());
+      backup = exe.with_extension(format!("old-{}.exe", std::process::id()));
+      let _ = std::fs::remove_file(&backup);
     }
-    std::fs::rename(&exe, &previous).map_err(|e| format!("原程序改名失败: {e}"))?;
+    std::fs::rename(&exe, &backup).map_err(|e| format!("原程序改名失败: {e}"))?;
     if let Err(error) = std::fs::rename(&staging, &exe) {
       // 尽力恢复原名
-      let _ = std::fs::rename(&previous, &exe);
+      let _ = std::fs::rename(&backup, &exe);
       return Err(format!("新程序就位失败: {error}"));
     }
     // 让资源管理器重新读取这个 exe 的图标；任务管理器需要等应用重启后展示新图标。

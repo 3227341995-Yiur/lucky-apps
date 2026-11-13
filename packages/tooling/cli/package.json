@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/cli",
-  "version": "3.2.18",
+  "version": "3.2.19",
   "description": "Lucky Apps Cordis profile plugin CLI",
   "type": "module",
   "bin": {
