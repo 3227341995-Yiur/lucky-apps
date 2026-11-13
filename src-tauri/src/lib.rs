@@ -405,6 +405,13 @@ async fn apply_branding(
     if let Some(tray) = tray_handle(&app) {
       let _ = tray.set_tooltip(Some(saved.name.clone()));
     }
+    // 只改名字、不改图标时也要把快捷方式改名。
+    #[cfg(windows)]
+    if icon.is_none() {
+      if let Ok(exe) = std::env::current_exe() {
+        retarget_shortcuts(&exe, &saved.name);
+      }
+    }
   }
 
   let mut message = String::from("程序名称与窗口、托盘、任务栏图标已更新");
