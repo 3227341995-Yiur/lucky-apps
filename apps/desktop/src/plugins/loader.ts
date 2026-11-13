@@ -51,7 +51,7 @@ async function fetchScriptSource(url) {
   return response.text()
 }
 
-function applyBoot(payload) {
+function applyBoot(payload, disabled = null) {
   bootState = {
     modules: Array.isArray(payload?.modules) ? payload.modules : [],
     resources: Array.isArray(payload?.resources) ? payload.resources : [],
@@ -59,6 +59,8 @@ function applyBoot(payload) {
     profile: payload?.profile || null,
   }
   extensionState.profile = bootState.profile || { bundles: [], rows: 0 }
+  // 先把禁用状态合并进资源，再交给界面，避免设置面板抢跑时看到服务端的 enabled=true
+  if (disabled) applyEnabledState(bootState.resources, disabled)
   setExtensionResources(bootState.resources)
   const profileError = String(bootState.profile?.error || '')
   if (profileError && !extensionState.errors.some(message => message.includes(profileError))) {
@@ -88,9 +90,8 @@ export function isScriptHot(file) {
 
 /** 扫描服务端 boot 清单，供管理界面展示 */
 export async function scanExtensionResources() {
-  const payload = await apiGet('/api/boot')
-  applyBoot(payload)
-  applyEnabledState(bootState.resources, await disabledIds())
+  const [payload, disabled] = await Promise.all([apiGet('/api/boot'), disabledIds()])
+  applyBoot(payload, disabled)
   return bootState.resources
 }
 
@@ -222,10 +223,8 @@ async function performReloadExtensionComponents() {
   mountedComponents.clear()
   resetPluginRegistries()
   document.querySelectorAll('style[data-extension]').forEach(style => style.remove())
-  const payload = await apiGet('/api/boot')
-  applyBoot(payload)
-  const disabled = await disabledIds()
-  applyEnabledState(bootState.resources, disabled)
+  const [payload, disabled] = await Promise.all([apiGet('/api/boot'), disabledIds()])
+  applyBoot(payload, disabled)
 
   let loaded = 0
   let failed = 0
@@ -290,10 +289,8 @@ export function syncExtensionComponents() {
 async function performSyncExtensionComponents() {
   clearExtensionErrors()
   try { await apiPost('/api/extensions/reload') } catch (error) { console.warn('[extensions] 服务端 profile 重载失败:', error) }
-  const payload = await apiGet('/api/boot')
-  applyBoot(payload)
-  const disabled = await disabledIds()
-  applyEnabledState(bootState.resources, disabled)
+  const [payload, disabled] = await Promise.all([apiGet('/api/boot'), disabledIds()])
+  applyBoot(payload, disabled)
   const next = bootState.resources.filter(resource => resource.kind === 'component')
   const nextById = new Map(next.map(item => [item.id, item]))
 
