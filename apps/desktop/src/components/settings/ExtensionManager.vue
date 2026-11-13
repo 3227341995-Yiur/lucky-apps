@@ -78,6 +78,8 @@ let searchTimer = null
 let installController = null
 
 function statusOf(resource) {
+  // 启停状态以开关为准，避免重新扫描/重载后 status 还是服务端的 loaded
+  if (resource.enabled === false) return STATUS_META.disabled
   return STATUS_META[resource.status] || STATUS_META.pending
 }
 
