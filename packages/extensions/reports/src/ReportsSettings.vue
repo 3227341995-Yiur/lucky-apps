@@ -43,13 +43,13 @@ async function load() {
   }
 }
 
-async function toggle(resource) {
+async function toggle(resource, enabled) {
   try {
-    const enabled = await ctx.get('extensions').toggle(resource.id)
-    if (enabled === null || enabled === undefined) return
+    const result = await ctx.get('extensions').toggle(resource.id, enabled)
+    if (result === null || result === undefined) return
     // Cordis 卸载时会撤销组件注册，直接热切换，不需要重载应用。
     await load()
-    ElMessage.success(`已${enabled ? '启用' : '禁用'}「${resource.name}」`)
+    ElMessage.success(`已${result ? '启用' : '禁用'}「${resource.name}」`)
   } catch (error) {
     ElMessage.error(`切换组件失败：${error?.message || error}`)
   }
@@ -149,9 +149,9 @@ async function resetConfig() {
             <p v-if="resource.error" class="rc-error">{{ resource.error }}</p>
           </div>
           <el-switch
-            :model-value="resource.enabled"
+            v-model="resource.enabled"
             :aria-label="`启用 ${resource.name}`"
-            @change="toggle(resource)"
+            @change="toggle(resource, $event)"
           />
         </div>
       </section>
@@ -176,9 +176,9 @@ async function resetConfig() {
             <p v-if="resource.error" class="rc-error">{{ resource.error }}</p>
           </div>
           <el-switch
-            :model-value="resource.enabled"
+            v-model="resource.enabled"
             :aria-label="`启用 ${resource.name}`"
-            @change="toggle(resource)"
+            @change="toggle(resource, $event)"
           />
         </div>
       </section>

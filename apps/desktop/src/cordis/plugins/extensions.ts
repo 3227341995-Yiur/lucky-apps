@@ -18,7 +18,7 @@ export function apply(ctx) {
     /** 组件注册表版本（Vue ref），注册项变化时递增 */
     version: extensionVersion,
     list: () => extensionState.resources.map(item => ({ ...item })),
-    toggle: id => tools.toggleResource(id),
+    toggle: (id, enabled) => tools.toggleResource(id, enabled),
     rescan: () => tools.rescan(),
     get errors() {
       return [...extensionState.errors]

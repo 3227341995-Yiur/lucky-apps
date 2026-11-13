@@ -40,12 +40,14 @@ async function writeDisabled(disabledSet) {
   await setSetting(DISABLED_EXTENSIONS_KEY, [...disabledSet])
 }
 
-async function toggleResource(id) {
+async function toggleResource(id, value = null) {
   const resource = extensionState.resources.find(item => item.id === id)
   if (!resource) return null
 
   const disabled = await readDisabled()
-  const nextEnabled = !resource.enabled
+  // 界面开关已经通过 v-model 改了 resource.enabled，以传入值为准；服务调用仍可只传 id。
+  const nextEnabled = value === null ? !resource.enabled : Boolean(value)
+  const previousDisabled = new Set(disabled)
   if (nextEnabled) disabled.delete(id)
   else disabled.add(id)
   await writeDisabled(disabled)
@@ -53,8 +55,15 @@ async function toggleResource(id) {
   resource.enabled = nextEnabled
   resource.status = nextEnabled ? 'pending' : 'disabled'
   resource.error = ''
-  // Cordis 生命周期直接挂载/卸载，不再要求用户重启应用。
-  await syncExtensionResource(resource, nextEnabled)
+  try {
+    // Cordis 生命周期直接挂载/卸载，不再要求用户重启应用。
+    await syncExtensionResource(resource, nextEnabled)
+  } catch (error) {
+    await writeDisabled(previousDisabled)
+    resource.enabled = !nextEnabled
+    resource.status = 'error'
+    throw error
+  }
   return nextEnabled
 }
 
