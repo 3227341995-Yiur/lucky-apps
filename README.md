@@ -1,4 +1,4 @@
-# Lucky Apps v3.2.24
+# Lucky Apps v3.2.25
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的插件化桌面应用。
 

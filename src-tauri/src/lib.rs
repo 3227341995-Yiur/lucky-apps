@@ -326,13 +326,19 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
     if needs_patch {
       if let Ok(ico) = std::fs::read(dir.join("branding-icon.ico")) {
         let dir = dir.clone();
-        let mut next = saved.clone();
         std::thread::spawn(move || {
-          if patch_exe_icon(&ico, &next.name).is_ok() {
+          // 补写过程可能和用户保存品牌并发；每次写回前重新读取，只更新 exe_hash。
+          let read_latest = || std::fs::read_to_string(dir.join("branding.json"))
+            .ok()
+            .and_then(|text| serde_json::from_str::<SavedBranding>(&text).ok())
+            .unwrap_or_default();
+          let latest = read_latest();
+          if patch_exe_icon(&ico, &latest.name).is_ok() {
+            let mut merged = read_latest();
             if let Ok(exe) = std::env::current_exe() {
-              next.exe_hash = file_hash(&exe).unwrap_or(0);
+              merged.exe_hash = file_hash(&exe).unwrap_or(0);
             }
-            if let Ok(json) = serde_json::to_string_pretty(&next) {
+            if let Ok(json) = serde_json::to_string_pretty(&merged) {
               let _ = std::fs::write(dir.join("branding.json"), format!("{json}\n"));
             }
           }
@@ -361,42 +367,10 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
   }
 }
 
-#[derive(serde::Serialize)]
-struct BrandingState {
-  name: String,
-  icon: Option<BrandingIconState>,
-}
-
-#[derive(serde::Serialize)]
-struct BrandingIconState {
-  rgba: Vec<u8>,
-  width: u32,
-  height: u32,
-}
-
-/// 前端启动时从后端恢复品牌，避免 WebView 本地存储/重启时序导致名称回默认。
-#[tauri::command]
-fn get_branding(app: tauri::AppHandle) -> Result<BrandingState, String> {
-  let dir = branding_dir(&app)?;
-  let saved = std::fs::read_to_string(dir.join("branding.json"))
-    .ok()
-    .and_then(|text| serde_json::from_str::<SavedBranding>(&text).ok())
-    .unwrap_or_default();
-  let icon = if saved.width > 0 && saved.height > 0 {
-    std::fs::read(dir.join("branding-icon.bin")).ok().map(|rgba| BrandingIconState {
-      rgba,
-      width: saved.width,
-      height: saved.height,
-    })
-  } else {
-    None
-  };
-  Ok(BrandingState { name: saved.name, icon })
-}
-
 #[tauri::command]
 fn restart_app(app: tauri::AppHandle) {
-  app.restart();
+  // 走优雅退出，让 WebView 把 localStorage 落盘后再重启。
+  app.request_restart();
 }
 
 #[tauri::command]
@@ -815,7 +789,7 @@ pub fn run() {
 
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![apply_branding, get_branding, restart_app])
+    .invoke_handler(tauri::generate_handler![apply_branding, restart_app])
     .build(tauri::generate_context!())
     .expect("error while building tauri application");
 
