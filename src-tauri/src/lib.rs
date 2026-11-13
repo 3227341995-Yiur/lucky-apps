@@ -304,6 +304,10 @@ fn replace_tray(app: &tauri::AppHandle, icon: tauri::image::Image<'static>, tool
 }
 
 fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+  #[cfg(windows)]
+  if let Ok(exe) = std::env::current_exe() {
+    cleanup_old_binaries(&exe);
+  }
   let Ok(dir) = branding_dir(app) else { return };
   let Some(saved) = std::fs::read_to_string(dir.join("branding.json"))
     .ok()
@@ -324,7 +328,7 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
         let dir = dir.clone();
         let mut next = saved.clone();
         std::thread::spawn(move || {
-          if patch_exe_icon(&ico).is_ok() {
+          if patch_exe_icon(&ico, &next.name).is_ok() {
             if let Ok(exe) = std::env::current_exe() {
               next.exe_hash = file_hash(&exe).unwrap_or(0);
             }
@@ -413,7 +417,8 @@ async fn apply_branding(
     if cfg!(debug_assertions) {
       message.push_str("（开发模式不修改 exe 文件图标）");
     } else {
-      let outcome = tauri::async_runtime::spawn_blocking(move || patch_exe_icon(&icon.ico))
+      let brand = saved.name.clone();
+      let outcome = tauri::async_runtime::spawn_blocking(move || patch_exe_icon(&icon.ico, &brand))
         .await
         .map_err(|e| e.to_string())?;
       match outcome {
@@ -436,10 +441,77 @@ async fn apply_branding(
   Ok(message)
 }
 
+/// 启动时清掉上一次改名留下的 backup exe；正在运行的镜像删不掉就跳过。
+#[cfg(windows)]
+fn cleanup_old_binaries(exe: &Path) {
+  let Some(dir) = exe.parent() else { return };
+  let Ok(entries) = std::fs::read_dir(dir) else { return };
+  let running = std::fs::canonicalize(exe).ok();
+  for entry in entries.flatten() {
+    let path = entry.path();
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else { continue };
+    if !name.starts_with("lucky-apps.old") || !name.ends_with(".exe") {
+      continue;
+    }
+    if std::fs::canonicalize(&path).ok() == running {
+      continue;
+    }
+    let _ = std::fs::remove_file(&path);
+  }
+}
+
+/// 固定到任务栏/开始菜单/桌面的快捷方式如果写死了旧图标，这里把它们改回 exe 图标。
+#[cfg(windows)]
+fn retarget_shortcuts(exe: &Path, brand: &str) {
+  use std::os::windows::process::CommandExt;
+  const SCRIPT: &str = r#"
+$exe = $env:LUCKY_APP_EXE
+$name = $env:LUCKY_APP_NAME
+$safe = ($name -replace '[\\/:*?"<>|]', '_').Trim().TrimEnd('.')
+if ([string]::IsNullOrWhiteSpace($safe)) { $safe = "Lucky Apps" }
+Add-Type -Namespace Win -Name Shell -MemberDefinition '[DllImport("shell32.dll", CharSet=CharSet.Unicode)] public static extern void SHChangeNotify(int e, uint f, string a, IntPtr b);'
+$sh = New-Object -ComObject WScript.Shell
+$dirs = @(
+  "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar",
+  "$env:APPDATA\Microsoft\Windows\Start Menu\Programs",
+  "$env:USERPROFILE\Desktop",
+  "$env:PUBLIC\Desktop",
+  "$env:ProgramData\Microsoft\Windows\Start Menu\Programs"
+)
+foreach ($dir in $dirs) {
+  if (-not (Test-Path -LiteralPath $dir)) { continue }
+  Get-ChildItem -LiteralPath $dir -Recurse -Filter *.lnk -ErrorAction SilentlyContinue | ForEach-Object {
+    try {
+      $link = $_
+      $s = $sh.CreateShortcut($link.FullName)
+      if ($s.TargetPath -and $s.TargetPath.Equals($exe, [StringComparison]::OrdinalIgnoreCase)) {
+        $s.IconLocation = "$exe,0"
+        $s.Save()
+        [Win.Shell]::SHChangeNotify(0x2000, 5, $link.FullName, [IntPtr]::Zero)
+        if ($link.BaseName -ne $safe) {
+          $target = Join-Path $link.DirectoryName "$safe.lnk"
+          if (-not (Test-Path -LiteralPath $target)) {
+            Rename-Item -LiteralPath $link.FullName -NewName "$safe.lnk" -ErrorAction Stop
+            [Win.Shell]::SHChangeNotify(0x2000, 5, $target, [IntPtr]::Zero)
+          }
+        }
+      }
+    } catch {}
+  }
+}
+"#;
+  let _ = std::process::Command::new("powershell.exe")
+    .args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", SCRIPT])
+    .env("LUCKY_APP_EXE", exe)
+    .env("LUCKY_APP_NAME", brand)
+    .creation_flags(CREATE_NO_WINDOW)
+    .status();
+}
+
 /// 把新图标写进 exe 文件资源。运行中的 exe 不能直接改写，
 /// 经典做法：复制一份 → 在副本上 UpdateResource → 把原文件改名让位 → 副本顶上。
 #[cfg(windows)]
-fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
+fn patch_exe_icon(ico: &[u8], brand: &str) -> Result<(), String> {
   {
     static PATCH_LOCK: Mutex<()> = Mutex::new(());
     let _guard = PATCH_LOCK.lock().unwrap();
@@ -549,6 +621,7 @@ fn patch_exe_icon(ico: &[u8]) -> Result<(), String> {
       );
       SHChangeNotify(SHCNE_ASSOCCHANGED as i32, SHCNF_IDLIST, std::ptr::null(), std::ptr::null());
     }
+    retarget_shortcuts(&exe, brand);
     Ok(())
   }
 }

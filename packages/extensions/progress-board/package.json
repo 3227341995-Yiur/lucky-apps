@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/extension-progress-board",
-  "version": "3.2.19",
+  "version": "3.2.20",
   "private": true,
   "type": "module",
   "main": "lib/node.js",

@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/extension-timeline-card",
-  "version": "3.2.19",
+  "version": "3.2.20",
   "private": true,
   "type": "module",
   "main": "lib/node.js",
