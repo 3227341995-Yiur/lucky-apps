@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/extension-money-cell",
-  "version": "4.0.7",
+  "version": "4.0.8",
   "private": true,
   "type": "module",
   "main": "lib/node.js",

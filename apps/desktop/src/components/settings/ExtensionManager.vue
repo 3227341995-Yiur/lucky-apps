@@ -625,13 +625,18 @@ async function handleToggle(resource, enabled) {
       </div>
 
       <div v-if="pendingBuilds.length" class="install-approval" role="group" aria-label="需要允许安装脚本">
-        <h4>需要允许安装脚本</h4>
-        <p>以下包声明了安装脚本，pnpm 默认不运行。</p>
-        <ul>
+        <div class="approval-head">
+          <span class="approval-icon"><el-icon :size="15"><WarningFilled /></el-icon></span>
+          <div class="approval-copy">
+            <h4>需要允许安装脚本</h4>
+            <p>以下包声明了安装脚本，pnpm 默认不运行</p>
+          </div>
+        </div>
+        <ul class="approval-list">
           <li v-for="name in pendingBuilds" :key="name"><code>{{ buildLabel(name) }}</code></li>
         </ul>
-        <p>允许后，脚本会以你的权限在本机运行，授权保存在当前 profile，之后不再询问。</p>
-        <p class="approval-hint">只在信任这些包时允许。</p>
+        <p class="approval-note">允许后脚本会以你的权限在本机运行，授权保存在当前 profile，之后不再询问</p>
+        <p class="approval-hint">只在信任这些包时允许</p>
       </div>
 
       <div v-else-if="installing || installPercent > 0 || installError" class="install-progress">
@@ -961,12 +966,38 @@ async function handleToggle(resource, enabled) {
 }
 
 .install-approval {
-  display: grid;
-  gap: 8px;
-  padding: 14px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 18px 16px;
+  padding: 13px 14px;
   border: 1px solid color-mix(in srgb, var(--el-color-warning) 26%, var(--el-border-color-lighter));
   border-radius: 12px;
   background: color-mix(in srgb, var(--el-color-warning-light-9) 64%, var(--el-bg-color));
+}
+
+.approval-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.approval-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--el-color-warning) 16%, transparent);
+  color: var(--el-color-warning);
+  place-items: center;
+}
+
+.approval-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .install-approval h4 {
@@ -974,31 +1005,50 @@ async function handleToggle(resource, enabled) {
   color: var(--el-text-color-primary);
   font-size: 12.5px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .install-approval p {
   margin: 0;
   color: var(--el-text-color-regular);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11.5px;
+  line-height: 1.55;
 }
 
-.install-approval ul {
+.approval-list {
   display: flex;
+  max-height: 112px;
   flex-wrap: wrap;
   gap: 6px;
   margin: 0;
   padding: 0;
+  overflow: auto;
   list-style: none;
 }
 
+.approval-list li {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .install-approval code {
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--el-fill-color-light);
+  display: inline-block;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 7px;
+  background: var(--el-bg-color);
   color: var(--el-text-color-primary);
   font-family: var(--wr-mono);
-  font-size: 11px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.approval-note {
+  color: var(--el-text-color-secondary) !important;
 }
 
 .approval-hint {

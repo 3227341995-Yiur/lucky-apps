@@ -2062,7 +2062,7 @@ dependencies = [
 
 [[package]]
 name = "lucky-apps"
-version = "4.0.7"
+version = "4.0.8"
 dependencies = [
  "log",
  "serde",
