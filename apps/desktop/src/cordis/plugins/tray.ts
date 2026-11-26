@@ -131,4 +131,4 @@ export function apply(ctx) {
   })
 }
 
-export default { name, apply }
+export default { name, inject, apply }
