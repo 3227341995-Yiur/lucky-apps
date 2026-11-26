@@ -20,7 +20,6 @@ const root = ref<HTMLElement | null>(null)
 const title = ref('Lucky Apps')
 const rows = ref<TrayMenuRow[]>(FALLBACK_ROWS)
 const openId = ref<string | null>(null)
-const flyoutStyle = ref<Record<string, string>>({})
 const submenu = computed(() => {
   const row = rows.value.find(item => item.id === openId.value)
   return row?.children?.length ? row : null
@@ -47,6 +46,21 @@ function applyResolvedTheme(resolved: string) {
   const dark = resolved === 'dark'
   document.documentElement.classList.toggle('dark', dark)
   document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+}
+
+const appliedVars = new Set<string>()
+
+/** 把主窗口当前生效的主题变量复制到托盘窗口，外置主题插件也能生效。 */
+function applyThemeVars(vars: unknown) {
+  if (!vars || typeof vars !== 'object') return
+  const root = document.documentElement
+  for (const name of appliedVars) root.style.removeProperty(name)
+  appliedVars.clear()
+  for (const [name, value] of Object.entries(vars as Record<string, unknown>)) {
+    if (!name.startsWith('--') || typeof value !== 'string' || !value.trim()) continue
+    root.style.setProperty(name, value.trim())
+    appliedVars.add(name)
+  }
 }
 
 /** 主窗口改主题时不重载托盘窗口，优先用主窗口直接推来的 resolved 值。 */
@@ -97,19 +111,6 @@ async function resizeToContent() {
   await invoke('focus_tray_menu')
 }
 
-/** 二级面板贴着一级项展开；内容比一级菜单高时在一级高度内滚动。 */
-function positionFlyout() {
-  const el = root.value
-  if (!el || !openId.value) return
-  const menu = el.querySelector<HTMLElement>('.tray-menu')
-  const flyout = el.querySelector<HTMLElement>('.tray-flyout')
-  if (!menu || !flyout) return
-  const row = menu.querySelector<HTMLElement>(`[data-tray-item="${openId.value}"]`)
-  const maxTop = Math.max(6, menu.clientHeight - flyout.offsetHeight - 6)
-  const rowTop = row ? row.offsetTop - menu.scrollTop : 6
-  flyoutStyle.value = { top: `${Math.min(Math.max(rowTop, 6), maxTop)}px` }
-}
-
 function cancelClose() {
   if (closeTimer === undefined) return
   clearTimeout(closeTimer)
@@ -120,10 +121,7 @@ function openSubmenu(item: TrayMenuRow) {
   cancelClose()
   if (!item.children?.length || item.disabled || openId.value === item.id) return
   openId.value = item.id
-  void nextTick(() => {
-    positionFlyout()
-    void resizeToContent()
-  })
+  void nextTick(() => void resizeToContent())
 }
 
 function closeSubmenu(restoreFocus = false) {
@@ -226,6 +224,7 @@ onMounted(async () => {
       unlisteners.push(await events.listen('tray:theme', (event: any) => {
         const resolved = event?.payload?.resolved
         if (resolved === 'dark' || resolved === 'light') applyResolvedTheme(resolved)
+        applyThemeVars(event?.payload?.vars)
       }))
     } catch {}
   }
@@ -266,7 +265,6 @@ onBeforeUnmount(() => {
       class="tray-flyout"
       role="menu"
       :aria-label="submenu.label"
-      :style="flyoutStyle"
       @mouseenter="cancelClose"
     >
       <div class="tray-menu-title">{{ submenu.label }}</div>
@@ -362,12 +360,12 @@ body,
 
 .tray-flyout {
   position: absolute;
-  top: 6px;
+  top: 0;
   left: 0;
   display: flex;
   box-sizing: border-box;
   width: 232px;
-  max-height: calc(100% - 12px);
+  height: 100%;
   flex-direction: column;
   padding: 6px;
   overflow-y: auto;
