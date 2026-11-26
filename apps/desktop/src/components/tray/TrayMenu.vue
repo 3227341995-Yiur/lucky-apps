@@ -20,6 +20,7 @@ const root = ref<HTMLElement | null>(null)
 const title = ref('Lucky Apps')
 const rows = ref<TrayMenuRow[]>(FALLBACK_ROWS)
 const openId = ref<string | null>(null)
+const flyoutStyle = ref<Record<string, string>>({})
 const submenu = computed(() => {
   const row = rows.value.find(item => item.id === openId.value)
   return row?.children?.length ? row : null
@@ -84,15 +85,29 @@ function applyModel(model: TrayMenuModel | null) {
 async function resizeToContent() {
   const el = root.value
   if (!el) return
-  // 展开二级菜单时窗口向左加宽；高度取内容真实高度（不受 max-height 限制）。
+  // 窗口高度永远按一级菜单算；二级面板绝对定位，只能在这段高度里滚动。
+  const menu = el.querySelector<HTMLElement>('.tray-menu')
   const width = Math.ceil(el.getBoundingClientRect().width)
-  const height = Math.ceil(el.scrollHeight)
+  const height = Math.ceil(menu?.scrollHeight || el.scrollHeight)
   if (!width || !height) return
   if (width === lastWidth && Math.abs(height - lastHeight) < 2) return
   lastWidth = width
   lastHeight = height
   await invoke('resize_tray_menu', { width, height })
   await invoke('focus_tray_menu')
+}
+
+/** 二级面板贴着一级项展开；内容比一级菜单高时在一级高度内滚动。 */
+function positionFlyout() {
+  const el = root.value
+  if (!el || !openId.value) return
+  const menu = el.querySelector<HTMLElement>('.tray-menu')
+  const flyout = el.querySelector<HTMLElement>('.tray-flyout')
+  if (!menu || !flyout) return
+  const row = menu.querySelector<HTMLElement>(`[data-tray-item="${openId.value}"]`)
+  const maxTop = Math.max(6, menu.clientHeight - flyout.offsetHeight - 6)
+  const rowTop = row ? row.offsetTop - menu.scrollTop : 6
+  flyoutStyle.value = { top: `${Math.min(Math.max(rowTop, 6), maxTop)}px` }
 }
 
 function cancelClose() {
@@ -105,7 +120,10 @@ function openSubmenu(item: TrayMenuRow) {
   cancelClose()
   if (!item.children?.length || item.disabled || openId.value === item.id) return
   openId.value = item.id
-  void nextTick(() => void resizeToContent())
+  void nextTick(() => {
+    positionFlyout()
+    void resizeToContent()
+  })
 }
 
 function closeSubmenu(restoreFocus = false) {
@@ -239,6 +257,7 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     class="tray-shell"
+    :class="{ 'has-submenu': submenu }"
     @mouseenter="cancelClose"
     @mouseleave="scheduleClose"
   >
@@ -247,6 +266,7 @@ onBeforeUnmount(() => {
       class="tray-flyout"
       role="menu"
       :aria-label="submenu.label"
+      :style="flyoutStyle"
       @mouseenter="cancelClose"
     >
       <div class="tray-menu-title">{{ submenu.label }}</div>
@@ -314,14 +334,20 @@ body,
 </style>
 
 <style scoped>
-/* 一级菜单在右、二级面板在左；窗口向左加宽时一级菜单的屏幕位置不变。 */
+/* 一级菜单在右、二级面板在左；窗口只按一级菜单定高。 */
 .tray-shell {
+  position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   width: max-content;
 }
 
+.tray-shell.has-submenu {
+  padding-left: 232px;
+}
+
 .tray-menu {
+  position: relative;
   box-sizing: border-box;
   width: 280px;
   max-height: 628px;
@@ -335,11 +361,13 @@ body,
 }
 
 .tray-flyout {
+  position: absolute;
+  top: 6px;
+  left: 0;
   display: flex;
   box-sizing: border-box;
   width: 232px;
-  max-height: 628px;
-  flex: none;
+  max-height: calc(100% - 12px);
   flex-direction: column;
   padding: 6px;
   overflow-y: auto;
