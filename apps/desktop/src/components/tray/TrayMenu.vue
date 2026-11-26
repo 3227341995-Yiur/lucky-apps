@@ -121,8 +121,11 @@ async function resizeToContent() {
   if (width === lastWidth && Math.abs(height - lastHeight) < 2) return
   lastWidth = width
   lastHeight = height
-  // 展开二级面板只改窗口尺寸；不再重复抢焦点，避免整块菜单闪一下。
+  // 只有本来就聚焦时才补回焦点：窗口改尺寸偶尔会丢焦点，
+  // 丢了就点外面也关不掉菜单；但不能在用户已经点走后再抢回来。
+  const hadFocus = document.hasFocus()
   await invoke('resize_tray_menu', { width, height })
+  if (hadFocus) await invoke('focus_tray_menu')
 }
 
 function cancelClose() {
