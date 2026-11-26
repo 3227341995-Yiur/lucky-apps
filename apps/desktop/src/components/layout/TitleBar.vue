@@ -8,6 +8,8 @@ defineOptions({ name: 'TitleBar' })
 
 const isMac = /mac/i.test(navigator.userAgent)
 const side = computed(() => (isMac ? 'left' : 'right'))
+// 浏览器里没有窗口可控制，按钮只属于桌面壳。
+const isDesktop = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__)
 const maximized = ref(false)
 
 function currentWindow() {
@@ -49,12 +51,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <header class="titlebar" :data-side="side">
+  <header class="titlebar" :class="{ 'is-browser': !isDesktop }" :data-side="side">
     <!-- Tauri 2.10 只认事件目标本身，空白拖拽层铺在内容底下。 -->
     <div class="titlebar-drag" data-tauri-drag-region />
 
     <div class="titlebar-inner">
-      <div v-if="side === 'left'" class="window-buttons mac-buttons">
+      <div v-if="isDesktop && side === 'left'" class="window-buttons mac-buttons">
         <button class="mac-dot close" type="button" title="关闭" aria-label="关闭" @click="close" />
         <button class="mac-dot minimize" type="button" title="最小化" aria-label="最小化" @click="minimize" />
         <button class="mac-dot maximize" type="button" :title="maximized ? '还原' : '最大化'" :aria-label="maximized ? '还原' : '最大化'" @click="toggleMaximize" />
@@ -63,7 +65,7 @@ onBeforeUnmount(() => {
       <!-- 插件页面顶栏通过 Teleport 渲染到这里；空着时整条都是拖拽区。 -->
       <div id="wr-titlebar-slot" class="titlebar-slot" />
 
-      <div v-if="side === 'right'" class="window-buttons">
+      <div v-if="isDesktop && side === 'right'" class="window-buttons">
         <button class="window-button" type="button" title="最小化" aria-label="最小化" @click="minimize">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8" /></svg>
         </button>
@@ -92,6 +94,11 @@ onBeforeUnmount(() => {
   color: var(--wr-titlebar-fg);
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* 浏览器里没有窗口按钮；没有页面顶栏时整条标题栏也不占高度。 */
+.titlebar.is-browser:not(:has(.titlebar-slot > *)) {
+  display: none;
 }
 
 .titlebar-drag {
