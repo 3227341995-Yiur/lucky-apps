@@ -532,11 +532,12 @@ watch(activeTab, (tab) => {
                 @dragleave.prevent="dragActive = false"
                 @drop.prevent="onDrop"
             >
-              <el-icon :size="30"><UploadFilled /></el-icon>
+              <span class="dz-icon"><el-icon :size="26"><UploadFilled /></el-icon></span>
               <p class="dz-title">{{ currentFileName || '点击选择或拖拽 JSON 文件到这里' }}</p>
               <p class="dz-hint">
                 {{ importParsing ? '正在解析文件…' : '支持全量备份、单份周报 JSON 或周报数组 JSON' }}
               </p>
+              <span class="dz-action">点击选择文件</span>
             </div>
             <input
                 ref="fileInput"
@@ -1023,15 +1024,18 @@ watch(activeTab, (tab) => {
 /* 导入 */
 .dropzone {
   display: flex;
+  width: 100%;
+  min-height: clamp(190px, 40vh, 340px);
+  box-sizing: border-box;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 9px;
   margin-top: 2px;
-  padding: 22px 18px;
+  padding: clamp(24px, 5vh, 44px) 24px;
   text-align: center;
-  border: 1px dashed var(--el-border-color);
-  border-radius: var(--wr-radius-md);
+  border: 1.5px dashed var(--el-border-color);
+  border-radius: 14px;
   background: var(--el-fill-color-lighter);
   color: var(--el-text-color-secondary);
   cursor: pointer;
@@ -1054,22 +1058,50 @@ watch(activeTab, (tab) => {
   opacity: 0.7;
 }
 
-.dropzone .el-icon {
+.dz-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 2px;
+  border-radius: 16px;
+  background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
+  place-items: center;
+  transition: transform 0.15s ease;
+}
+
+.dropzone.active .dz-icon {
+  transform: scale(1.06);
 }
 
 .dz-title {
+  max-width: 100%;
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
   color: var(--el-text-color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
   word-break: break-all;
 }
 
 .dz-hint {
+  max-width: 420px;
   margin: 0;
-  font-size: 11px;
   color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.dz-action {
+  margin-top: 2px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .file-input {

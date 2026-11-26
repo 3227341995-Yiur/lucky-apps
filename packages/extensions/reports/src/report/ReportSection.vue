@@ -67,7 +67,7 @@ function onCellChange() {
       >
         <template #default="{ row }">
           <div class="rs-detail">
-            <markdown-editor v-model="row.content" :height="300" embedded @update:model-value="onCellChange" />
+            <markdown-editor v-model="row.content" embedded @update:model-value="onCellChange" />
           </div>
         </template>
       </el-table-column>
