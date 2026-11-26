@@ -517,10 +517,8 @@ fn hide_tray_menu(app: tauri::AppHandle) {
 fn focus_tray_menu(app: tauri::AppHandle) {
   if let Some(window) = app.get_webview_window("tray-menu") {
     if window.is_visible().unwrap_or(false) {
+      // 不刷新 shown_at：否则紧接着点外面会被“刚弹出”的保护期吞掉，菜单关不掉。
       let _ = window.set_focus();
-      if let Some(state) = app.try_state::<TrayMenuState>() {
-        *state.shown_at.lock().unwrap() = Some(Instant::now());
-      }
     }
   }
 }
@@ -528,6 +526,34 @@ fn focus_tray_menu(app: tauri::AppHandle) {
 #[tauri::command]
 fn quit_app(app: tauri::AppHandle) {
   app.exit(0);
+}
+
+/// Windows 上一次 SetWindowPos 同时改尺寸和位置，避免先 resize 再 move 的两帧跳变。
+#[cfg(target_os = "windows")]
+fn apply_tray_bounds(app: &tauri::AppHandle, window: &tauri::WebviewWindow, width: f64, height: f64) -> bool {
+  use windows_sys::Win32::UI::WindowsAndMessaging::{SetWindowPos, SWP_NOACTIVATE, SWP_NOZORDER};
+  let Ok(hwnd) = window.hwnd() else {
+    return false;
+  };
+  let scale = window.scale_factor().unwrap_or(1.0);
+  let pixel_width = (width * scale).round().max(1.0) as i32;
+  let pixel_height = (height * scale).round().max(1.0) as i32;
+  let position = tray_menu_position(
+    app,
+    tauri::PhysicalSize::new(pixel_width as u32, pixel_height as u32),
+  );
+  let ok = unsafe {
+    SetWindowPos(
+      hwnd.0,
+      std::ptr::null_mut(),
+      position.x,
+      position.y,
+      pixel_width,
+      pixel_height,
+      SWP_NOACTIVATE | SWP_NOZORDER,
+    )
+  };
+  ok != 0
 }
 
 /// 菜单内容尺寸由前端测量后回传；展开二级菜单时宽度一起变大，窗口向左扩。
@@ -538,6 +564,10 @@ fn resize_tray_menu(app: tauri::AppHandle, width: Option<f64>, height: f64) {
     .unwrap_or(TRAY_MENU_WIDTH)
     .clamp(TRAY_MENU_WIDTH, 720.0);
   if let Some(window) = app.get_webview_window("tray-menu") {
+    #[cfg(target_os = "windows")]
+    if apply_tray_bounds(&app, &window, width, height) {
+      return;
+    }
     let _ = window.set_size(tauri::LogicalSize::new(width, height));
     if let Ok(size) = window.outer_size() {
       let _ = window.set_position(tray_menu_position(&app, size));

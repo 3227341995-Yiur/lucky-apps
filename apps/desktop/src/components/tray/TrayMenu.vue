@@ -125,7 +125,7 @@ async function resizeToContent() {
   // 丢了就点外面也关不掉菜单；但不能在用户已经点走后再抢回来。
   const hadFocus = document.hasFocus()
   await invoke('resize_tray_menu', { width, height })
-  if (hadFocus) await invoke('focus_tray_menu')
+  if (hadFocus && !document.hasFocus()) await invoke('focus_tray_menu')
 }
 
 function cancelClose() {
@@ -178,6 +178,8 @@ async function select(item: TrayMenuRow) {
   // keepOpen 的项（比如换主题）执行完不关菜单，方便连续切换。
   if (item.keepOpen) {
     await emitTo('main', 'tray:menu-select', { id: item.id })
+    // 菜单留着，但焦点得在，否则之后点外面收不到失焦、关不掉。
+    if (!document.hasFocus()) await invoke('focus_tray_menu')
     return
   }
   void invoke('hide_tray_menu')
