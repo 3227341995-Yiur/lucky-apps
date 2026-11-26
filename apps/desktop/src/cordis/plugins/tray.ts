@@ -6,6 +6,7 @@
 import { buildTrayMenu, type TrayMenuItem, type TrayMenuModel } from '@/cordis/trayModel'
 
 export const name = 'tray'
+export const inject = ['branding', 'ui']
 
 function tauriApi() {
   return (window as any).__TAURI__
