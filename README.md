@@ -61,25 +61,27 @@ pnpm version:sync 4.0.0
 ```
 src/
 ├─ components/
-│  ├─ layout/          图标栏 + 导航面板
-│  ├─ designer/        自由画布设计器、Element Plus 组件渲染
-│  ├─ report/          报表页面、区块、列设置
+│  ├─ layout/          自绘标题栏、图标栏 + 导航面板
 │  ├─ settings/        设置中心与扩展管理
-│  ├─ importexport/    导入/导出/备份
-│  ├─ trash/           回收站
-│  ├─ TemplateDesigner/ 模板设计器（IDE 布局 + 预览）
-│  ├─ cells/           内置列组件（状态/日期/数字）
+│  ├─ tray/            托盘右键菜单窗口
+│  ├─ cells/           通用单元格编辑件
+│  ├─ column-extensions/ 列属性编辑插槽
 │  ├─ editors/         Markdown 编辑器
-│  ├─ common/          DateRangeField 等通用件（AppDialog 在 @lucky-apps/client-ui）
-│  └─ ReportEditor.vue / WelcomePage.vue
-├─ composables/        useReports / useTheme / useExtensions
-├─ config/             默认报表结构、自由画布布局模型、EP 组件元数据
-├─ plugins/            扩展加载、注册中心、对外 API
-├─ cordis/             Cordis 根 Context 与启动插件
-├─ services/           数据库、模板、配置、导入导出
-├─ utils/              日期、防抖、事件、ID、导出渲染
-└─ assets/css/         设计令牌与全局样式（亮/暗）
+│  ├─ common/          通用小件（AppDialog 在 @lucky-apps/client-ui）
+│  └─ CodeEditor.vue
+├─ composables/        useBranding / useTheme / useExtensions
+├─ plugins/            扩展加载、注册中心、模块解析
+├─ cordis/             Cordis 根 Context、启动插件、托盘菜单模型
+├─ services/           API RPC、设置存储
+├─ utils/              事件总线、品牌图标
+├─ assets/css/         设计令牌与全局样式（亮/暗）
+├─ App.vue             应用骨架
+├─ startupLoader.ts    启动动画
+└─ tray-main.ts        托盘菜单窗口入口
 ```
+
+宿主只保留通用能力；`useReports`、报表数据库、模板、设计器、导入导出都在
+`packages/extensions/reports` 里，宿主不持有周报业务状态。
 
 </details>
 
