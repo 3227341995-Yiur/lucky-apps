@@ -6,7 +6,7 @@
 import { buildTrayMenu, type TrayMenuItem, type TrayMenuModel } from '@/cordis/trayModel'
 
 export const name = 'tray'
-export const inject = ['branding', 'ui']
+export const inject = ['branding', 'ui', 'theme']
 
 function tauriApi() {
   return (window as any).__TAURI__
@@ -51,7 +51,14 @@ export function apply(ctx) {
     )
   }
 
+  /** 主题变化直接推给托盘窗口，不依赖 localStorage 的 storage 事件。 */
+  function pushTheme(theme?: { resolved?: string }) {
+    const resolved = theme?.resolved || ctx.theme?.get?.().resolved || 'light'
+    void emitTo('tray-menu', 'tray:theme', { resolved })
+  }
+
   function refresh() {
+    pushTheme()
     void emitTo('tray-menu', 'tray:menu-model', model())
   }
 
@@ -89,6 +96,9 @@ export function apply(ctx) {
     danger: true,
     onSelect: () => invoke('quit_app'),
   })
+
+  // 跟随系统 / 手动切换都会经过 theme:changed；托盘窗口即使隐藏也能收到。
+  unlisteners.push(ctx.theme.onChange((theme: { resolved?: string }) => pushTheme(theme)))
 
   async function listen() {
     const events = tauriApi()?.event

@@ -21,6 +21,7 @@ const title = ref('Lucky Apps')
 const rows = ref<TrayMenuRow[]>(FALLBACK_ROWS)
 const unlisteners: Array<() => void> = []
 let lastHeight = 0
+let mediaQuery: MediaQueryList | null = null
 
 function tauriApi() {
   return (window as any).__TAURI__
@@ -34,13 +35,21 @@ function emitTo(target: string, event: string, payload?: unknown) {
   return tauriApi()?.event?.emitTo?.(target, event, payload)
 }
 
-/** 主窗口改主题时不重载托盘窗口，直接按 localStorage 重新定亮暗。 */
+function applyResolvedTheme(resolved: string) {
+  const dark = resolved === 'dark'
+  document.documentElement.classList.toggle('dark', dark)
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+}
+
+/** 主窗口改主题时不重载托盘窗口，优先用主窗口直接推来的 resolved 值。 */
 function syncTheme() {
   try {
     const mode = localStorage.getItem('wr:theme')
-    const dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    document.documentElement.classList.toggle('dark', dark)
-    document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+    applyResolvedTheme(
+      mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ? 'dark'
+        : 'light',
+    )
   } catch {}
 }
 
@@ -124,12 +133,19 @@ onMounted(async () => {
   if (events?.listen) {
     try {
       unlisteners.push(await events.listen('tray:menu-model', (event: any) => applyModel(event.payload)))
+      unlisteners.push(await events.listen('tray:theme', (event: any) => {
+        const resolved = event?.payload?.resolved
+        if (resolved === 'dark' || resolved === 'light') applyResolvedTheme(resolved)
+      }))
     } catch {}
   }
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('storage', (event) => {
     if (event.key === 'wr:theme') syncTheme()
   })
+  mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  mediaQuery.addEventListener('change', syncTheme)
+  window.addEventListener('focus', syncTheme)
   syncTheme()
   requestModel()
   document.fonts?.ready.then(() => void resizeToContent()).catch(() => {})
@@ -139,6 +155,9 @@ onBeforeUnmount(() => {
   for (const off of unlisteners.splice(0)) {
     try { off() } catch {}
   }
+  mediaQuery?.removeEventListener('change', syncTheme)
+  mediaQuery = null
+  window.removeEventListener('focus', syncTheme)
   window.removeEventListener('keydown', onKeydown)
 })
 </script>
