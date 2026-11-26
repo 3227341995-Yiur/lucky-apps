@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/client-ui",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Host-provided Vue UI primitives for Lucky Apps plugins",
   "private": false,
   "type": "module",

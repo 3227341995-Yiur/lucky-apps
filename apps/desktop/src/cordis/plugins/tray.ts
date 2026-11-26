@@ -74,7 +74,7 @@ export function apply(ctx) {
     const names = [
       '--wr-bg', '--wr-sidebar-bg', '--wr-surface', '--wr-surface-2', '--wr-border',
       '--wr-text', '--wr-text-2', '--wr-muted', '--wr-accent', '--wr-accent-soft',
-      '--wr-danger', '--wr-titlebar-bg', '--wr-titlebar-fg',
+      '--wr-danger',
       '--el-color-primary', '--el-color-primary-light-9', '--el-color-danger', '--el-color-danger-light-9',
       '--el-bg-color', '--el-bg-color-overlay', '--el-text-color-primary', '--el-text-color-regular',
       '--el-text-color-secondary', '--el-text-color-placeholder', '--el-border-color-lighter',

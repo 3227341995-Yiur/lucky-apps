@@ -90,8 +90,8 @@ onBeforeUnmount(() => {
   flex: none;
   height: var(--wr-titlebar-height, 40px);
   border-bottom: 1px solid var(--wr-border);
-  background: var(--wr-titlebar-bg);
-  color: var(--wr-titlebar-fg);
+  background: var(--wr-sidebar-bg);
+  color: var(--wr-text-2);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: var(--wr-titlebar-fg);
+  color: var(--wr-text-2);
   cursor: default;
   place-items: center;
   transition: background-color 0.14s ease, color 0.14s ease, transform 0.08s ease;

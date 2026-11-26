@@ -11,8 +11,6 @@
 
   --wr-sidebar-width: 292px;
   --wr-titlebar-height: 40px;
-  --wr-titlebar-bg: #f2f4f7;
-  --wr-titlebar-fg: #3c3f45;
   --wr-radius-sm: 6px;
   --wr-radius-md: 8px;
   --wr-radius-lg: 12px;
@@ -56,8 +54,6 @@ html.dark {
 
   --wr-bg: #1e1f22;
   --wr-sidebar-bg: #2b2d30;
-  --wr-titlebar-bg: #2b2d30;
-  --wr-titlebar-fg: #c9ccd1;
   --wr-surface: #26282b;
   --wr-surface-2: #2b2d30;
   --wr-border: #393b40;
