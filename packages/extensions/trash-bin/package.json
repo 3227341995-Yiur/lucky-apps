@@ -1,6 +1,6 @@
 {
   "name": "@lucky-apps/extension-trash-bin",
-  "version": "4.0.11",
+  "version": "4.0.12",
   "private": true,
   "type": "module",
   "main": "lib/node.js",

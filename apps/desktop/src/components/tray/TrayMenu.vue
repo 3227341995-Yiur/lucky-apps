@@ -280,7 +280,7 @@ onBeforeUnmount(() => {
           type="button"
           role="menuitem"
           class="tray-item"
-          :class="[item.className, { danger: item.danger }]"
+          :class="[item.className, { danger: item.danger, active: openId === item.id }]"
           :style="item.style"
           :disabled="item.disabled"
           :data-tray-item="item.id"
@@ -378,11 +378,13 @@ body,
   cursor: default;
 }
 
+/* 和 Element Plus 下拉菜单一致，直接复用系统菜单悬浮变量。 */
 .tray-item:hover,
-.tray-item:focus-visible {
+.tray-item:focus-visible,
+.tray-item.active {
   outline: none;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
+  background: var(--el-dropdown-menuItem-hover-fill);
+  color: var(--el-dropdown-menuItem-hover-color);
 }
 
 .tray-item.danger {
