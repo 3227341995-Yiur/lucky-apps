@@ -1,4 +1,4 @@
-# Lucky Apps v3.2.29
+# Lucky Apps v4.0.5
 
 基于 **Vue 3.5 + Vite 8 + Element Plus 2.14 + Tauri 2 窗口 + Cordis Node 服务 + SQLite** 的插件化桌面应用。
 
@@ -12,7 +12,9 @@
 - 画布组件：`kpi-card` / `progress-board` / `timeline-card`
 - 列组件：`rating-cell` / `progress-cell` / `user-cell` / `money-cell`
 
-插件可以注册导航入口与页面、设置面板、程序名称与图标、画布组件、列组件以及列属性编辑插槽。可安装的插件包在 `package.json` 声明 `keywords: ["cordis", "lucky-app"]`，安装面板只检索带 `lucky-app` 标签的包；`@lucky-apps/client-ui`、`@lucky-apps/plugin-types` 等宿主 SDK 包不是插件，不声明这两个标签。
+插件可以注册导航入口与页面、设置面板、程序名称与图标、画布组件、列组件、列属性编辑插槽以及托盘图标右键菜单项（支持动态显隐、自定义图标与样式）。可安装的插件包在 `package.json` 声明 `keywords: ["cordis", "lucky-app"]`，安装面板只检索带 `lucky-app` 标签的包；`@lucky-apps/client-ui`、`@lucky-apps/plugin-types` 等宿主 SDK 包不是插件，不声明这两个标签。
+
+桌面窗口使用自绘标题栏：主题跟随亮/暗模式，窗口按钮在 Windows/Linux 位于右侧、macOS 位于左侧；页面顶栏通过 `<Teleport to="#wr-titlebar-slot">` 渲染到标题栏（周报页已接入）；托盘右键菜单同样是前端渲染，插件通过 `ctx.tray` 扩展。
 
 ## 开发
 
@@ -48,7 +50,7 @@ resources/            运行时样式 / 插件脚本（服务端按清单下发�
 App 与 `packages/**` 使用同一版本号（lockstep 发布）：
 
 ```bash
-pnpm version:sync 3.2.6
+pnpm version:sync 4.0.0
 ```
 
 会同步根 `package.json`、`apps/*`、`packages/**`、Tauri / Cargo 版本与 README。

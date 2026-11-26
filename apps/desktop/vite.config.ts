@@ -22,6 +22,10 @@ export default defineConfig({
     assetsDir: 'assets',
     assetsInclude: ['**/*.woff2', '**/*.ttf'],
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        tray: fileURLToPath(new URL('./tray.html', import.meta.url)),
+      },
       output: {
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',

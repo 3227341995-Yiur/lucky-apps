@@ -13,21 +13,22 @@ import {
 import { formatDateRange } from './utils/reportExport'
 import { rangesOverlap } from './utils/date'
 import DateRangeField from '../designer/components/DateRangeField.vue'
+import { useReports } from '../useReports'
 
 defineOptions({ name: 'ImportExportDialog' })
 
 const visible = defineModel({ type: Boolean, default: false })
 
 const props = defineProps({
-  currentReport: {
-    type: Object,
-    default: null,
-  },
   initialTab: {
     type: String,
     default: 'export',
   },
 })
+
+// 与编辑器共用同一份全局状态，打开弹窗时按当前选中的周报决定导出范围
+const { state } = useReports()
+const currentReport = computed(() => state.currentReport)
 
 const emit = defineEmits(['imported'])
 
@@ -68,13 +69,13 @@ const reportsAvailable = computed(() => reportTotal.value > 0)
 const canExport = computed(() => {
   if (exporting.value || reportsLoading.value || !reportsAvailable.value) return false
   if (exportFormat.value === 'backup') return true
-  if (scope.value === 'current') return Boolean(props.currentReport)
+  if (scope.value === 'current') return Boolean(currentReport.value)
   return selectedIds.value.length > 0
 })
 
 const exportActionText = computed(() => {
   if (exportFormat.value === 'backup') return '生成备份文件'
-  const count = scope.value === 'current' ? (props.currentReport ? 1 : 0) : selectedIds.value.length
+  const count = scope.value === 'current' ? (currentReport.value ? 1 : 0) : selectedIds.value.length
   return count > 0 ? `导出 ${count} 份` : '导出'
 })
 
@@ -168,7 +169,7 @@ async function handleExport() {
 
     if (scope.value === 'current') {
       progress.value = { done: 0, total: 1 }
-      await exportReport(props.currentReport, exportFormat.value)
+      await exportReport(currentReport.value, exportFormat.value)
       progress.value = { done: 1, total: 1 }
       ElMessage.success('周报已导出')
       visible.value = false
@@ -319,7 +320,7 @@ watch(visible, (open) => {
   if (!open) return
 
   activeTab.value = props.initialTab === 'import' ? 'import' : 'export'
-  scope.value = props.currentReport ? 'current' : 'all'
+  scope.value = currentReport.value ? 'current' : 'all'
   exportFormat.value = 'html'
   exportError.value = ''
   progress.value = { done: 0, total: 0 }

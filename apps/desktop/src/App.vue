@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import TitleBar from '@/components/layout/TitleBar.vue'
 import SettingsDialog from '@/components/settings/SettingsDialog.vue'
 import { cordis } from '@/plugins/cordis'
 import { getNavItemComponent, listNavItems, listOverlays } from '@/plugins/registry'
@@ -12,6 +13,8 @@ const showSettings = ref(false)
 const envIssue = ref<any>(null)
 const activePluginPage = ref(null)
 const overlays = computed(() => listOverlays())
+// macOS 的红绿灯必须贴在窗口最左侧，所以标题栏在那边横跨整个窗口。
+const isMac = /mac/i.test(navigator.userAgent)
 
 const pluginPageComponent = computed(() => (
   activePluginPage.value ? getNavItemComponent(activePluginPage.value) : null
@@ -60,6 +63,8 @@ function openSettings() {
 
 onMounted(async () => {
   cordis.ui.bind({ navigate: navigateTo, openSettings })
+  // 托盘「设置与扩展」由 Rust 直接唤醒主窗口后派发，不依赖 Tauri 事件权限。
+  window.addEventListener('lucky:open-settings', openSettings)
   try {
     const env = await apiGet('/api/env')
     const nodeMajor = Number(String(env?.node || '').split('.')[0]) || 0
@@ -82,6 +87,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   offExtensionsChanged?.()
+  window.removeEventListener('lucky:open-settings', openSettings)
 })
 
 watch(
@@ -108,40 +114,46 @@ watch(
 </script>
 
 <template>
-  <div class="wr-app">
-    <div v-if="envIssue" class="env-banner" role="alert">
-      <strong>Node.js 版本不满足要求</strong>
-      <span>当前 {{ envIssue.node || '未检测到' }}，Lucky Apps 需要 v{{ envIssue.requiredNode }} 或更高版本。</span>
-      <a href="https://nodejs.org/zh-CN/download" target="_blank" rel="noopener">去安装</a>
+  <div class="wr-shell">
+    <TitleBar v-if="isMac" />
+    <div class="wr-app">
+      <div v-if="envIssue" class="env-banner" role="alert">
+        <strong>Node.js 版本不满足要求</strong>
+        <span>当前 {{ envIssue.node || '未检测到' }}，Lucky Apps 需要 v{{ envIssue.requiredNode }} 或更高版本。</span>
+        <a href="https://nodejs.org/zh-CN/download" target="_blank" rel="noopener">去安装</a>
+      </div>
+      <AppSidebar
+        @settings="openSettings"
+        :active-plugin-page="activePluginPage"
+        @open-plugin-page="openPluginPage"
+      />
+
+      <div class="wr-main-column">
+        <TitleBar v-if="!isMac" />
+        <main class="wr-main">
+          <!-- 页面切换只挂起，不销毁：插件页面的编辑态、滚动位置和请求状态随导航保留。 -->
+          <KeepAlive :max="12">
+            <component
+              :is="pluginPageComponent"
+              v-if="activePluginPage && pluginPageComponent"
+              :key="pluginPageKey"
+              class="plugin-page-host"
+            />
+          </KeepAlive>
+        </main>
+      </div>
+
+      <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
+
+      <SettingsDialog v-model="showSettings" />
     </div>
-    <AppSidebar
-      @settings="openSettings"
-      :active-plugin-page="activePluginPage"
-      @open-plugin-page="openPluginPage"
-    />
-
-    <main class="wr-main">
-      <!-- 页面切换只挂起，不销毁：插件页面的编辑态、滚动位置和请求状态随导航保留。 -->
-      <KeepAlive :max="12">
-        <component
-          :is="pluginPageComponent"
-          v-if="activePluginPage && pluginPageComponent"
-          :key="pluginPageKey"
-          class="plugin-page-host"
-        />
-      </KeepAlive>
-    </main>
-
-    <component v-for="overlayItem in overlays" :is="overlayItem.component" :key="overlayItem.id" />
-
-    <SettingsDialog v-model="showSettings" />
   </div>
 </template>
 
 <style scoped>
 .env-banner {
   position: fixed;
-  top: 12px;
+  top: calc(var(--wr-titlebar-height, 36px) + 12px);
   left: 50%;
   z-index: 3000;
   display: flex;

@@ -119,7 +119,7 @@ const railActions = computed(() => listRailActions())
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 0 8px;
+  padding: 16px 0 8px;
   background: var(--wr-sidebar-bg);
   border-right: 1px solid var(--wr-border);
 }

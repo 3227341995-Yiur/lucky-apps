@@ -16,6 +16,8 @@ defineOptions({ name: 'ReportEditor' })
 const ctx = inject('cordis')
 const reports = useReports()
 const { state } = reports
+// 页面顶栏 Teleport 到窗口标题栏；切到别的页面时自动撤掉，KeepAlive 不会残留。
+const titlebarActive = computed(() => ctx?.ui?.activeView?.value === 'reports')
 
 watch(
   () => state.currentReport?.title,
@@ -225,6 +227,7 @@ function handleCommand(command) {
 
 <template>
   <div class="wr-editor">
+    <Teleport v-if="titlebarActive" to="#wr-titlebar-slot">
     <header class="editor-bar">
       <div class="editor-context">
         <span class="editor-label">WEEKLY REPORT</span>
@@ -296,6 +299,7 @@ function handleCommand(command) {
         </el-dropdown>
       </div>
     </header>
+    </Teleport>
 
     <div ref="viewportRef" class="editor-viewport">
       <el-scrollbar class="editor-scroll">
@@ -329,14 +333,14 @@ function handleCommand(command) {
 
 .editor-bar {
   display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  height: 46px;
-  min-height: 46px;
-  padding: 0 22px;
-  border-bottom: 1px solid var(--wr-border);
-  background: var(--wr-surface);
+  gap: 16px;
+  padding: 0 14px;
+  background: transparent;
 }
 
 .editor-context {

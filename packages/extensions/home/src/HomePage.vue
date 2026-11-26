@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch , inject } from 'vue'
-import { formatDate, formatDateTime, getWeekRange, isDateInRange } from './utils/date'
+import { formatDate, formatDateTime, getWeekRange, rangesOverlap } from './utils/date'
 
 defineOptions({ name: 'HomePage' })
 
@@ -26,7 +26,8 @@ const reports = ref([])
 const stats = ref({ reports: 0, workItems: 0, trash: 0, templates: 0 })
 const weekDetail = ref(null)
 
-const weekReport = computed(() => reports.value.find(report => isDateInRange(now, report.dateRange)) || null)
+// 按区间重叠匹配本周周报（周报默认范围就是本周七天）
+const weekReport = computed(() => reports.value.find(report => rangesOverlap(weekRange, report.dateRange)) || null)
 
 const weekSections = computed(() => weekDetail.value?.sections || weekReport.value?.sections || [])
 const weekItemCount = computed(() =>
@@ -72,12 +73,8 @@ watch(weekReport, async (report) => {
 
 async function createReport() {
   try {
-    const range = getWeekRange(new Date())
-    const report = await ctx.get('weekReport').reports.create({
-      title: `周报 ${range[0].slice(5)} ~ ${range[1].slice(5)}`,
-      dateRange: range,
-    })
-    await ctx.get('weekReport').ui.selectReport(report.id)
+    // 统一走周报插件的默认创建流程：配置、区块、标题、画布都由周报插件生成
+    await ctx.get('weekReport').reports.createDefault()
   } catch (error) {
     ctx.get('ui').toast?.(`新建周报失败：${error?.message || error}`, 'error')
   }
@@ -89,7 +86,7 @@ function openReport(id) {
 
 function onQuick(action) {
   if (action === 'create') createReport()
-  else if (action === 'io') ctx.get('navigation').open('data-io')
+  else if (action === 'io') ctx.get('weekReport').ui.openImportExport()
   else if (action === 'designer') ctx.get('weekReport').ui.openDesigner()
   else if (action === 'settings') ctx.get('ui').openSettings()
 }

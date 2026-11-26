@@ -26,8 +26,9 @@ docs-site             VitePress 开发文档
 - App 与 `packages/**` 共用同一版本号（lockstep）：发布前跑 `pnpm version:sync <version>`，会同步 apps、packages、Tauri/Cargo 与 README。
 - 数据库等业务数据层归插件所有（`packages/extensions/reports` 的 `reports-database`），宿主不持有。
 - 插件 `cordis.patch.yml` 必须入库；构建产物 `lib/` 不入库。
+- 页面级顶栏用 `<Teleport to="#wr-titlebar-slot">` 渲染到窗口标题栏（40px 单行、透明背景），不要在页面内容里再画一条标题栏；周报页已接入。
 - 客户端 bundle 通过 `window.__ModuleLoader__.load({ id, factory })` 注册 CJS factory；`require('vue')` 等由宿主 staticModules 解析，不挂 window 库全局。
-- 插件安装/卸载优先用系统 pnpm，没有 pnpm 时用 Node 自带的 npm；不要要求用户额外安装包管理器。插件声明 `preinstall` / `install` / `postinstall` / `prepare` 时，安装窗口必须先让用户确认再执行。
+- 插件安装/卸载走 pnpm（DSH 设计）：profile 的 `pnpm-workspace.yaml` 声明 `nodeLinker: hoisted` 与 `autoInstallPeers: false`。本地目录先 `pnpm pack --ignore-scripts` 打成 profile 内的 tarball 再安装（Windows 上目录依赖的 junction 会报 os error 448；安装时也不替插件跑构建，插件需先自行生成 `lib/`）。插件声明 `preinstall` / `install` / `postinstall` / `prepare` 时，pnpm 拦截后由安装窗口列出待授权包，用户确认写入 `allowBuilds` 再重试；Git 源码插件被拦下的精确 allowBuilds 键同样交给用户确认。
 - 插件 `package.json` 必须声明 `keywords: ["cordis", "lucky-app"]`；设置中心的 npm 搜索只展示带 `lucky-app` 标签的包。
 - 提交前跑 `pnpm lint` 与 `pnpm test`；lefthook 已配置 staged 自动修复。
 - 不要手工修改 `node_modules`、`dist`、`target`。

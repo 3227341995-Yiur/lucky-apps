@@ -7,7 +7,7 @@
 import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { reportCtx } from './ctx'
-import { createReport as createReportRow, removeReport, restoreReport as restoreReportRow, purgeReport as purgeReportRow, emptyTrashReports } from './reports'
+import { removeReport, restoreReport as restoreReportRow, purgeReport as purgeReportRow, emptyTrashReports } from './reports'
 import {
   loadAllReports,
   loadDeletedReports,
@@ -18,17 +18,11 @@ import {
   saveReport,
 } from './database'
 import { ensureDefaultTemplate } from './template/services/templateService'
-import { getReportConfig } from './reportConfigService'
-import { evaluateJsExpression } from './designer/utils/expression'
 import {
-  createSectionsFromConfig,
   createRow,
   normalizeReportConfig,
   cloneConfig,
 } from './designer/config/defaultReportConfig'
-import { extractLayout } from './designer/config/reportLayout'
-import { generateId } from './designer/utils/idGenerator'
-import { getWeekRange } from './designer/utils/date'
 
 const state = reactive({
   initialized: false,
@@ -179,32 +173,6 @@ async function selectReport(id) {
 function clearCurrent() {
   state.currentId = null
   state.currentReport = null
-}
-
-async function createReport() {
-  const config = await getReportConfig()
-  const sections = createSectionsFromConfig(config.sections)
-  const [start, end] = getWeekRange()
-  const fallbackTitle = `工作周报 - ${start} ~ ${end}`
-  const titleElement = (config.elements || []).find(element => element.type === 'title')
-  const title = evaluateJsExpression(
-    titleElement?.expression,
-    { title: fallbackTitle, dateRange: [start, end], sections },
-    fallbackTitle,
-  )
-
-  const report = await createReportRow({
-    id: generateId(),
-    title,
-    dateRange: [start, end],
-    sections,
-    layout: extractLayout(config),
-  })
-
-  await loadReports(false)
-  await selectReport(report.id)
-  await refreshStats()
-  return report
 }
 
 /**
@@ -399,7 +367,6 @@ export function useReports() {
     loadReports,
     selectReport,
     clearCurrent,
-    createReport,
     saveCurrent,
     saveReportSnapshot,
     deleteReport,

@@ -4,22 +4,6 @@ import { join, resolve } from 'node:path'
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml'
 
 const isWindows = process.platform === 'win32'
-let managerCache: 'pnpm' | 'npm' | null = null
-
-function commandExists(command: string): boolean {
-  try {
-    execFileSync(command, ['--version'], { stdio: 'ignore', shell: isWindows })
-    return true
-  } catch {
-    return false
-  }
-}
-
-/** 有 pnpm 用 pnpm；没有就用 Node 自带的 npm，不要求用户额外装包管理器。 */
-function packageManager(): 'pnpm' | 'npm' {
-  if (!managerCache) managerCache = commandExists('pnpm') ? 'pnpm' : 'npm'
-  return managerCache
-}
 
 function readJson(path: string): any {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -44,28 +28,28 @@ function specName(spec: string): string {
   return text.split('/')[0]
 }
 
-/** profile 是插件沙箱：构建脚本按包授权（allowBuilds），不做整体放行。 */
+/**
+ * profile 是插件沙箱，设置放 pnpm-workspace.yaml（pnpm ≥10 从那里读）：
+ * hoisted 让外部插件共用宿主的 cordis；构建脚本按包授权（allowBuilds），不做整体放行。
+ */
 function prepareProfile(profileDir: string): void {
-  if (packageManager() === 'npm') {
-    // npm 不认识 pnpm 的 node-linker，清掉以免每次 install 都告警
-    const npmrc = join(profileDir, '.npmrc')
-    try {
-      if (readFileSync(npmrc, 'utf8').includes('node-linker')) rmSync(npmrc, { force: true })
-    } catch {}
-    return
-  }
-  writeFileSync(join(profileDir, '.npmrc'), 'node-linker=hoisted\n')
-  // 旧版本整体放行过构建脚本；保留会绕过逐个包的授权，升级时清掉。
   const policyPath = join(profileDir, 'pnpm-workspace.yaml')
-  if (existsSync(policyPath)) {
-    try {
-      const policy: any = parseYaml(readFileSync(policyPath, 'utf8')) || {}
-      if (policy && typeof policy === 'object' && 'dangerouslyAllowAllBuilds' in policy) {
-        delete policy.dangerouslyAllowAllBuilds
-        writeFileSync(policyPath, dumpYaml(policy, { noRefs: true, lineWidth: -1 }))
-      }
-    } catch {}
+  let policy: any = {}
+  try { policy = parseYaml(readFileSync(policyPath, 'utf8')) || {} } catch {}
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)) policy = {}
+  let changed = false
+  // 旧版本整体放行过构建脚本；保留会绕过逐个包的授权，升级时清掉。
+  if ('dangerouslyAllowAllBuilds' in policy) {
+    delete policy.dangerouslyAllowAllBuilds
+    changed = true
   }
+  for (const [key, value] of Object.entries({ packages: ['.'], nodeLinker: 'hoisted', autoInstallPeers: false })) {
+    if (policy[key] === undefined) {
+      policy[key] = value
+      changed = true
+    }
+  }
+  if (changed) writeFileSync(policyPath, dumpYaml(policy, { noRefs: true, lineWidth: -1 }))
   const modulesDir = join(profileDir, 'node_modules')
   const metaPath = join(modulesDir, '.modules.yaml')
   if (!existsSync(metaPath)) return
@@ -82,7 +66,7 @@ function prepareProfile(profileDir: string): void {
 
 const PENDING_BUILD_VALUE = 'set this to true or false'
 
-/** pnpm 12 把未授权的安装脚本留在 profile 的 allowBuilds 里，值是这个哨兵。 */
+/** pnpm 把未授权的安装脚本留在 profile 的 allowBuilds 里，值是这个哨兵。 */
 function readPendingBuilds(profileDir: string): string[] {
   const policyPath = join(profileDir, 'pnpm-workspace.yaml')
   if (!existsSync(policyPath)) return []
@@ -119,6 +103,26 @@ function readBlockedBuilds(profileDir: string): string[] {
   }
 }
 
+/**
+ * Git 托管的源码插件要在安装时跑 prepare（构建 lib）。pnpm 12 直接以
+ * ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED 失败，只把精确的 allowBuilds 键写在
+ * help 里，不落盘；这里按它给的示例把键还原出来，交给安装窗口询问用户。
+ * 换行只是终端宽度造成的折行，逐行拼接即还原原始键。
+ */
+export function readGitPrepareBuilds(output: string): string[] {
+  const text = String(output || '').replace(/\x1b\[[0-9;]*m/g, '')
+  // 普通依赖的 IGNORED_BUILDS 提示里也有 allowBuilds 示例，别把 hint 当成键。
+  if (!/GIT_DEP_PREPARE_NOT_ALLOWED|git-hosted package/i.test(text)) return []
+  const start = text.lastIndexOf('allowBuilds:')
+  if (start === -1) return []
+  const block = text.slice(start + 'allowBuilds:'.length).split(/\r?\n\s*\r?\n/)[0] || ''
+  const joined = block.split(/\r?\n/).map(line => line.trim()).filter(Boolean).join('')
+  return joined.split(/: true/).slice(0, -1)
+    // pnpm 给以 @ 开头的 scoped 键加引号；存进 YAML 时不能把引号当成键的一部分。
+    .map(item => item.trim().replace(/^(['"])(.*)\1$/, '$2'))
+    .filter(Boolean)
+}
+
 /** 持久化授权：只把待授权的包改成 true，不运行脚本。 */
 function approveBuilds(profileDir: string, names: string[]): void {
   const policyPath = join(profileDir, 'pnpm-workspace.yaml')
@@ -138,30 +142,31 @@ class BuildApprovalRequired extends Error {
   }
 }
 
+/** 只把路径形态当成目录，避免包名恰好和某个本地文件夹同名。 */
+function isPathSpec(spec: string): boolean {
+  return /^(?:[A-Za-z]:[\\/]|\\\\|\.{1,2}[\\/]|\/)/.test(spec)
+}
+
 /**
- * 本地目录先打成 tarball 再装。pnpm 对目录依赖建 junction，Windows 上遍历会报
- * os error 448（untrusted mount point）；tarball 走 store 硬链接，没有这个问题。
+ * Windows 上 pnpm 对目录依赖建 junction，遍历时经常报 os error 448
+ * （untrusted mount point）。本地目录统一打成 tarball 再装，走 store 硬链接；
+ * --ignore-scripts 保证打包时不会替插件跑 prepare/build，插件需先自行构建 lib/。
  */
 function packLocalDir(profileDir: string, dir: string, emit?: (event: any) => void): string {
   const manifest = readJson(join(dir, 'package.json'))
   const file = `${String(manifest.name || 'plugin').replace(/^@/, '').replace(/\//g, '-')}-${manifest.version || '0.0.0'}.tgz`
   const vendorDir = join(profileDir, 'vendor')
   mkdirSync(vendorDir, { recursive: true })
-  rmSync(join(vendorDir, file), { force: true })
-  emit?.({ type: 'stage', stage: 'pack', progress: 8, message: `正在打包本地插件 ${manifest.name || file}…` })
   const out = join(vendorDir, file)
-  const pm = packageManager()
-  const command = pm === 'pnpm' ? 'pnpm' : 'npm'
-  const target = pm === 'pnpm' ? out : vendorDir
-  const args = pm === 'pnpm'
-    ? ['pack', '--out', target, '--reporter=append-only']
-    : ['pack', '--pack-destination', target]
+  rmSync(out, { force: true })
+  emit?.({ type: 'stage', stage: 'pack', progress: 8, message: `正在打包本地插件 ${manifest.name || file}…` })
+  const args = ['pack', '--out', out, '--ignore-scripts', '--reporter=append-only']
   if (isWindows) {
-    const index = args.indexOf(target)
-    if (index !== -1) args[index] = `"${target}"`
+    const index = args.indexOf(out)
+    if (index !== -1) args[index] = `"${out}"`
   }
   try {
-    execFileSync(command, args, {
+    execFileSync('pnpm', args, {
       cwd: dir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -175,40 +180,13 @@ function packLocalDir(profileDir: string, dir: string, emit?: (event: any) => vo
 }
 
 function resolveInstallSpec(profileDir: string, spec: string, emit?: (event: any) => void): string {
+  if (!isPathSpec(spec)) return spec
   const dir = resolve(spec)
   if (!existsSync(dir) || !statSync(dir).isDirectory()) return spec
   return packLocalDir(profileDir, dir, emit)
 }
 
-/**
- * 已装过的 Git 插件再装一次时 pnpm add 会复用 lockfile 里的旧 commit（不重新解析），
- * 用 update 才会拉最新提交并重跑 prepare。
- */
-function installInvocation(target: string, before: Record<string, string>, registry?: string) {
-  const isGit = /^(?:https?:\/\/|git\+|git@|github:|gitlab:|bitbucket:)/i.test(target)
-  const name = specName(target)
-  const registryArgs = registry ? [`--registry=${registry}`] : []
-  if (packageManager() === 'npm') {
-    // npm 默认会直接跑脚本；先拦住，等用户在看得到的安装窗口里授权后再 rebuild。
-    const args = isGit && name && before[name]
-      ? ['update', name, '--ignore-scripts', '--no-audit', '--no-fund']
-      : ['install', target, '--ignore-scripts', '--no-audit', '--no-fund']
-    return { command: 'npm', args: [...args, ...registryArgs], shell: isWindows }
-  }
-  const args = isGit && name && before[name]
-    ? ['update', name, '--node-linker=hoisted']
-    : ['add', target, '--node-linker=hoisted']
-  return { command: 'pnpm', args: [...args, ...registryArgs], shell: isWindows }
-}
-
-function removeInvocation(name: string, extra: string[] = []) {
-  if (packageManager() === 'npm') {
-    return { command: 'npm', args: ['uninstall', name, '--no-audit', '--no-fund'], shell: isWindows }
-  }
-  return { command: 'pnpm', args: ['remove', name, '--node-linker=hoisted', ...extra], shell: isWindows }
-}
-
-/** 旧版本把本地插件装成 link:（junction）。残留在 manifest 里会让之后每次 pnpm 操作都报 448，这里改回 tarball。 */
+/** 旧 profile 里的 link: 依赖和残留 junction 会让之后的 pnpm 操作报 448，统一改回 tarball。 */
 function normalizeProfileLinks(profileDir: string, emit?: (event: any) => void): void {
   if (process.platform !== 'win32') return
   const manifestPath = join(profileDir, 'package.json')
@@ -230,14 +208,47 @@ function normalizeProfileLinks(profileDir: string, emit?: (event: any) => void):
     manifest.dependencies = deps
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
   }
-  // 失败安装可能留下 manifest 里已不存在的 junction，pnpm 遍历时同样报 448，先清掉。
   const modulesDir = join(profileDir, 'node_modules')
   if (!existsSync(modulesDir)) return
   for (const entry of readdirSync(modulesDir, { withFileTypes: true })) {
-    if (!entry.isSymbolicLink()) continue
-    rmSync(join(modulesDir, entry.name), { recursive: true, force: true })
-    emit?.({ type: 'log', stream: 'stderr', line: `已清理残留目录链接 node_modules/${entry.name}` })
+    if (entry.name.startsWith('.')) continue
+    const path = join(modulesDir, entry.name)
+    if (entry.isSymbolicLink()) {
+      rmSync(path, { recursive: true, force: true })
+      emit?.({ type: 'log', stream: 'stderr', line: `已清理残留目录链接 node_modules/${entry.name}` })
+      continue
+    }
+    if (entry.name.startsWith('@') && entry.isDirectory()) {
+      for (const child of readdirSync(path, { withFileTypes: true })) {
+        if (!child.isSymbolicLink()) continue
+        rmSync(join(path, child.name), { recursive: true, force: true })
+        emit?.({ type: 'log', stream: 'stderr', line: `已清理残留目录链接 node_modules/${entry.name}/${child.name}` })
+      }
+    }
   }
+}
+
+/** Windows 的 pnpm 走 shell，带空格的本地路径要自己加引号。 */
+function shellArg(value: string): string {
+  return isWindows && /\s/.test(value) && !value.startsWith('"') ? `"${value}"` : value
+}
+
+/**
+ * 已装过的 Git 插件再装一次时 pnpm add 会复用 lockfile 里的旧 commit（不重新解析），
+ * 用 update 才会拉最新提交并重跑 prepare。
+ */
+function installInvocation(target: string, before: Record<string, string>, registry?: string) {
+  const isGit = /^(?:https?:\/\/|git\+[a-z]+:\/\/|git@|github:|gitlab:|bitbucket:)/i.test(target)
+  const name = specName(target)
+  const registryArgs = registry ? [`--registry=${registry}`] : []
+  const args = isGit && name && before[name]
+    ? ['update', name]
+    : ['add', shellArg(target)]
+  return { command: 'pnpm', args: [...args, ...registryArgs], shell: isWindows }
+}
+
+function removeInvocation(name: string, extra: string[] = []) {
+  return { command: 'pnpm', args: ['remove', name, ...extra], shell: isWindows }
 }
 
 function readProfilePatch(profileDir: string): any[] {
@@ -294,6 +305,7 @@ export async function uninstallProfilePluginStream(
   if (!target) throw new Error('缺少要卸载的包名')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
   prepareProfile(profileDir)
+  normalizeProfileLinks(profileDir, emit)
   emit({ type: 'stage', stage: 'prepare', progress: 5, message: '准备卸载…' })
   emit({ type: 'stage', stage: 'remove', progress: 15, message: `正在卸载 ${target}…` })
 
@@ -375,8 +387,8 @@ function registerInstalledPackage(profileDir: string, spec: string, before: Reco
 
 function isValidInstallSpec(spec: string): boolean {
   if (!spec) return false
-  if (existsSync(resolve(spec))) return true
-  if (/^(https?:\/\/|git\+https?:\/\/|git\+ssh:\/\/|git@|github:|gitlab:|bitbucket:)/i.test(spec)) return true
+  if (isPathSpec(spec) && existsSync(resolve(spec))) return true
+  if (/^(?:(?:https?|git(?:\+[a-z]+)?):\/\/|git@|github:|gitlab:|bitbucket:)/i.test(spec)) return true
   return /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+(?:@[a-z0-9._-]+)?$/i.test(spec)
 }
 
@@ -455,7 +467,10 @@ async function runStreamed(
       if (signal?.aborted) return reject(new InstallCancelled())
       if (code === 0) return resolvePromise()
       const detail = tailText().trim().split(/\r?\n/).slice(-12).join('\n')
-      reject(new Error(detail || `${invocation.command} 退出码 ${code}`))
+      // 完整尾部留给 allowBuilds 键解析；界面只显示截断后的 detail。
+      const failure: any = new Error(detail || `${invocation.command} 退出码 ${code}`)
+      failure.output = tailText()
+      reject(failure)
     })
   })
 }
@@ -467,23 +482,25 @@ function isRegistryTarget(target: string): boolean {
     && !target.endsWith('.tgz')
 }
 
-function readConfiguredRegistry(profileDir: string, manager: 'pnpm' | 'npm'): string {
+function readConfiguredRegistry(profileDir: string): string {
   try {
-    return execFileSync(manager, ['config', 'get', 'registry'], {
+    const output = execFileSync('pnpm', ['config', 'get', 'registry'], {
       cwd: profileDir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
       shell: isWindows,
     }).trim()
+    // pnpm 可能先打印升级提示，registry 是最后一行。
+    return output.split(/\r?\n/).pop()?.trim() || ''
   } catch {
     return ''
   }
 }
 
 /** 主 registry 失败后依次尝试官方源和镜像；本地包/Git 包不参与回退。 */
-function registryPlan(profileDir: string, manager: 'pnpm' | 'npm', target: string): Array<string | undefined> {
+function registryPlan(profileDir: string, target: string): Array<string | undefined> {
   if (!isRegistryTarget(target)) return [undefined]
-  const configured = readConfiguredRegistry(profileDir, manager)
+  const configured = readConfiguredRegistry(profileDir)
   return [...new Set([
     configured || undefined,
     'https://registry.npmjs.org/',
@@ -564,7 +581,7 @@ async function preflightCompatibility(spec: string, registry: string | undefined
 }
 
 export interface InstallOptions {
-  /** 用户在安装窗口里确认过的包；pnpm 写进 allowBuilds，npm 走 rebuild。 */
+  /** 用户在安装窗口里确认过的包；只写入 profile 的 allowBuilds，不执行脚本。 */
   approvedBuilds?: string[]
   /** 用户关闭安装窗口时中止当前安装，服务端会杀掉整个包管理器进程树。 */
   signal?: AbortSignal
@@ -579,12 +596,11 @@ export async function installProfilePluginStream(
   if (!spec || !String(spec).trim()) throw new Error('请输入包名或本地目录')
   if (!isValidInstallSpec(String(spec).trim())) throw new Error('无效的包名、Git 地址或本地目录')
   if (!existsSync(join(profileDir, 'package.json'))) throw new Error(`profile 不存在: ${profileDir}`)
-  const manager = packageManager()
   prepareProfile(profileDir)
   emit({ type: 'stage', stage: 'prepare', progress: 5, message: '准备 profile…' })
   normalizeProfileLinks(profileDir, emit)
   const approved = options.approvedBuilds || []
-  if (manager === 'pnpm' && approved.length) {
+  if (approved.length) {
     approveBuilds(profileDir, approved)
     emit({ type: 'stage', stage: 'approve', progress: 10, message: `已允许安装脚本：${approved.join(', ')}` })
   }
@@ -592,14 +608,15 @@ export async function installProfilePluginStream(
   emit({ type: 'stage', stage: 'check', progress: 8, message: '检查插件兼容性…' })
   await preflightCompatibility(
     String(spec).trim(),
-    registryPlan(profileDir, manager, String(spec).trim())[0],
+    registryPlan(profileDir, String(spec).trim())[0],
     emit,
   )
   const target = resolveInstallSpec(profileDir, String(spec).trim(), emit)
   emit({ type: 'stage', stage: 'install', progress: 15, message: '正在解析并安装依赖…' })
 
-  // 安装失败时把清单和锁文件恢复原状，不留下半装的依赖。
-  const savedFiles = ['package.json', 'pnpm-lock.yaml', 'package-lock.json'].map((name) => {
+  // 安装失败时把清单和锁文件恢复原状，不留下半装的依赖；pnpm-workspace.yaml
+  // 不恢复，pnpm 记录在 allowBuilds 里的待授权项要留给下一次重试。
+  const savedFiles = ['package.json', 'pnpm-lock.yaml'].map((name) => {
     const path = join(profileDir, name)
     return { path, text: existsSync(path) ? readFileSync(path, 'utf8') : undefined }
   })
@@ -612,7 +629,7 @@ export async function installProfilePluginStream(
     }
   }
 
-  const plan = registryPlan(profileDir, manager, target)
+  const plan = registryPlan(profileDir, target)
   let succeeded = false
   let lastError: Error | null = null
   for (const [index, registry] of plan.entries()) {
@@ -625,7 +642,7 @@ export async function installProfilePluginStream(
       emit({ type: 'stage', stage: 'registry', progress: 20, message: `切换到备用源 ${registry}…` })
     }
     const invocation = installInvocation(target, before, registry)
-    if (invocation.command === 'pnpm') invocation.args.push('--reporter=append-only')
+    invocation.args.push('--reporter=append-only')
     try {
       await runStreamed(profileDir, invocation, emit, options.signal)
       succeeded = true
@@ -636,10 +653,17 @@ export async function installProfilePluginStream(
         restoreFiles()
         throw new InstallCancelled()
       }
-      // pnpm 拦截了安装脚本：把被拦截的包名交给安装窗口询问用户，而不是当作普通失败。
-      const pending = manager === 'pnpm'
-        ? [...new Set([...readPendingBuilds(profileDir), ...readBlockedBuilds(profileDir)])]
+      // pnpm 拦截了安装脚本：把待授权的包名交给安装窗口询问用户，而不是当作普通失败。
+      // ignored-builds 是 profile 级状态，只在本次失败确实是构建被拦时读取，避免盖住网络错误。
+      const log = `${error?.message || ''}\n${error?.output || ''}`
+      const blocked = /ERR_PNPM_IGNORED_BUILDS|Ignored build scripts/i.test(log)
+        ? readBlockedBuilds(profileDir)
         : []
+      const pending = [...new Set([
+        ...readPendingBuilds(profileDir),
+        ...blocked,
+        ...readGitPrepareBuilds(log),
+      ])]
       if (pending.length) {
         restoreFiles()
         throw new BuildApprovalRequired(pending)
@@ -656,35 +680,11 @@ export async function installProfilePluginStream(
     throw lastError || new Error('安装失败')
   }
 
-  const installed = installedPackage(profileDir, spec, before)
-  if (manager === 'npm') {
-    const scripts = lifecycleScripts(installed.manifest.scripts)
-    if (scripts.length) {
-      if (!approved.includes(installed.name)) {
-        restoreFiles()
-        throw new BuildApprovalRequired([installed.name])
-      }
-      emit({ type: 'stage', stage: 'scripts', progress: 70, message: `正在运行 ${installed.name} 的安装脚本…` })
-      await runStreamed(profileDir, {
-        command: 'npm',
-        args: ['rebuild', installed.name, '--foreground-scripts', '--no-audit', '--no-fund'],
-        shell: isWindows,
-      }, emit, options.signal)
-    }
-  }
-
   emit({ type: 'stage', stage: 'register', progress: 80, message: '已写入 profile，准备加载插件…' })
   const result = registerInstalledPackage(profileDir, spec, before)
   const done = approved.length ? { ...result, approvedBuilds: approved } : result
   emit({ type: 'done', progress: 85, result: done })
   return done
-}
-
-const LIFECYCLE_SCRIPTS = ['preinstall', 'install', 'postinstall', 'prepare']
-
-function lifecycleScripts(scripts: any): string[] {
-  if (!scripts || typeof scripts !== 'object') return []
-  return LIFECYCLE_SCRIPTS.filter(name => typeof scripts[name] === 'string')
 }
 
 

@@ -39,6 +39,7 @@ import { createBackup, exportBackupFile, importData } from './io/services/import
 import { getCopySettings, saveCopySettings } from './reportExport'
 import { useReports } from './useReports'
 import { openReportsDialog } from './dialogs'
+import { createWeekReport } from './createReport'
 
 export const weekReportApi = {
   events: {
@@ -53,6 +54,8 @@ export const weekReportApi = {
     /** 单条全量（含 sections） */
     get: id => getReportById(id),
     create: createReport,
+    /** 按当前配置新建本周周报（含区块/标题/画布），创建后选中并打开 */
+    createDefault: createWeekReport,
     update: updateReport,
     remove: removeReport,
     restore: restoreReport,

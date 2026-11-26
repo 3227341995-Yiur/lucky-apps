@@ -10,6 +10,9 @@
   color-scheme: light;
 
   --wr-sidebar-width: 292px;
+  --wr-titlebar-height: 40px;
+  --wr-titlebar-bg: #f2f4f7;
+  --wr-titlebar-fg: #3c3f45;
   --wr-radius-sm: 6px;
   --wr-radius-md: 8px;
   --wr-radius-lg: 12px;
@@ -53,6 +56,8 @@ html.dark {
 
   --wr-bg: #1e1f22;
   --wr-sidebar-bg: #2b2d30;
+  --wr-titlebar-bg: #2b2d30;
+  --wr-titlebar-fg: #c9ccd1;
   --wr-surface: #26282b;
   --wr-surface-2: #2b2d30;
   --wr-border: #393b40;
@@ -159,17 +164,34 @@ a {
 /* ============================================================
    应用骨架
    ============================================================ */
-.wr-app {
+.wr-shell {
   display: flex;
   height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wr-app {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--el-bg-color-page);
+}
+
+/* 右侧内容列：标题栏只铺在它上面，左侧栏保持整列到底。 */
+.wr-main-column {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .wr-main {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -1,28 +1,22 @@
 /**
- * 新建本周周报：与宿主原逻辑一致——按默认配置生成区块、标题表达式与画布 layout。
+ * 新建本周周报的唯一入口：按当前配置生成区块、标题表达式与画布 layout。
+ * 侧栏、快捷键和外部插件（如首页）都走这里，不要自己拼 reports.create 参数。
  */
 import { ElMessage } from 'element-plus'
-import { weekReportApi } from './api'
+import { createReport } from './reports'
+import { getReportConfig } from './reportConfigService'
 import { createSectionsFromConfig } from './designer/config/defaultReportConfig'
 import { extractLayout } from './designer/config/reportLayout'
 import { evaluateJsExpression } from './designer/utils/expression'
-
-function weekRange(base = new Date()) {
-  const day = base.getDay() || 7
-  const monday = new Date(base)
-  monday.setDate(base.getDate() - (day - 1))
-  const friday = new Date(monday)
-  friday.setDate(monday.getDate() + 4)
-  const format = date => date.toISOString().slice(0, 10)
-  return [format(monday), format(friday)]
-}
+import { getWeekRange } from './designer/utils/date'
+import { useReports } from './useReports'
+import { reportCtx } from './ctx'
 
 export async function createWeekReport() {
-  const api = weekReportApi
   try {
-    const config = await api.config.get()
+    const config = await getReportConfig()
     const sections = createSectionsFromConfig(config.sections)
-    const [start, end] = weekRange()
+    const [start, end] = getWeekRange()
     const fallbackTitle = `工作周报 - ${start} ~ ${end}`
     const titleElement = (config.elements || []).find(element => element.type === 'title')
     const title = evaluateJsExpression(
@@ -30,13 +24,14 @@ export async function createWeekReport() {
       { title: fallbackTitle, dateRange: [start, end], sections },
       fallbackTitle,
     )
-    const report = await api.reports.create({
+    const report = await createReport({
       title,
       dateRange: [start, end],
       sections,
       layout: extractLayout(config),
     })
-    await api.ui.selectReport(report.id)
+    await useReports().selectReport(report.id)
+    reportCtx().navigation.open('reports')
     return report
   } catch (error) {
     ElMessage.error(`新建周报失败：${error?.message || error}`)

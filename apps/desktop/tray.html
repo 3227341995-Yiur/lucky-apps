@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lucky Apps</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+
+      #tray-menu {
+        height: 100%;
+      }
+    </style>
+    <script>
+      // 托盘窗口独立进程：从 localStorage 读取主窗口保存的主题，加载前就定好亮暗。
+      (function () {
+        try {
+          var mode = localStorage.getItem('wr:theme')
+          var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (e) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="tray-menu"></div>
+    <script type="module" src="/src/tray-main.ts"></script>
+  </body>
+</html>

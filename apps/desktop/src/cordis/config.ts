@@ -8,6 +8,7 @@ import ui from './plugins/ui'
 import db from './plugins/db'
 import commands from './plugins/commands'
 import registry from './plugins/registry'
+import tray from './plugins/tray'
 import extensions from './plugins/extensions'
 import app from './plugins/app'
 
@@ -18,6 +19,7 @@ export default [
   db,
   commands,
   registry,
+  tray,
   extensions,
   app,
 ]

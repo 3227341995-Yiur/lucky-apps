@@ -193,9 +193,9 @@ async function copyErrorText(text) {
   }
 }
 
-/** allowBuilds 里本地/Git 包会带 @file: / @https: 后缀，界面上只显示包名。 */
+/** allowBuilds 里本地/Git 包会带 @file: / @git+… / @https: 后缀，界面上只显示包名。 */
 function buildLabel(name) {
-  return String(name || '').replace(/@(?:file|link|git\+https?|https?):.*$/i, '')
+  return String(name || '').replace(/@(?:file|link|git\+[a-z]+|https?):.*$/i, '')
 }
 
 function appendLog(logs, line) {
@@ -450,7 +450,7 @@ async function handleToggle(resource, enabled) {
         <span class="install-icon"><el-icon :size="18"><Download /></el-icon></span>
         <div>
           <strong>安装外部组件</strong>
-          <p>输入 npm 包名或本地组件项目路径，自动执行 pnpm add 并加入 profile。</p>
+          <p>输入 npm 包名或本地组件项目路径，自动执行 pnpm add 并加入 profile</p>
         </div>
       </div>
       <button type="button" class="install-trigger" @click="openInstallDialog">
@@ -788,6 +788,11 @@ async function handleToggle(resource, enabled) {
   align-items: center;
   gap: 10px;
   min-width: 220px;
+  overflow: hidden;
+}
+
+.install-copy > div {
+  min-width: 0;
 }
 
 .install-icon {
@@ -809,9 +814,12 @@ async function handleToggle(resource, enabled) {
 
 .install-copy p {
   margin: 2px 0 0;
+  overflow: hidden;
   font-size: 10.5px;
   line-height: 1.5;
   color: var(--el-text-color-placeholder);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .install-trigger {

@@ -191,12 +191,49 @@ export interface CommandsApi {
   list(): Array<{ id: string } & CommandMeta>
 }
 
+export interface TrayMenuItem {
+  /** 全局唯一 id；同一 id 后注册的覆盖先注册的。 */
+  id: string
+  label?: string
+  /** Element Plus 图标名，如 Monitor / Setting。 */
+  icon?: string
+  /** 自定义 SVG 字符串，优先级高于 icon。 */
+  iconSvg?: string
+  /** 数值越小越靠前，默认 100。 */
+  order?: number
+  /** 相邻 section 之间自动画分隔线，默认 main。 */
+  section?: string
+  /** 行尾提示文本，如快捷键。 */
+  hint?: string
+  danger?: boolean
+  disabled?: boolean
+  /** 打开菜单时求值，返回 false 隐藏该项。 */
+  when?: () => boolean
+  /** 追加到菜单项的 class，可配合 addStyle 使用。 */
+  className?: string
+  /** 内联样式，直接绑定到菜单项。 */
+  style?: Record<string, string | number>
+  /** 在主窗口执行；可使用全部 ctx 服务。 */
+  onSelect?: () => unknown
+}
+
+export interface TrayApi {
+  registerItem(item: TrayMenuItem): () => void
+  /** 向托盘菜单窗口注入样式表；id 相同的后注册覆盖先注册。 */
+  addStyle(id: string, css: string): () => void
+  list(): TrayMenuItem[]
+  listStyles(): Array<{ id: string; css: string }>
+  /** 菜单模型变化后立即刷新（注册/显隐条件变化时可调用）。 */
+  refresh(): void
+}
+
 declare module 'cordis' {
   interface Context {
     navigation: NavigationApi
     settings: SettingsApi
     components: ComponentsApi
     sidebar: SidebarApi
+    tray: TrayApi
     overlay: OverlayApi
     theme: ThemeApi
     branding: BrandingApi

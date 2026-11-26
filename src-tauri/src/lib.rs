@@ -2,6 +2,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
@@ -10,13 +11,139 @@ use std::os::windows::process::CommandExt;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 use tauri::{
-  menu::{MenuBuilder, MenuItemBuilder},
-  tray::{TrayIcon, TrayIconBuilder, TrayIconEvent},
-  Manager, RunEvent, WindowEvent, WebviewUrl, WebviewWindowBuilder,
+  tray::{MouseButton, TrayIcon, TrayIconBuilder, TrayIconEvent},
+  Emitter, Manager, RunEvent, WindowEvent, WebviewUrl, WebviewWindowBuilder,
 };
 
 struct ServerProcess(Mutex<Option<Child>>);
 struct TrayProcess(Mutex<Option<TrayIcon>>);
+
+/// 自绘托盘菜单的位置状态：右键时记下光标，菜单渲染完再按内容高度重新定位。
+struct TrayMenuState {
+  cursor: Mutex<Option<tauri::PhysicalPosition<f64>>>,
+  /// 刚显示时系统可能先把焦点还给别的窗口，这个时间窗内的失焦事件忽略掉。
+  shown_at: Mutex<Option<Instant>>,
+}
+
+const TRAY_MENU_WIDTH: f64 = 280.0;
+const TRAY_MENU_HEIGHT: f64 = 360.0;
+const TRAY_MENU_MIN_HEIGHT: f64 = 96.0;
+const TRAY_MENU_MAX_HEIGHT: f64 = 640.0;
+
+fn focus_main_window(app: &tauri::AppHandle) {
+  if let Some(window) = app.get_webview_window("main") {
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_focus();
+  }
+}
+
+/// 把菜单放在光标靠左上方（macOS 菜单在托盘下方）。
+fn tray_menu_position(app: &tauri::AppHandle, size: tauri::PhysicalSize<u32>) -> tauri::PhysicalPosition<i32> {
+  let cursor = app
+    .try_state::<TrayMenuState>()
+    .and_then(|state| *state.cursor.lock().unwrap());
+  let Some(cursor) = cursor else {
+    return tauri::PhysicalPosition::new(0, 0);
+  };
+  let mut x = cursor.x - size.width as f64 + 18.0;
+  let mut y = if cfg!(target_os = "macos") {
+    cursor.y + 12.0
+  } else {
+    cursor.y - size.height as f64 - 12.0
+  };
+  // 托盘可能在副屏，按光标所在显示器夹取边界，取不到再退回主屏。
+  let monitor = app
+    .monitor_from_point(cursor.x, cursor.y)
+    .ok()
+    .flatten()
+    .or_else(|| app.primary_monitor().ok().flatten());
+  if let Some(monitor) = monitor {
+    let origin = monitor.position();
+    let area = monitor.size();
+    let max_x = (origin.x + area.width as i32) as f64 - size.width as f64 - 8.0;
+    let max_y = (origin.y + area.height as i32) as f64 - size.height as f64 - 8.0;
+    x = x.max(origin.x as f64 + 8.0).min(max_x.max(origin.x as f64 + 8.0));
+    y = y.max(origin.y as f64 + 8.0).min(max_y.max(origin.y as f64 + 8.0));
+  }
+  tauri::PhysicalPosition::new(x.round() as i32, y.round() as i32)
+}
+
+fn show_tray_menu(app: &tauri::AppHandle) {
+  let Some(window) = app.get_webview_window("tray-menu") else {
+    eprintln!("[shell] 托盘菜单窗口不存在");
+    return;
+  };
+  let size = window.outer_size().unwrap_or(tauri::PhysicalSize::new(
+    TRAY_MENU_WIDTH as u32,
+    TRAY_MENU_HEIGHT as u32,
+  ));
+  let _ = window.set_position(tray_menu_position(app, size));
+  let _ = window.show();
+  let _ = window.set_focus();
+  if let Some(state) = app.try_state::<TrayMenuState>() {
+    *state.shown_at.lock().unwrap() = Some(Instant::now());
+  }
+  // Windows 会拒绝后台进程抢前台焦点；窗口显示后再补一次聚焦。
+  let app_handle = app.clone();
+  std::thread::spawn(move || {
+    std::thread::sleep(Duration::from_millis(150));
+    if let Some(win) = app_handle.get_webview_window("tray-menu") {
+      if win.is_visible().unwrap_or(false) {
+        let _ = win.set_focus();
+        if let Some(state) = app_handle.try_state::<TrayMenuState>() {
+          *state.shown_at.lock().unwrap() = Some(Instant::now());
+        }
+      }
+    }
+  });
+  // 主窗口持有插件注册表，由它把菜单模型推给托盘窗口。
+  let _ = app.emit_to("main", "tray:menu-open", ());
+}
+
+fn create_tray_menu_window(app: &tauri::AppHandle, server_url: &str) -> tauri::Result<tauri::WebviewWindow> {
+  let mut url = tauri::Url::parse(server_url).map_err(tauri::Error::InvalidUrl)?;
+  url.set_path("/tray.html");
+  url.set_query(None);
+  url.set_fragment(None);
+  let builder = WebviewWindowBuilder::new(app, "tray-menu", WebviewUrl::External(url))
+    .title("")
+    .inner_size(TRAY_MENU_WIDTH, TRAY_MENU_HEIGHT)
+    .decorations(false)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .resizable(false)
+    .maximizable(false)
+    .minimizable(false)
+    .closable(false)
+    .visible(false);
+  // macOS 的透明窗口需要 macos-private-api（上架 App Store 会受影响），那边用不透明菜单。
+  #[cfg(not(target_os = "macos"))]
+  let builder = builder.transparent(true);
+  let window = builder.build()?;
+  let win = window.clone();
+  window.on_window_event(move |event| {
+    if let WindowEvent::Focused(false) = event {
+      // 刚弹出的前几百毫秒忽略失焦，避免菜单一闪就没。
+      let recent = win
+        .app_handle()
+        .try_state::<TrayMenuState>()
+        .map(|state| {
+          let mut shown = state.shown_at.lock().unwrap();
+          let recent = shown.map(|at| at.elapsed() < Duration::from_millis(600)).unwrap_or(false);
+          if !recent {
+            *shown = None;
+          }
+          recent
+        })
+        .unwrap_or(false);
+      if !recent {
+        let _ = win.hide();
+      }
+    }
+  });
+  Ok(window)
+}
 
 impl Drop for ServerProcess {
   fn drop(&mut self) {
@@ -256,33 +383,21 @@ fn create_tray(
   icon: tauri::image::Image<'static>,
   tooltip: &str,
 ) -> tauri::Result<TrayIcon> {
-  let show_item = MenuItemBuilder::with_id("show", "显示 Lucky Apps").build(app)?;
-  let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
-  let menu = MenuBuilder::new(app).items(&[&show_item, &quit_item]).build()?;
   let mut builder = TrayIconBuilder::with_id("main")
     .icon(icon)
-    .menu(&menu)
     .show_menu_on_left_click(false)
-    .on_menu_event(|app, event| match event.id().as_ref() {
-      "show" => {
-        if let Some(window) = app.get_webview_window("main") {
-          let _ = window.show();
-          let _ = window.unminimize();
-          let _ = window.set_focus();
-        }
+    .on_tray_icon_event(|tray, event| match event {
+      TrayIconEvent::Click { button: MouseButton::Left, .. } => {
+        focus_main_window(tray.app_handle());
       }
-      "quit" => app.exit(0),
-      _ => {}
-    })
-    .on_tray_icon_event(|tray, event| {
-      if let TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, .. } = event {
+      TrayIconEvent::Click { button: MouseButton::Right, position, .. } => {
         let app = tray.app_handle();
-        if let Some(window) = app.get_webview_window("main") {
-          let _ = window.show();
-          let _ = window.unminimize();
-          let _ = window.set_focus();
+        if let Some(state) = app.try_state::<TrayMenuState>() {
+          *state.cursor.lock().unwrap() = Some(position);
         }
+        show_tray_menu(app);
       }
+      _ => {}
     });
   if !tooltip.is_empty() {
     builder = builder.tooltip(tooltip);
@@ -371,6 +486,60 @@ fn apply_saved_branding(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
 fn restart_app(app: tauri::AppHandle) {
   // 走优雅退出，让 WebView 把 localStorage 落盘后再重启。
   app.request_restart();
+}
+
+#[tauri::command]
+fn show_main_window(app: tauri::AppHandle) {
+  focus_main_window(&app);
+}
+
+/// 打开主窗口并直接拉起设置面板；走 eval 派发，避免再依赖一层事件权限。
+#[tauri::command]
+fn open_settings(app: tauri::AppHandle) {
+  focus_main_window(&app);
+  if let Some(window) = app.get_webview_window("main") {
+    let _ = window.eval("window.dispatchEvent(new Event('lucky:open-settings'))");
+  }
+}
+
+#[tauri::command]
+fn hide_tray_menu(app: tauri::AppHandle) {
+  if let Some(window) = app.get_webview_window("tray-menu") {
+    let _ = window.hide();
+  }
+  if let Some(state) = app.try_state::<TrayMenuState>() {
+    *state.shown_at.lock().unwrap() = None;
+  }
+}
+
+/// 菜单窗口渲染完成后主动补一次聚焦，Windows 首次 show 时经常不给前台焦点。
+#[tauri::command]
+fn focus_tray_menu(app: tauri::AppHandle) {
+  if let Some(window) = app.get_webview_window("tray-menu") {
+    if window.is_visible().unwrap_or(false) {
+      let _ = window.set_focus();
+      if let Some(state) = app.try_state::<TrayMenuState>() {
+        *state.shown_at.lock().unwrap() = Some(Instant::now());
+      }
+    }
+  }
+}
+
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+  app.exit(0);
+}
+
+/// 菜单内容高度由前端测量后回传，窗口跟着内容缩放到刚好包住菜单。
+#[tauri::command]
+fn resize_tray_menu(app: tauri::AppHandle, height: f64) {
+  let height = height.clamp(TRAY_MENU_MIN_HEIGHT, TRAY_MENU_MAX_HEIGHT);
+  if let Some(window) = app.get_webview_window("tray-menu") {
+    let _ = window.set_size(tauri::LogicalSize::new(TRAY_MENU_WIDTH, height));
+    if let Ok(size) = window.outer_size() {
+      let _ = window.set_position(tray_menu_position(&app, size));
+    }
+  }
 }
 
 #[tauri::command]
@@ -738,15 +907,20 @@ pub fn run() {
     }))
     .plugin(tauri_plugin_log::Builder::default().build())
     .setup(|app| {
+      app.manage(TrayMenuState {
+        cursor: Mutex::new(None),
+        shown_at: Mutex::new(None),
+      });
       let server = spawn_server(app.handle());
-      let (window_url, boot_error) = match server {
+      let (window_url, boot_error, server_url) = match server {
         Ok((child, url)) => {
           app.manage(ServerProcess(Mutex::new(Some(child))));
-          (WebviewUrl::External(url.parse().map_err(|e| format!("无效的服务地址: {e}"))?), None)
+          let parsed = url.parse().map_err(|e| format!("无效的服务地址: {e}"))?;
+          (WebviewUrl::External(parsed), None, Some(url))
         }
         Err(error) => {
           eprintln!("[shell] 启动 Node 服务失败: {error}");
-          (WebviewUrl::App("boot-error.html".into()), Some(error))
+          (WebviewUrl::App("boot-error.html".into()), Some(error), None)
         }
       };
 
@@ -754,8 +928,16 @@ pub fn run() {
       .title("Lucky Apps")
       .inner_size(1400.0, 800.0)
       .resizable(true)
+      .decorations(false)
       .devtools(cfg!(debug_assertions))
       .build()?;
+
+      // 自绘托盘菜单和主窗口用同一个前端服务，插件通过主窗口注册菜单项。
+      if let Some(url) = server_url {
+        if let Err(error) = create_tray_menu_window(app.handle(), &url) {
+          eprintln!("[shell] 创建托盘菜单窗口失败: {error}");
+        }
+      }
 
       if let Some(error) = boot_error {
         let json = serde_json::to_string(&error).unwrap_or_else(|_| "\"Node.js 服务启动失败\"".into());
@@ -789,7 +971,16 @@ pub fn run() {
 
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![apply_branding, restart_app])
+    .invoke_handler(tauri::generate_handler![
+      apply_branding,
+      restart_app,
+      show_main_window,
+      open_settings,
+      hide_tray_menu,
+      focus_tray_menu,
+      resize_tray_menu,
+      quit_app
+    ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application");
 

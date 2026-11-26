@@ -38,7 +38,51 @@ export default {
 - 画布组件用 `components.registerCanvas`，表格列组件用 `components.registerColumn`，列属性插槽用 `components.registerColumnSlot`。
 - 侧边栏入口/页面用 `navigation.register`，和画布组件、列组件是不同扩展类型。仓库的 `trash-bin` 就是一个独立功能组件包：注册左侧回收站入口和完整页面，样式与内置版一致。
 - 设置面板入口用 `settings.register`；程序名称/图标用 `ctx.branding.set`。桌面端的窗口标题、标题栏/任务栏/托盘图标与 exe 文件图标由设置中心「程序名称与图标」统一写入，exe 图标重启应用后生效。
+- 托盘图标右键菜单用 `ctx.tray.registerItem` 注册；处理函数在主窗口执行，可用 `class` / `style` 或 `ctx.tray.addStyle` 定制菜单外观，详见 [Cordis 服务](/guide/api#托盘右键菜单)。
 - 包由 Cordis 或 manifest client 入口管理生命周期，热加载时先 dispose 再重新挂载。
+
+## 页面顶栏渲染到窗口标题栏
+
+页面级的标题、状态和工具按钮不要再在自己的内容里画第二条 header。窗口标题栏预留了
+`#wr-titlebar-slot`，用 Vue 的 `<Teleport>` 把页面顶栏投进去；切页时跟着页面一起卸载，
+不会在 KeepAlive 里残留：
+
+```vue
+<script setup>
+import { computed, inject } from 'vue'
+
+const ctx = inject('cordis')
+// 只有当前页面激活时才占用标题栏
+const active = computed(() => ctx.ui.activeView.value === 'my-plugin')
+</script>
+
+<template>
+  <Teleport v-if="active" to="#wr-titlebar-slot">
+    <header class="my-toolbar">
+      <span>我的页面</span>
+      <el-button type="primary">新建</el-button>
+    </header>
+  </Teleport>
+
+  <div class="my-page">页面内容</div>
+</template>
+
+<style scoped>
+.my-toolbar {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: transparent; /* 跟随标题栏主题 */
+}
+</style>
+```
+
+- 标题栏高度统一是 40px，顶栏内容保持单行；空白处仍然是窗口拖拽区，按钮/下拉正常可点。
+- 顶栏背景不要写死颜色，保持透明即可跟随亮/暗主题；标题栏自身的底和边框由宿主绘制。
+- 周报页 `ReportEditor.vue` 的顶栏已经这样接入，可作为完整示例。
 
 ## 组件内部直接 import
 
