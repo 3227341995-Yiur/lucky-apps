@@ -326,7 +326,7 @@ body,
 #tray-menu {
   height: 100%;
   margin: 0;
-  background: var(--el-bg-color-overlay) !important;
+  background: var(--wr-surface) !important;
   overflow: hidden;
 }
 </style>
@@ -352,8 +352,8 @@ body,
   flex: none;
   padding: 6px;
   overflow-y: auto;
-  background: var(--el-bg-color-overlay);
-  color: var(--el-text-color-regular);
+  background: var(--wr-surface);
+  color: var(--wr-text-2);
   font-family: var(--el-font-family);
   user-select: none;
 }
@@ -369,9 +369,9 @@ body,
   flex-direction: column;
   padding: 6px;
   overflow-y: auto;
-  border-right: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color-overlay);
-  color: var(--el-text-color-regular);
+  border-right: 1px solid var(--wr-border);
+  background: var(--wr-surface);
+  color: var(--wr-text-2);
   font-family: var(--el-font-family);
   user-select: none;
 }
@@ -379,7 +379,7 @@ body,
 .tray-menu-title {
   padding: 6px 10px 7px;
   overflow: hidden;
-  color: var(--el-text-color-secondary);
+  color: var(--wr-muted);
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -404,23 +404,23 @@ body,
   cursor: default;
 }
 
-/* 使用全局主题变量；dropdown 专用变量只在 .el-dropdown 作用域里存在，别直接引用。 */
+/* 走宿主 --wr-* 语义变量；外置主题插件改写的变量会同步到托盘窗口。 */
 .tray-item:hover,
 .tray-item:focus-visible,
 .tray-item.active {
   outline: none;
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  background: var(--wr-accent-soft);
+  color: var(--wr-text);
 }
 
 .tray-item.danger {
-  color: var(--el-color-danger);
+  color: var(--wr-danger);
 }
 
 .tray-item.danger:hover,
 .tray-item.danger:focus-visible {
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--wr-danger) 12%, var(--wr-surface));
+  color: var(--wr-danger);
 }
 
 .tray-item:disabled {
@@ -453,14 +453,14 @@ body,
 
 .tray-hint {
   margin-left: auto;
-  color: var(--el-text-color-placeholder);
+  color: var(--wr-muted);
   font-size: 10.5px;
 }
 
 .tray-arrow {
   flex: none;
   margin-left: auto;
-  color: var(--el-text-color-secondary);
+  color: var(--wr-muted);
   font-size: 14px;
   line-height: 1;
 }
@@ -472,12 +472,12 @@ body,
 .tray-separator {
   height: 1px;
   margin: 5px 8px;
-  background: var(--el-border-color-lighter);
+  background: var(--wr-border);
 }
 
 .tray-empty {
   padding: 12px 10px;
-  color: var(--el-text-color-placeholder);
+  color: var(--wr-muted);
   font-size: 12px;
   text-align: center;
 }

@@ -62,10 +62,41 @@ export function apply(ctx) {
     )
   }
 
+  /**
+   * 托盘窗口是独立 webview，la-theme 之类的外置主题只改了主窗口 html 上的
+   * CSS 变量；这里把当前生效的 --wr-* / --el-* 一起推过去，菜单才能跟着换肤。
+   */
+  function readThemeVars(): Record<string, string> {
+    const vars: Record<string, string> = {}
+    if (typeof document === 'undefined') return vars
+    const root = document.documentElement
+    const computed = getComputedStyle(root)
+    const names = [
+      '--wr-bg', '--wr-sidebar-bg', '--wr-surface', '--wr-surface-2', '--wr-border',
+      '--wr-text', '--wr-text-2', '--wr-muted', '--wr-accent', '--wr-accent-soft',
+      '--wr-danger', '--wr-titlebar-bg', '--wr-titlebar-fg',
+      '--el-color-primary', '--el-color-primary-light-9', '--el-color-danger', '--el-color-danger-light-9',
+      '--el-bg-color', '--el-bg-color-overlay', '--el-text-color-primary', '--el-text-color-regular',
+      '--el-text-color-secondary', '--el-text-color-placeholder', '--el-border-color-lighter',
+      '--el-fill-color-light', '--el-fill-color', '--el-font-family',
+    ]
+    // 先收插件写在 html 上的内联变量（la-theme 就是这种），再补宿主计算值。
+    for (let index = 0; index < root.style.length; index += 1) {
+      const name = root.style.item(index)
+      if (name.startsWith('--')) vars[name] = root.style.getPropertyValue(name).trim()
+    }
+    for (const name of names) {
+      if (vars[name]) continue
+      const value = computed.getPropertyValue(name).trim()
+      if (value) vars[name] = value
+    }
+    return vars
+  }
+
   /** 主题变化直接推给托盘窗口，不依赖 localStorage 的 storage 事件。 */
   function pushTheme(theme?: { resolved?: string }) {
     const resolved = theme?.resolved || ctx.theme?.get?.().resolved || 'light'
-    void emitTo('tray-menu', 'tray:theme', { resolved })
+    void emitTo('tray-menu', 'tray:theme', { resolved, vars: readThemeVars() })
   }
 
   function refresh() {
