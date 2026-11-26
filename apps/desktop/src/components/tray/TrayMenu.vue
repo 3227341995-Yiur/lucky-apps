@@ -3,7 +3,7 @@
  * 托盘右键菜单的渲染窗口。菜单项由主窗口的 ctx.tray 注册后以纯数据传来，
  * 这里只负责渲染；插件注入的样式表原样挂到 <head>。
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { TrayMenuModel, TrayMenuRow } from '@/cordis/trayModel'
 
 defineOptions({ name: 'TrayMenu' })
@@ -19,8 +19,15 @@ const FALLBACK_ROWS: TrayMenuRow[] = [
 const root = ref<HTMLElement | null>(null)
 const title = ref('Lucky Apps')
 const rows = ref<TrayMenuRow[]>(FALLBACK_ROWS)
+const openId = ref<string | null>(null)
+const submenu = computed(() => {
+  const row = rows.value.find(item => item.id === openId.value)
+  return row?.children?.length ? row : null
+})
 const unlisteners: Array<() => void> = []
+let lastWidth = 0
 let lastHeight = 0
+let closeTimer: number | undefined
 let mediaQuery: MediaQueryList | null = null
 
 function tauriApi() {
@@ -68,6 +75,7 @@ function applyModel(model: TrayMenuModel | null) {
   syncTheme()
   title.value = model?.title || 'Lucky Apps'
   applyStyles(model?.styles)
+  openId.value = null
   const items = Array.isArray(model?.items) ? model.items : []
   rows.value = items.some(item => !item.separator) ? items : FALLBACK_ROWS
   requestAnimationFrame(() => void resizeToContent())
@@ -76,12 +84,51 @@ function applyModel(model: TrayMenuModel | null) {
 async function resizeToContent() {
   const el = root.value
   if (!el) return
-  // scrollHeight 是内容真实高度，不受窗口高度和 max-height 限制。
+  // 展开二级菜单时窗口向左加宽；高度取内容真实高度（不受 max-height 限制）。
+  const width = Math.ceil(el.getBoundingClientRect().width)
   const height = Math.ceil(el.scrollHeight)
-  if (!height || Math.abs(height - lastHeight) < 2) return
+  if (!width || !height) return
+  if (width === lastWidth && Math.abs(height - lastHeight) < 2) return
+  lastWidth = width
   lastHeight = height
-  await invoke('resize_tray_menu', { height })
+  await invoke('resize_tray_menu', { width, height })
   await invoke('focus_tray_menu')
+}
+
+function cancelClose() {
+  if (closeTimer === undefined) return
+  clearTimeout(closeTimer)
+  closeTimer = undefined
+}
+
+function openSubmenu(item: TrayMenuRow) {
+  cancelClose()
+  if (!item.children?.length || item.disabled || openId.value === item.id) return
+  openId.value = item.id
+  void nextTick(() => void resizeToContent())
+}
+
+function closeSubmenu(restoreFocus = false) {
+  cancelClose()
+  const id = openId.value
+  if (id === null) return
+  openId.value = null
+  void nextTick(() => {
+    void resizeToContent()
+    if (!restoreFocus) return
+    root.value?.querySelector<HTMLButtonElement>(`[data-tray-item="${id}"]`)?.focus()
+  })
+}
+
+/** 鼠标从一级行挪到左侧二级面板要跨过一点距离，延迟关闭。 */
+function scheduleClose() {
+  cancelClose()
+  closeTimer = window.setTimeout(() => closeSubmenu(), 160)
+}
+
+function onRowEnter(item: TrayMenuRow) {
+  if (item.children?.length) openSubmenu(item)
+  else scheduleClose()
 }
 
 function requestModel() {
@@ -90,6 +137,11 @@ function requestModel() {
 
 async function select(item: TrayMenuRow) {
   if (item.separator || item.disabled) return
+  // 一级项只负责展开二级面板，真正执行的是子项的 onSelect。
+  if (item.children?.length) {
+    openSubmenu(item)
+    return
+  }
   void invoke('hide_tray_menu')
   // 默认项不依赖主窗口是否就绪。
   if (item.id === 'app:show') {
@@ -114,14 +166,34 @@ function closeMenu() {
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault()
-    closeMenu()
+    if (openId.value) closeSubmenu(true)
+    else closeMenu()
+    return
+  }
+  if (event.key === 'ArrowRight') {
+    const active = document.activeElement as HTMLElement | null
+    const row = rows.value.find(item => item.id === active?.dataset.trayItem)
+    if (!row?.children?.length) return
+    event.preventDefault()
+    openSubmenu(row)
+    void nextTick(() => {
+      root.value?.querySelector<HTMLButtonElement>('.tray-flyout .tray-item')?.focus()
+    })
+    return
+  }
+  if (event.key === 'ArrowLeft' && openId.value) {
+    event.preventDefault()
+    closeSubmenu(true)
     return
   }
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
-  const buttons = [...(root.value?.querySelectorAll<HTMLButtonElement>('.tray-item:not(:disabled)') || [])]
+  // 只在当前面板里循环，展开的二级项不混进一级的上下键顺序。
+  const active = document.activeElement as HTMLElement | null
+  const scope = active?.closest('.tray-flyout') || root.value?.querySelector('.tray-menu')
+  const buttons = [...(scope?.querySelectorAll<HTMLButtonElement>('.tray-item:not(:disabled)') || [])]
   if (!buttons.length) return
   event.preventDefault()
-  const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+  const index = buttons.indexOf(active as HTMLButtonElement)
   const next = event.key === 'ArrowDown'
     ? (index + 1) % buttons.length
     : (index - 1 + buttons.length) % buttons.length
@@ -152,6 +224,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  if (closeTimer !== undefined) clearTimeout(closeTimer)
   for (const off of unlisteners.splice(0)) {
     try { off() } catch {}
   }
@@ -163,30 +236,68 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="root" class="tray-menu" role="menu" :aria-label="title">
-    <div class="tray-menu-title">{{ title }}</div>
-    <template v-for="item in rows" :key="item.id">
-      <div v-if="item.separator" class="tray-separator" role="separator" />
+  <div
+    ref="root"
+    class="tray-shell"
+    @mouseenter="cancelClose"
+    @mouseleave="scheduleClose"
+  >
+    <div
+      v-if="submenu"
+      class="tray-flyout"
+      role="menu"
+      :aria-label="submenu.label"
+      @mouseenter="cancelClose"
+    >
+      <div class="tray-menu-title">{{ submenu.label }}</div>
       <button
-        v-else
+        v-for="child in submenu.children"
+        :key="child.id"
         type="button"
         role="menuitem"
         class="tray-item"
-        :class="[item.className, { danger: item.danger }]"
-        :style="item.style"
-        :disabled="item.disabled"
-        :data-tray-item="item.id"
-        @click="select(item)"
+        :class="[child.className, { danger: child.danger }]"
+        :style="child.style"
+        :disabled="child.disabled"
+        :data-tray-item="child.id"
+        @click="select(child)"
       >
         <span class="tray-icon" aria-hidden="true">
-          <span v-if="item.iconSvg" class="tray-icon-svg" v-html="item.iconSvg" />
-          <component :is="item.icon" v-else-if="item.icon" />
+          <span v-if="child.iconSvg" class="tray-icon-svg" v-html="child.iconSvg" />
+          <component :is="child.icon" v-else-if="child.icon" />
         </span>
-        <span class="tray-label">{{ item.label }}</span>
-        <span v-if="item.hint" class="tray-hint">{{ item.hint }}</span>
+        <span class="tray-label">{{ child.label }}</span>
+        <span v-if="child.hint" class="tray-hint">{{ child.hint }}</span>
       </button>
-    </template>
-    <div v-if="!rows.length" class="tray-empty">暂无菜单项</div>
+    </div>
+
+    <div class="tray-menu" role="menu" :aria-label="title">
+      <div class="tray-menu-title">{{ title }}</div>
+      <template v-for="item in rows" :key="item.id">
+        <div v-if="item.separator" class="tray-separator" role="separator" />
+        <button
+          v-else
+          type="button"
+          role="menuitem"
+          class="tray-item"
+          :class="[item.className, { danger: item.danger }]"
+          :style="item.style"
+          :disabled="item.disabled"
+          :data-tray-item="item.id"
+          @mouseenter="onRowEnter(item)"
+          @click="select(item)"
+        >
+          <span class="tray-icon" aria-hidden="true">
+            <span v-if="item.iconSvg" class="tray-icon-svg" v-html="item.iconSvg" />
+            <component :is="item.icon" v-else-if="item.icon" />
+          </span>
+          <span class="tray-label">{{ item.label }}</span>
+          <span v-if="item.hint" class="tray-hint">{{ item.hint }}</span>
+          <span v-if="item.children?.length" class="tray-arrow" aria-hidden="true">›</span>
+        </button>
+      </template>
+      <div v-if="!rows.length" class="tray-empty">暂无菜单项</div>
+    </div>
   </div>
 </template>
 
@@ -203,11 +314,36 @@ body,
 </style>
 
 <style scoped>
+/* 一级菜单在右、二级面板在左；窗口向左加宽时一级菜单的屏幕位置不变。 */
+.tray-shell {
+  display: flex;
+  align-items: flex-end;
+  width: max-content;
+}
+
 .tray-menu {
   box-sizing: border-box;
+  width: 280px;
   max-height: 628px;
+  flex: none;
   padding: 6px;
   overflow-y: auto;
+  background: var(--el-bg-color-overlay);
+  color: var(--el-text-color-regular);
+  font-family: var(--el-font-family);
+  user-select: none;
+}
+
+.tray-flyout {
+  display: flex;
+  box-sizing: border-box;
+  width: 232px;
+  max-height: 628px;
+  flex: none;
+  flex-direction: column;
+  padding: 6px;
+  overflow-y: auto;
+  border-right: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color-overlay);
   color: var(--el-text-color-regular);
   font-family: var(--el-font-family);
@@ -291,6 +427,18 @@ body,
   margin-left: auto;
   color: var(--el-text-color-placeholder);
   font-size: 10.5px;
+}
+
+.tray-arrow {
+  flex: none;
+  margin-left: auto;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tray-hint + .tray-arrow {
+  margin-left: 0;
 }
 
 .tray-separator {

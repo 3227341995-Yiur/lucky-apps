@@ -213,6 +213,8 @@ export interface TrayMenuItem {
   className?: string
   /** 内联样式，直接绑定到菜单项。 */
   style?: Record<string, string | number>
+  /** 二级菜单：一级项悬浮后在左侧展开，子项支持同样的字段。 */
+  children?: TrayMenuItem[]
   /** 在主窗口执行；可使用全部 ctx 服务。 */
   onSelect?: () => unknown
 }

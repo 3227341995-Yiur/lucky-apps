@@ -24,3 +24,23 @@ test('tray menu sorts, filters, separates sections and strips handlers', () => {
   assert.equal('onSelect' in model.items[1], false)
   assert.deepEqual(model.styles, [{ id: 'plugin-css', css: '.custom { color: red }' }])
 })
+
+test('tray menu keeps visible children for submenus', () => {
+  const model = buildTrayMenu([
+    {
+      id: 'theme',
+      label: '主题',
+      onSelect: () => 'parent',
+      children: [
+        { id: 'theme:hidden', label: '隐藏', when: () => false },
+        { id: 'theme:sakura', label: '樱花粉', iconSvg: '<svg/>', onSelect: () => 'child' },
+      ],
+    },
+  ])
+
+  assert.deepEqual(model.items.map(item => item.id), ['theme'])
+  const children = model.items[0].children || []
+  assert.deepEqual(children.map(item => item.id), ['theme:sakura'])
+  assert.equal(children[0].iconSvg, '<svg/>')
+  assert.equal('onSelect' in children[0], false)
+})

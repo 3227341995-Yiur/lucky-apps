@@ -530,12 +530,15 @@ fn quit_app(app: tauri::AppHandle) {
   app.exit(0);
 }
 
-/// 菜单内容高度由前端测量后回传，窗口跟着内容缩放到刚好包住菜单。
+/// 菜单内容尺寸由前端测量后回传；展开二级菜单时宽度一起变大，窗口向左扩。
 #[tauri::command]
-fn resize_tray_menu(app: tauri::AppHandle, height: f64) {
+fn resize_tray_menu(app: tauri::AppHandle, width: Option<f64>, height: f64) {
   let height = height.clamp(TRAY_MENU_MIN_HEIGHT, TRAY_MENU_MAX_HEIGHT);
+  let width = width
+    .unwrap_or(TRAY_MENU_WIDTH)
+    .clamp(TRAY_MENU_WIDTH, 720.0);
   if let Some(window) = app.get_webview_window("tray-menu") {
-    let _ = window.set_size(tauri::LogicalSize::new(TRAY_MENU_WIDTH, height));
+    let _ = window.set_size(tauri::LogicalSize::new(width, height));
     if let Ok(size) = window.outer_size() {
       let _ = window.set_position(tray_menu_position(&app, size));
     }

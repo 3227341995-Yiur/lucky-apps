@@ -53,6 +53,7 @@ export function apply(ctx) {
 - `order` 数值越小越靠前（默认 100）；相邻 `section` 变化会自动分隔。
 - `danger` 红色危险项，`disabled` 禁用，`when()` 打开菜单时动态显隐。
 - `icon` 用 Element Plus 图标名，`iconSvg` 可直接放自定义 SVG。
+- `children` 给一级项挂二级菜单：鼠标悬浮或按 `→` 在左侧展开，子项支持同样的字段；选中后执行的仍是子项的 `onSelect`。
 - 菜单默认配色使用系统 `--el-*` 变量并跟随亮/暗主题；自定义样式也请复用这些变量，不要写死颜色。
 - 注册/卸载走 `ctx.effect(() => ctx.tray.registerItem(...))`；样式会跨热重载保留。
 

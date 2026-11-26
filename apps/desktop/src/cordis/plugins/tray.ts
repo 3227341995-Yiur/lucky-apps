@@ -22,15 +22,26 @@ function emitTo(target: string, event: string, payload: unknown) {
 
 export function apply(ctx) {
   const items = new Map<string, TrayMenuItem>()
+  // 一级项和二级项都进处理器表；菜单模型只下发一级项（子项挂在 rows.children）。
+  const handlers = new Map<string, TrayMenuItem>()
   const styles = new Map<string, string>()
   const unlisteners: Array<() => void> = []
+
+  function walk(item: TrayMenuItem, visit: (entry: TrayMenuItem) => void) {
+    visit(item)
+    for (const child of item.children || []) walk(child, visit)
+  }
 
   function registerItem(item: TrayMenuItem) {
     if (!item?.id) return () => {}
     const entry = { ...item }
     items.set(entry.id, entry)
+    walk(entry, child => handlers.set(child.id, child))
     return () => {
       if (items.get(entry.id) === entry) items.delete(entry.id)
+      walk(entry, (child) => {
+        if (handlers.get(child.id) === child) handlers.delete(child.id)
+      })
     }
   }
 
@@ -107,7 +118,7 @@ export function apply(ctx) {
       unlisteners.push(await events.listen('tray:menu-open', refresh))
       unlisteners.push(await events.listen('tray:menu-request', refresh))
       unlisteners.push(await events.listen('tray:menu-select', async (event: any) => {
-        const item = items.get(event?.payload?.id)
+        const item = handlers.get(event?.payload?.id)
         if (!item || item.disabled) return
         try {
           await item.onSelect?.()
@@ -127,6 +138,7 @@ export function apply(ctx) {
       try { off() } catch {}
     }
     items.clear()
+    handlers.clear()
     styles.clear()
   })
 }

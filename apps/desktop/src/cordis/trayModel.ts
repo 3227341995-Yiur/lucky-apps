@@ -18,6 +18,8 @@ export interface TrayMenuItem {
   style?: Record<string, string | number>
   /** 打开菜单时求值；返回 false 则不显示 */
   when?: () => boolean
+  /** 二级菜单：一级项悬浮后在左侧展开，子项支持同样的字段。 */
+  children?: TrayMenuItem[]
   onSelect?: () => unknown
 }
 
@@ -37,12 +39,40 @@ export interface TrayMenuRow {
   disabled?: boolean
   className?: string
   style?: Record<string, string | number>
+  children?: TrayMenuRow[]
 }
 
 export interface TrayMenuModel {
   title: string
   items: TrayMenuRow[]
   styles: TrayMenuStyle[]
+}
+
+function isVisible(item: TrayMenuItem) {
+  if (!item || item.hidden) return false
+  try {
+    return !item.when || item.when()
+  } catch {
+    // 单个插件的显隐条件出错不能拖垮整个托盘菜单。
+    return false
+  }
+}
+
+/** 行只保留可序列化字段；子项递归映射，处理函数留在主窗口。 */
+function toRow(item: TrayMenuItem): TrayMenuRow {
+  const children = (item.children || []).filter(isVisible).map(toRow)
+  return {
+    id: item.id,
+    label: item.label || item.id,
+    icon: item.icon,
+    iconSvg: item.iconSvg,
+    hint: item.hint,
+    danger: Boolean(item.danger),
+    disabled: Boolean(item.disabled),
+    className: item.className,
+    style: item.style,
+    ...(children.length ? { children } : {}),
+  }
 }
 
 /** 排序、过滤并把 section 边界换成分隔行；函数字段不会进入模型。 */
@@ -52,15 +82,7 @@ export function buildTrayMenu(
   title = 'Lucky Apps',
 ): TrayMenuModel {
   const visible = items
-    .filter((item) => {
-      if (!item || item.hidden) return false
-      try {
-        return !item.when || item.when()
-      } catch {
-        // 单个插件的显隐条件出错不能拖垮整个托盘菜单。
-        return false
-      }
-    })
+    .filter(isVisible)
     .slice()
     .sort((left, right) => (left.order ?? 100) - (right.order ?? 100))
 
@@ -72,17 +94,7 @@ export function buildTrayMenu(
       rows.push({ id: `separator:${section}:${current}`, separator: true })
     }
     section = current
-    rows.push({
-      id: item.id,
-      label: item.label || item.id,
-      icon: item.icon,
-      iconSvg: item.iconSvg,
-      hint: item.hint,
-      danger: Boolean(item.danger),
-      disabled: Boolean(item.disabled),
-      className: item.className,
-      style: item.style,
-    })
+    rows.push(toRow(item))
   }
   return {
     title,
