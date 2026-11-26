@@ -27,6 +27,7 @@ const submenu = computed(() => {
 const unlisteners: Array<() => void> = []
 let lastWidth = 0
 let lastHeight = 0
+let resizeFrame = 0
 let closeTimer: number | undefined
 let mediaQuery: MediaQueryList | null = null
 
@@ -97,7 +98,16 @@ function applyModel(model: TrayMenuModel | null) {
   openId.value = previous && rows.value.some(row => row.id === previous && row.children?.length)
     ? previous
     : null
-  requestAnimationFrame(() => void resizeToContent())
+  scheduleResize()
+}
+
+/** 同一帧里模型更新和展开二级面板都要求改尺寸时，只发一次 resize。 */
+function scheduleResize() {
+  if (resizeFrame) return
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = 0
+    void resizeToContent()
+  })
 }
 
 async function resizeToContent() {
@@ -111,8 +121,8 @@ async function resizeToContent() {
   if (width === lastWidth && Math.abs(height - lastHeight) < 2) return
   lastWidth = width
   lastHeight = height
+  // 展开二级面板只改窗口尺寸；不再重复抢焦点，避免整块菜单闪一下。
   await invoke('resize_tray_menu', { width, height })
-  await invoke('focus_tray_menu')
 }
 
 function cancelClose() {
@@ -125,7 +135,7 @@ function openSubmenu(item: TrayMenuRow) {
   cancelClose()
   if (!item.children?.length || item.disabled || openId.value === item.id) return
   openId.value = item.id
-  void nextTick(() => void resizeToContent())
+  void nextTick(scheduleResize)
 }
 
 function closeSubmenu(restoreFocus = false) {
@@ -134,7 +144,7 @@ function closeSubmenu(restoreFocus = false) {
   if (id === null) return
   openId.value = null
   void nextTick(() => {
-    void resizeToContent()
+    scheduleResize()
     if (!restoreFocus) return
     root.value?.querySelector<HTMLButtonElement>(`[data-tray-item="${id}"]`)?.focus()
   })
@@ -251,6 +261,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (closeTimer !== undefined) clearTimeout(closeTimer)
+  if (resizeFrame) cancelAnimationFrame(resizeFrame)
   for (const off of unlisteners.splice(0)) {
     try { off() } catch {}
   }
