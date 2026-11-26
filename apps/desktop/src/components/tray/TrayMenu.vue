@@ -378,13 +378,13 @@ body,
   cursor: default;
 }
 
-/* 和 Element Plus 下拉菜单一致，直接复用系统菜单悬浮变量。 */
+/* 使用全局主题变量；dropdown 专用变量只在 .el-dropdown 作用域里存在，别直接引用。 */
 .tray-item:hover,
 .tray-item:focus-visible,
 .tray-item.active {
   outline: none;
-  background: var(--el-dropdown-menuItem-hover-fill);
-  color: var(--el-dropdown-menuItem-hover-color);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 .tray-item.danger {
