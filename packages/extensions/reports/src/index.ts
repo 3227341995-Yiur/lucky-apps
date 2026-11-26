@@ -11,7 +11,7 @@ import { setReportCtx } from './ctx'
 
 export default {
   name: '@lucky-apps/extension-reports',
-  inject: ['navigation', 'settings', 'sidebar', 'overlay', 'db', 'extensions', 'ui', 'tray'],
+  inject: ['navigation', 'settings', 'sidebar', 'overlay', 'db', 'extensions', 'ui'],
   async apply(ctx) {
     setReportCtx(ctx)
     // 数据库/表结构归周报插件所有；插件未加载时宿主不保留周报数据层。
@@ -59,16 +59,6 @@ export default {
       order: 60,
       component: ReportsSettings,
     })
-    ctx.effect(() => ctx.tray.registerItem({
-      id: 'reports:new',
-      label: '新建本周周报',
-      icon: 'DocumentAdd',
-      hint: 'Ctrl+N',
-      order: 40,
-      section: 'shortcuts',
-      onSelect: () => createWeekReport(),
-    }))
-
     const onKeydown = (event) => {
       const ctrl = event.ctrlKey || event.metaKey
       if (ctrl && !event.shiftKey && event.key.toLowerCase() === 'n') {

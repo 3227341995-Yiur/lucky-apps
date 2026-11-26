@@ -197,7 +197,7 @@ body,
 #tray-menu {
   height: 100%;
   margin: 0;
-  background: var(--wr-surface) !important;
+  background: var(--el-bg-color-overlay) !important;
   overflow: hidden;
 }
 </style>
@@ -208,8 +208,8 @@ body,
   max-height: 628px;
   padding: 6px;
   overflow-y: auto;
-  background: var(--wr-surface);
-  color: var(--wr-text-2);
+  background: var(--el-bg-color-overlay);
+  color: var(--el-text-color-regular);
   font-family: var(--el-font-family);
   user-select: none;
 }
@@ -217,7 +217,7 @@ body,
 .tray-menu-title {
   padding: 6px 10px 7px;
   overflow: hidden;
-  color: var(--wr-muted);
+  color: var(--el-text-color-secondary);
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -245,23 +245,18 @@ body,
 .tray-item:hover,
 .tray-item:focus-visible {
   outline: none;
-  background: var(--wr-accent-soft);
-  color: var(--wr-text);
-}
-
-html.dark .tray-item:hover,
-html.dark .tray-item:focus-visible {
   background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
 .tray-item.danger {
-  color: var(--wr-danger);
+  color: var(--el-color-danger);
 }
 
 .tray-item.danger:hover,
 .tray-item.danger:focus-visible {
-  background: rgba(229, 72, 77, 0.12);
-  color: var(--wr-danger);
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
 }
 
 .tray-item:disabled {
@@ -294,19 +289,19 @@ html.dark .tray-item:focus-visible {
 
 .tray-hint {
   margin-left: auto;
-  color: var(--wr-muted);
+  color: var(--el-text-color-placeholder);
   font-size: 10.5px;
 }
 
 .tray-separator {
   height: 1px;
   margin: 5px 8px;
-  background: var(--wr-border);
+  background: var(--el-border-color-lighter);
 }
 
 .tray-empty {
   padding: 12px 10px;
-  color: var(--wr-muted);
+  color: var(--el-text-color-placeholder);
   font-size: 12px;
   text-align: center;
 }

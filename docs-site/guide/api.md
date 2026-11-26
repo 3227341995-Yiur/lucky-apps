@@ -34,18 +34,18 @@
 ```js
 export function apply(ctx) {
   ctx.effect(() => ctx.tray.registerItem({
-    id: 'reports:new',
-    label: '新建本周周报',
+    id: 'demo:create',
+    label: '新建记录',
     icon: 'DocumentAdd',
     order: 30,
     section: 'app',
     hint: 'Ctrl+N',
-    when: () => Boolean(ctx.get?.('weekReport')),
-    onSelect: () => ctx.weekReport.reports.createDefault(),
+    when: () => Boolean(ctx.get?.('someService')),
+    onSelect: () => ctx.commands.run('demo:create'),
   }))
   // 注入菜单样式：class / style 也可以直接写在菜单项上
-  ctx.effect(() => ctx.tray.addStyle('reports', `
-    [data-tray-item="reports:new"] .tray-label { font-weight: 600; }
+  ctx.effect(() => ctx.tray.addStyle('demo', `
+    [data-tray-item="demo:create"] .tray-label { font-weight: 600; }
   `))
 }
 ```
@@ -53,6 +53,7 @@ export function apply(ctx) {
 - `order` 数值越小越靠前（默认 100）；相邻 `section` 变化会自动分隔。
 - `danger` 红色危险项，`disabled` 禁用，`when()` 打开菜单时动态显隐。
 - `icon` 用 Element Plus 图标名，`iconSvg` 可直接放自定义 SVG。
+- 菜单默认配色使用系统 `--el-*` 变量并跟随亮/暗主题；自定义样式也请复用这些变量，不要写死颜色。
 - 注册/卸载走 `ctx.effect(() => ctx.tray.registerItem(...))`；样式会跨热重载保留。
 
 ## 周报插件 API
