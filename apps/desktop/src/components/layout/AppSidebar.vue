@@ -119,7 +119,8 @@ const railActions = computed(() => listRailActions())
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 0 8px;
+  /* 左右各 12px 由 52px 轨道和 28px 品牌图标决定，顶部取同一个 12px。 */
+  padding: 12px 0 8px;
   background: var(--wr-sidebar-bg);
   border-right: 1px solid var(--wr-border);
 }
