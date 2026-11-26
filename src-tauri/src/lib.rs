@@ -536,11 +536,17 @@ fn apply_tray_bounds(app: &tauri::AppHandle, window: &tauri::WebviewWindow, widt
     return false;
   };
   let scale = window.scale_factor().unwrap_or(1.0);
-  let pixel_width = (width * scale).round().max(1.0) as i32;
-  let pixel_height = (height * scale).round().max(1.0) as i32;
+  // SetWindowPos 改的是外框尺寸；前端量的是 webview 视口（内框），
+  // 不补上边框差会让内框比内容矮几像素，一级菜单最后一项被裁掉。
+  let inner = window.inner_size().unwrap_or_default();
+  let outer = window.outer_size().unwrap_or_default();
+  let frame_width = outer.width.saturating_sub(inner.width);
+  let frame_height = outer.height.saturating_sub(inner.height);
+  let pixel_width = ((width * scale).round().max(1.0) as u32).saturating_add(frame_width);
+  let pixel_height = ((height * scale).round().max(1.0) as u32).saturating_add(frame_height);
   let position = tray_menu_position(
     app,
-    tauri::PhysicalSize::new(pixel_width as u32, pixel_height as u32),
+    tauri::PhysicalSize::new(pixel_width, pixel_height),
   );
   let ok = unsafe {
     SetWindowPos(
@@ -548,8 +554,8 @@ fn apply_tray_bounds(app: &tauri::AppHandle, window: &tauri::WebviewWindow, widt
       std::ptr::null_mut(),
       position.x,
       position.y,
-      pixel_width,
-      pixel_height,
+      pixel_width as i32,
+      pixel_height as i32,
       SWP_NOACTIVATE | SWP_NOZORDER,
     )
   };

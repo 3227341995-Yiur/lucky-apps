@@ -501,10 +501,12 @@ body,
   margin-left: 6px;
 }
 
+/* 用 border 画 1px 线：Chromium 会把边框吸附到设备像素， */
+/* 背景色方块在 125%/150% 缩放下会出现有的 1px、有的 2px。 */
 .tray-separator {
-  height: 1px;
+  height: 0;
   margin: 5px 8px;
-  background: var(--wr-border);
+  border-top: 1px solid var(--wr-border);
 }
 
 .tray-empty {
