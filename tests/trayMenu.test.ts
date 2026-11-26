@@ -33,7 +33,7 @@ test('tray menu keeps visible children for submenus', () => {
       onSelect: () => 'parent',
       children: [
         { id: 'theme:hidden', label: '隐藏', when: () => false },
-        { id: 'theme:sakura', label: '樱花粉', iconSvg: '<svg/>', onSelect: () => 'child' },
+        { id: 'theme:sakura', label: '樱花粉', iconSvg: '<svg/>', keepOpen: true, onSelect: () => 'child' },
       ],
     },
   ])
@@ -42,5 +42,6 @@ test('tray menu keeps visible children for submenus', () => {
   const children = model.items[0].children || []
   assert.deepEqual(children.map(item => item.id), ['theme:sakura'])
   assert.equal(children[0].iconSvg, '<svg/>')
+  assert.equal(children[0].keepOpen, true)
   assert.equal('onSelect' in children[0], false)
 })

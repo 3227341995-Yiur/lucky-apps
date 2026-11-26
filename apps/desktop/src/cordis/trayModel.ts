@@ -18,6 +18,8 @@ export interface TrayMenuItem {
   style?: Record<string, string | number>
   /** 打开菜单时求值；返回 false 则不显示 */
   when?: () => boolean
+  /** 选中后不关闭菜单，适合切换类操作（如换主题）。 */
+  keepOpen?: boolean
   /** 二级菜单：一级项悬浮后在左侧展开，子项支持同样的字段。 */
   children?: TrayMenuItem[]
   onSelect?: () => unknown
@@ -39,6 +41,7 @@ export interface TrayMenuRow {
   disabled?: boolean
   className?: string
   style?: Record<string, string | number>
+  keepOpen?: boolean
   children?: TrayMenuRow[]
 }
 
@@ -71,6 +74,7 @@ function toRow(item: TrayMenuItem): TrayMenuRow {
     disabled: Boolean(item.disabled),
     className: item.className,
     style: item.style,
+    keepOpen: Boolean(item.keepOpen),
     ...(children.length ? { children } : {}),
   }
 }

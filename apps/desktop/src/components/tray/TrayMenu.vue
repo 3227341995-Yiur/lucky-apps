@@ -90,9 +90,13 @@ function applyModel(model: TrayMenuModel | null) {
   syncTheme()
   title.value = model?.title || 'Lucky Apps'
   applyStyles(model?.styles)
-  openId.value = null
+  const previous = openId.value
   const items = Array.isArray(model?.items) ? model.items : []
   rows.value = items.some(item => !item.separator) ? items : FALLBACK_ROWS
+  // 菜单开着时插件更新了模型（比如换主题刷新勾选），二级面板保持展开。
+  openId.value = previous && rows.value.some(row => row.id === previous && row.children?.length)
+    ? previous
+    : null
   requestAnimationFrame(() => void resizeToContent())
 }
 
@@ -156,6 +160,11 @@ async function select(item: TrayMenuRow) {
   // 一级项只负责展开二级面板，真正执行的是子项的 onSelect。
   if (item.children?.length) {
     openSubmenu(item)
+    return
+  }
+  // keepOpen 的项（比如换主题）执行完不关菜单，方便连续切换。
+  if (item.keepOpen) {
+    await emitTo('main', 'tray:menu-select', { id: item.id })
     return
   }
   void invoke('hide_tray_menu')
@@ -311,7 +320,9 @@ onBeforeUnmount(() => {
           </span>
           <span class="tray-label">{{ item.label }}</span>
           <span v-if="item.hint" class="tray-hint">{{ item.hint }}</span>
-          <span v-if="item.children?.length" class="tray-arrow" aria-hidden="true">›</span>
+          <span v-if="item.children?.length" class="tray-arrow" aria-hidden="true">
+            <component :is="'ArrowLeft'" />
+          </span>
         </button>
       </template>
       <div v-if="!rows.length" class="tray-empty">暂无菜单项</div>
@@ -458,15 +469,20 @@ body,
 }
 
 .tray-arrow {
+  display: inline-flex;
   flex: none;
+  align-items: center;
   margin-left: auto;
   color: var(--wr-muted);
-  font-size: 14px;
-  line-height: 1;
+}
+
+.tray-arrow :deep(svg) {
+  width: 16px;
+  height: 16px;
 }
 
 .tray-hint + .tray-arrow {
-  margin-left: 0;
+  margin-left: 6px;
 }
 
 .tray-separator {
